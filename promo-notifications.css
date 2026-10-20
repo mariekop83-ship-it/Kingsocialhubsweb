@@ -1,0 +1,23 @@
+/* King Social Hub — premium featured promo banner and notification polish */
+#adBanner.kls-featured-banner{position:relative;isolation:isolate;overflow:hidden;margin:12px auto 18px;width:min(1180px,calc(100% - 28px));border-radius:22px;border:1px solid rgba(74,222,128,.34);background:radial-gradient(ellipse at 8% 0%,rgba(34,197,94,.23),transparent 48%),linear-gradient(115deg,#07140d 0%,#10251a 48%,#111827 100%);box-shadow:0 16px 42px rgba(0,0,0,.18);color:#f8fafc;animation:klsPromoIn .45s ease both}
+#adBanner.kls-featured-banner[style*="display: none"]{display:none!important}
+.kls-promo-glow{position:absolute;inset:auto -40px -80px auto;width:220px;height:220px;border-radius:50%;background:rgba(34,197,94,.16);filter:blur(18px);pointer-events:none;z-index:-1}
+.kls-promo-inner{position:relative;z-index:1;display:flex;align-items:center;gap:17px;min-height:118px;padding:18px 110px 18px 20px;color:inherit;text-decoration:none}
+.kls-promo-inner>img{width:104px;height:84px;object-fit:cover;border-radius:14px;border:1px solid rgba(255,255,255,.18);flex:0 0 auto}
+.kls-promo-crown{width:74px;height:74px;display:grid;place-items:center;flex:0 0 auto;border-radius:20px;background:linear-gradient(145deg,#22c55e,#15803d);color:white;font-size:43px;box-shadow:0 9px 28px rgba(22,163,74,.3)}
+.kls-promo-copy{display:flex;flex-direction:column;align-items:flex-start;min-width:0;gap:5px}
+.kls-promo-eyebrow{font-size:10px;letter-spacing:.16em;font-weight:900;color:#86efac}
+#adBanner.kls-featured-banner .ad-banner-title{font-size:clamp(16px,2.4vw,22px);font-weight:900;line-height:1.25;color:#fff}
+.kls-promo-message{font-size:13px;line-height:1.45;color:rgba(241,245,249,.8);max-width:720px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kls-promo-cta{margin-top:3px;display:inline-flex;gap:7px;align-items:center;font-size:12px;font-weight:800;color:#86efac}
+.kls-promo-controls{position:absolute;right:49px;bottom:15px;display:flex;align-items:center;gap:6px;z-index:2}
+.kls-promo-count{font-size:10px;color:rgba(255,255,255,.65);margin-right:3px}
+.kls-promo-controls button{width:28px;height:28px;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:white;font-size:22px;line-height:1;cursor:pointer}
+#adBanner.kls-featured-banner .ad-banner-close{position:absolute;top:10px;right:10px;z-index:3;width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.22);color:white;font-size:21px;line-height:1;cursor:pointer;display:grid;place-items:center}
+@keyframes klsPromoIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media(max-width:600px){#adBanner.kls-featured-banner{width:calc(100% - 20px);border-radius:17px;margin:9px auto 14px}.kls-promo-inner{gap:11px;min-height:104px;padding:15px 42px 35px 13px}.kls-promo-inner>img{width:65px;height:65px;border-radius:11px}.kls-promo-crown{width:56px;height:56px;border-radius:15px;font-size:32px}.kls-promo-eyebrow{font-size:8.5px;letter-spacing:.11em}#adBanner.kls-featured-banner .ad-banner-title{font-size:16px}.kls-promo-message{font-size:11.5px;-webkit-line-clamp:2}.kls-promo-cta{font-size:11px}.kls-promo-controls{left:13px;right:auto;bottom:8px}.kls-promo-count{font-size:9px}}
+/* Keep toast banners clear of device cut-outs and visually consistent. */
+#klsBanners{padding:calc(12px + env(safe-area-inset-top)) 12px 12px!important}
+.kls-b{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.kls-card{box-shadow:0 28px 90px rgba(0,0,0,.45)}
+@media(max-width:520px){.kls-b{border-radius:14px;padding:13px 14px}.kls-card{padding:20px 17px 16px}.kls-card .row{flex-direction:column-reverse}.kls-card button{min-height:46px}}
