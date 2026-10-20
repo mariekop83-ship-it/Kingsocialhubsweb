@@ -1,0 +1,184 @@
+
+/* KING SOCIAL HUB global visual layer — presentation only; preserves page structure and functionality. */
+:root{
+ --kb-cyan:#22c55e; --kb-blue:#16a34a; --kb-pink:#22c55e; --kb-ink:#08080f;
+ --kb-glass:rgba(14,14,24,.78); --kb-edge:rgba(34,197,94,.28);
+}
+html { background:#08080f; }
+html[data-theme="light"] { background:#f7f7fb; }
+
+/* Backgrounds: your three artworks, mixed per page group (see js/king-brand.js).
+   Body is transparent so the artwork shows; an overlay keeps text readable in BOTH themes. */
+body{
+ background:transparent !important; background-color:transparent !important; background-image:none !important;
+ color:var(--t1,#eeeef5);
+ --kb-ov:linear-gradient(180deg,rgba(8,8,15,.30),rgba(8,8,15,.62));
+ --kb-img:url('/img/king-bg-wave.webp'),url('/img/king-bg.webp'),linear-gradient(160deg,#0b1a12 0%,#08080f 55%,#0a1410 100%);
+}
+html[data-theme] body{--kb-ov:linear-gradient(180deg,rgba(8,8,15,.28),rgba(8,8,15,.58))}
+body::before{
+ content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+ background-image:var(--kb-ov),var(--kb-img);
+ background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+body.kb-bg-social{--kb-img:url('/img/king-bg-social.webp'),url('/img/king-bg.webp'),linear-gradient(160deg,#0b1a12 0%,#08080f 55%,#0a1410 100%)}
+body.kb-bg-wave{--kb-img:url('/img/king-bg-wave.webp'),url('/img/king-bg.webp'),linear-gradient(160deg,#0b1a12 0%,#08080f 55%,#0a1410 100%)}
+body.kb-bg-hero{--kb-img:url('/img/king-bg-hero.webp'),url('/img/king-bg.webp'),linear-gradient(160deg,#0b1a12 0%,#08080f 55%,#0a1410 100%)}
+body.kb-bg-speed{--kb-img:url('/img/king-bg-speed.webp'),url('/img/king-bg.webp'),linear-gradient(160deg,#0b1a12 0%,#08080f 55%,#0a1410 100%)}
+body.kb-bg-phone{--kb-img:url('/img/king-bg-phone.webp'),url('/img/king-bg.webp'),linear-gradient(160deg,#0b1a12 0%,#08080f 55%,#0a1410 100%)}
+
+/* Header: dark glass in dark theme, light glass in light theme (fixes invisible Login text) */
+.navbar,.topbar,.app-header,.sidebar,.bottom-tabbar{ backdrop-filter:blur(18px) saturate(1.25); }
+html[data-theme="dark"] .navbar,html[data-theme="dark"] .app-header,html[data-theme="dark"] .topbar{background:rgba(8,8,15,.88)!important;border-color:rgba(34,197,94,.2)!important}
+html[data-theme="light"] .navbar,html[data-theme="light"] .app-header,html[data-theme="light"] .topbar{background:rgba(255,255,255,.92)!important;border-color:rgba(22,163,74,.18)!important}
+.brand-icon,.dbfl-crown-svg{
+ background: url('/img/king-social-hub-icon.svg') center/cover no-repeat, url('/img/king-social-hub-icon.svg') center/cover no-repeat !important;
+ border:1px solid rgba(74,222,128,.45)!important;
+ box-shadow:0 0 22px rgba(22,163,74,.28)!important;
+}
+.brand-icon>svg,.dbfl-crown-svg>svg{display:none!important}
+.brand-ksl,.brand-name,.site-brand{
+ color:#f2fff7!important;
+ background:linear-gradient(95deg,#fff 0%,#22c55e 52%,#4ade80 100%);
+ -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.btn-primary,.btn-gold,.btn-nav-reg,.hero-cta,.buy-btn,.prod-select-btn,
+button.primary{
+ background:linear-gradient(115deg,#16a34a,#22c55e 60%,#4ade80)!important;border:1px solid rgba(74,222,128,.45)!important;
+ box-shadow:0 8px 28px rgba(22,163,74,.22)!important;
+}
+.card,.kls-card,.stat-card,.panel,.box,.glass,.section-card,.tool-card,.log-card,
+.prod-card,.modal-content,.settings-card,.wallet-card{
+ border-color:rgba(34,197,94,.2)!important;
+ box-shadow:0 14px 36px rgba(0,0,0,.16);
+}
+input,select,textarea{max-width:100%}
+img{max-width:100%}
+html[data-theme="light"] .brand-ksl,html[data-theme="light"] .brand-name,html[data-theme="light"] .site-brand{
+ background:linear-gradient(95deg,#14532d 0%,#16a34a 55%,#15803d 100%);
+ -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+@media(max-width:700px){
+ /* phones are portrait: pick the part of each artwork that shows its best bit */
+ body.kb-bg-social::before{background-position:55% center}
+ body.kb-bg-hero::before{background-position:50% center}
+ body.kb-bg-phone::before{background-position:78% center}
+ body.kb-bg-speed::before{background-position:50% center}
+ .brand-icon{flex-shrink:0}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+/* King Social Hub is dark-only: hide the light/dark toggles */
+#themeBtn,#mThemeToggle,#dshThemeBtn,.theme-toggle-wrap{display:none!important}
+
+/* Phones: keep logo + name + Login + Get Started on one row (no cut-off) */
+@media(max-width:480px){
+ .nav-inner{gap:6px!important;padding:0 10px!important}
+ .brand-ksl{font-size:15px!important;letter-spacing:0!important;gap:3px!important}
+ .brand-verified{width:12px!important;height:12px!important}
+ .nav-guest{display:flex;gap:5px}
+ .btn-nav-login,.btn-nav-reg{padding:7px 10px!important;font-size:12px!important;white-space:nowrap;min-height:0!important}
+ .kls-lang-btn{padding:6px 7px!important}
+}
+/* Readability of body text over busy artwork */
+.hero-p,.welcome-hero p{text-shadow:0 1px 8px rgba(8,8,15,.85);color:#c8c8dc!important}
+
+/* Page wrappers that painted a solid colour over the artwork */
+.dsh-shell{background:transparent!important}
+
+/* ── Brand accent: King green ─────────────────────────────────────────── */
+html:root[data-theme]{ --accent:#16a34a; --primary:#16a34a; }
+/* Dashboard balance card (was solid green) */
+.dsh-balance-card{
+ background:linear-gradient(135deg,#15803d 0%,#16a34a 48%,#22c55e 100%)!important;
+ box-shadow:0 10px 30px rgba(22,163,74,.38),0 4px 18px rgba(34,197,94,.22)!important;
+}
+.dsh-balance-card .dsh-add-btn,.dsh-balance-card button{color:#14532d}
+
+/* Dashboard: remaining green brand bits -> blue/pink (success ticks/amounts stay green on purpose) */
+.dsh-avatar{background:linear-gradient(135deg,#16a34a,#22c55e)!important}
+.svc-blue{background:#e8f9ee!important;color:#16a34a!important}
+.svc-emerald{background:#e8f9ee!important;color:#15803d!important}
+.dsh-promo{background:linear-gradient(135deg,#15803d 0%,#16a34a 50%,#22c55e 100%)!important}
+.dsh-icon-btn:hover{background:rgba(22,163,74,.16)!important}
+
+/* Shared header + chips on inner pages */
+.nav-avatar{background:linear-gradient(135deg,#16a34a,#22c55e)!important;color:#fff!important}
+.nav-balance-btn{background:rgba(22,163,74,.12)!important;border-color:rgba(22,163,74,.32)!important;color:#4ade80!important}
+.ph-chip{background:rgba(22,163,74,.14)!important;color:#4ade80!important}
+
+/* Success / money-in states stay green on purpose */
+.dsh-activity-amt.credit,.dsh-activity-status.ok{color:#22c55e!important}
+.dsh-stat-dot,.pdot{background:#22c55e!important}
+.online-pill{color:#22c55e!important}
+
+/* Brighter artworks get a slightly darker overlay + text shadow so headings stay readable */
+html[data-theme] body.kb-bg-speed{--kb-ov:linear-gradient(180deg,rgba(8,8,15,.46),rgba(8,8,15,.76))}
+html[data-theme] body.kb-bg-phone{--kb-ov:linear-gradient(180deg,rgba(8,8,15,.36),rgba(8,8,15,.66))}
+.page-hero h1,.page-hero p,.ph-sub,.hub-back,.boost-hub .lead,.boost-hub h1{text-shadow:0 1px 10px rgba(8,8,15,.9)}
+
+/* ══ Moving "King Social Hub" name across the whole background ═════════════════ */
+#kb-drift{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;user-select:none;-webkit-user-select:none}
+#kb-drift .kb-row{position:absolute;left:0;white-space:nowrap;display:flex;width:max-content;
+ font-family:"Sora","Plus Jakarta Sans",system-ui,sans-serif;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+ color:transparent;-webkit-text-stroke:1.5px rgba(134,239,172,.50);will-change:transform;
+ animation:kb-slide var(--kb-dur,60s) linear infinite;animation-direction:var(--kb-dir,normal)}
+#kb-drift .kb-row span{padding-right:.9em;flex:none}
+#kb-drift .kb-row.kb-fill span:nth-child(3n){color:rgba(34,197,94,.10);-webkit-text-stroke-color:transparent}
+#kb-drift .kb-row.kb-pink span:nth-child(2n){-webkit-text-stroke-color:rgba(74,222,128,.34)}
+@keyframes kb-slide{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
+#kb-drift .kb-float{position:absolute;font-family:"Sora",system-ui,sans-serif;font-weight:800;white-space:nowrap;letter-spacing:.08em;
+ color:rgba(134,239,172,.26);text-shadow:0 0 24px rgba(22,163,74,.35);animation:kb-bob var(--kb-dur,14s) ease-in-out infinite;animation-delay:var(--kb-del,0s)}
+@keyframes kb-bob{0%,100%{transform:translate3d(0,0,0) rotate(var(--kb-rot,-8deg))}50%{transform:translate3d(24px,-26px,0) rotate(calc(var(--kb-rot,-8deg) + 5deg))}}
+
+/* ══ Feature cards: transparent, only the icon + name ═════════════════════ */
+.why-card,.kls-what-card,.rs-item{
+ background:transparent!important;border:0!important;box-shadow:none!important;
+ -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.why-card,.kls-what-card{display:flex!important;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:18px 10px!important}
+.why-card p,.kls-what-card p,.kls-what-card .kls-go{display:none!important}
+.why-card h3,.kls-what-card h3,.rs-item span{color:#ecfdf3!important;font-weight:800!important;text-shadow:0 1px 12px rgba(8,8,15,.9)}
+.why-card .why-icon,.rs-item .rs-ic,.kls-what-card .kls-what-ico{
+ width:46px!important;height:46px!important;margin:0 auto!important;display:flex;align-items:center;justify-content:center;
+ color:#22c55e!important;background:transparent!important;border:0!important;box-shadow:none!important;
+ filter:drop-shadow(0 0 10px rgba(34,197,94,.55));animation:kb-icon-float 4.2s ease-in-out infinite}
+.kls-what-card .kls-what-ico svg{width:40px;height:40px}
+.kls-what-card:hover,.why-card:hover{transform:translateY(-4px) scale(1.04)!important}
+.kls-what-card,.why-card,.rs-item{transition:transform .3s cubic-bezier(.2,.8,.3,1.2)}
+.rs-item{display:flex;flex-direction:column!important;align-items:center;text-align:center;gap:8px}
+@keyframes kb-icon-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+
+/* ══ Appear animation for the feature cards (set up by king-brand.js) ═ */
+.kb-reveal{opacity:0;transform:translateY(34px) scale(.86);filter:blur(6px)}
+.kb-reveal.kb-in{animation:kb-pop .75s cubic-bezier(.2,.9,.3,1.25) forwards;animation-delay:var(--kb-d,0s)}
+.kb-reveal.kb-from-left{transform:translateX(-40px) scale(.86)}
+.kb-reveal.kb-from-right{transform:translateX(40px) scale(.86)}
+@keyframes kb-pop{0%{opacity:0;filter:blur(6px)}60%{opacity:1;filter:blur(0)}100%{opacity:1;transform:none;filter:blur(0)}}
+@media(prefers-reduced-motion:reduce){
+ #kb-drift .kb-row,#kb-drift .kb-float,.why-icon,.rs-ic,.kls-what-ico{animation:none!important}
+ .kb-reveal{opacity:1!important;transform:none!important;filter:none!important}
+}
+
+/* Brighter King artworks: darker overlay + glow so green headings stay readable */
+html[data-theme] body.kb-bg-hero{--kb-ov:linear-gradient(180deg,rgba(8,8,15,.50),rgba(8,8,15,.80))}
+html[data-theme] body.kb-bg-social{--kb-ov:linear-gradient(180deg,rgba(8,8,15,.46),rgba(8,8,15,.78))}
+.hero-h1,.hero-h1 *{text-shadow:0 2px 14px rgba(0,0,0,.85)}
+
+/* ══ Page loader: King crown + logo, shown until the next page has entered ══ */
+#kb-loader{position:fixed;inset:0;z-index:100000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+ background:radial-gradient(ellipse at 50% 40%,rgba(22,163,74,.22),rgba(8,8,15,.97) 62%),#08080f;
+ opacity:1;visibility:visible;transition:opacity .35s ease,visibility .35s ease}
+#kb-loader.kb-hide{opacity:0;visibility:hidden;pointer-events:none}
+#kb-loader .kb-crown{font-size:40px;line-height:1;filter:drop-shadow(0 0 14px rgba(74,222,128,.8));animation:kb-crown 1.4s ease-in-out infinite}
+#kb-loader .kb-logo{position:relative;width:104px;height:104px;border-radius:26px;
+ background:url('/img/king-social-hub-icon.svg') center/cover no-repeat,url('/img/king-social-hub-icon.svg') center/cover no-repeat;
+ border:1px solid rgba(74,222,128,.5);box-shadow:0 0 36px rgba(34,197,94,.45)}
+#kb-loader .kb-logo::after{content:"";position:absolute;inset:-9px;border-radius:32px;border:3px solid rgba(34,197,94,.18);border-top-color:#4ade80;animation:kb-spin 1s linear infinite}
+#kb-loader .kb-name{font-family:"Sora",system-ui,sans-serif;font-weight:800;letter-spacing:.2em;text-transform:uppercase;font-size:14px;color:#ecfdf3;text-shadow:0 0 14px rgba(34,197,94,.7)}
+#kb-loader .kb-sub{font-size:12px;color:#8fd8a8;letter-spacing:.08em}
+@keyframes kb-spin{to{transform:rotate(360deg)}}
+@keyframes kb-crown{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-8px) scale(1.12)}}
+/* the in-app page-switch overlay (index) gets the crown too */
+.dbfl-brand::before{content:"👑";position:absolute;top:-34px;left:50%;transform:translateX(-50%);font-size:26px;animation:kb-crown 1.4s ease-in-out infinite}
