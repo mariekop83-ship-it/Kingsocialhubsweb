@@ -168,3 +168,6 @@
     new MutationObserver(later).observe(document.body,{childList:true,subtree:true});
   });
 })();
+
+/* KSH-UPDATE-9 */
+try{if(localStorage.getItem('ksl_token'))document.documentElement.classList.add('ksh-in');}catch(e){}

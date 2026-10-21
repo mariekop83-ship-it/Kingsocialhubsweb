@@ -304,38 +304,6 @@
   </section>
 
 
-  <section class="dsh-card" id="kshMarket">
-    <div class="dsh-card-head"><span class="dsh-card-title">Marketplace</span><button type="button" class="ksh-seeall" id="kshSeeAll">See all &rsaquo;</button></div>
-    <div class="ksh-mk-list" id="kshMkList"><div class="ksh-mk-empty">Loading&hellip;</div></div>
-  </section>
-  <div class="ksh-sheet-bd" id="kshSheetBd"></div>
-  <div class="ksh-sheet" id="kshSheet" role="dialog" aria-label="Choose a marketplace">
-    <div class="ksh-sheet-head"><b>Choose a marketplace</b><button type="button" id="kshSheetX" aria-label="Close">&times;</button></div>
-    <a href="/marketplace2">Marketplace 2 <span>&rsaquo;</span></a>
-    <a href="/marketplace3">Marketplace 3 <span>&rsaquo;</span></a>
-    <a href="/marketplace4">Marketplace 4 <span>&rsaquo;</span></a>
-  </div>
-  <script>
-  (function(){
-    var sheet=document.getElementById('kshSheet'),bd=document.getElementById('kshSheetBd'),list=document.getElementById('kshMkList');
-    function openS(){sheet.classList.add('open');bd.classList.add('open');}
-    function closeS(){sheet.classList.remove('open');bd.classList.remove('open');}
-    document.getElementById('kshSeeAll').addEventListener('click',openS);
-    document.getElementById('kshSheetX').addEventListener('click',closeS);
-    bd.addEventListener('click',closeS);
-    function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-    var t=null; try{t=localStorage.getItem('ksl_token');}catch(e){}
-    fetch('/api/logs?type=log',{headers:t?{Authorization:'Bearer '+t}:{}}).then(function(r){return r.ok?r.json():[];}).then(function(items){
-      items=(Array.isArray(items)?items:[]).filter(function(i){return i&&!i.soldOut;}).slice(0,4);
-      if(!items.length){list.innerHTML='<div class="ksh-mk-empty">No items yet. Tap See all to browse.</div>';return;}
-      list.innerHTML=items.map(function(i){
-        var p=(i.priceFrom!=null?i.priceFrom:i.price),pic=/^(https?:\/\/|\/)/.test(i.picture||'')?i.picture:'';
-        return '<a class="ksh-mk-item" href="/marketplace">'+(pic?'<img loading="lazy" alt="" src="'+esc(pic)+'">':'<div class="ksh-mk-ph">\uD83D\uDECD\uFE0F</div>')+'<b>'+esc(i.title)+'</b><span>'+(p!=null?'\u20A6'+Number(p).toLocaleString('en-NG'):'View')+'</span></a>';
-      }).join('');
-    }).catch(function(){list.innerHTML='<div class="ksh-mk-empty">Could not load items. Tap See all.</div>';});
-  })();
-  </script>
-
   <!-- FEATURES: 4-column grid right after the balance card -->
   <div class="dsh-card dsh-features-card">
     <div class="dsh-features-grid">
@@ -734,5 +702,53 @@
 
 <script src="/js/app-shell.js?v=2" defer></script>
   <script src="/js/page-transitions.js?v=1" defer></script>
+
+<!-- KSH-MARKETS -->
+<script>
+(function(){
+  var MK=[
+    {n:'Marketplace 1',u:'/api/logs?type=log',p:'/marketplace'},
+    {n:'Marketplace 2',u:'/api/market2/products',p:'/marketplace2'},
+    {n:'Marketplace 3',u:'/api/market3/products',p:'/marketplace3'}
+  ];
+  var t=null;try{t=localStorage.getItem('ksl_token');}catch(e){}
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function toArr(x){
+    if(Array.isArray(x))return x;
+    if(x&&typeof x==='object'){var k=['items','products','logs','data','results'];for(var i=0;i<k.length;i++){if(Array.isArray(x[k[i]]))return x[k[i]];}}
+    return [];
+  }
+  function good(i){return i&&i.soldOut!==true&&i.available!==false&&i.isActive!==false;}
+  function pic(i){
+    var p=i.picture||i.image||i.img||i.thumbnail||(Array.isArray(i.images)?i.images[0]:'')||'';
+    return (typeof p==='string'&&(p.indexOf('http')===0||p.charAt(0)==='/'))?p:'';
+  }
+  function card(i,page){
+    var p=(i.priceFrom!=null?i.priceFrom:i.price),im=pic(i),title=i.title||i.name||'Item';
+    return '<a class="ksh-mk-item" href="'+page+'">'+(im?'<img loading="lazy" alt="" src="'+esc(im)+'">':'<div class="ksh-mk-ph">&#128717;</div>')+'<b>'+esc(title)+'</b><span>'+(p!=null&&!isNaN(Number(p))?'&#8358;'+Number(p).toLocaleString('en-NG'):'View')+'</span></a>';
+  }
+  var a=document.querySelector('.dsh-svc-item');
+  var host=a?(a.parentElement.closest('.dsh-card')||a.parentElement):null;
+  var last=host;
+  MK.forEach(function(m){
+    var sec=document.createElement('section');
+    sec.className='dsh-card';
+    sec.innerHTML='<div class="dsh-card-head"><span class="dsh-card-title">'+m.n+'</span><a class="ksh-seeall" href="'+m.p+'">See all &rsaquo;</a></div><div class="ksh-mk-list"><div class="ksh-mk-empty">Loading&hellip;</div></div>';
+    if(last&&last.parentNode){last.parentNode.insertBefore(sec,last.nextSibling);last=sec;}else{document.body.appendChild(sec);}
+    var list=sec.querySelector('.ksh-mk-list');
+    fetch(m.u,{headers:t?{Authorization:'Bearer '+t}:{}}).then(function(r){return r.ok?r.json():[];}).then(function(x){
+      var arr=toArr(x),items=arr.filter(good);
+      if(!items.length)items=arr;
+      items=items.slice(0,8);
+      list.innerHTML=items.length?items.map(function(i){return card(i,m.p);}).join(''):'<div class="ksh-mk-empty">No items yet. Tap See all.</div>';
+    }).catch(function(){list.innerHTML='<div class="ksh-mk-empty">Could not load items. Tap See all.</div>';});
+  });
+  // hide the contact card if it only holds contact links
+  document.querySelectorAll('.dsh-contact-item').forEach(function(c){
+    var box=c.closest('.dsh-card,section');
+    if(box&&box.querySelectorAll('a').length===box.querySelectorAll('.dsh-contact-item').length)box.style.display='none';
+  });
+})();
+</script>
 </body>
 </html>

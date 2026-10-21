@@ -252,3 +252,16 @@ body:has(#numHowToCard) .pool-guide{display:none!important}
 
 /* KSH-UPDATE-6 */
 .brand-icon,.dbfl-crown-svg{background:url('/img/king-loader.svg') center/cover no-repeat!important;border-radius:50%!important}
+
+/* KSH-UPDATE-9 */
+*:has(> .dsh-svc-item){display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;overflow:visible!important}
+.dsh-svc-item{width:auto!important;min-width:0!important;margin:0!important;padding:10px 4px!important;font-size:11px!important}
+.ksh-mk-list{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important;padding:0 10px 12px!important}
+.ksh-mk-item img,.ksh-mk-item .ksh-mk-ph{height:auto!important;aspect-ratio:1/1;width:100%}
+.ksh-mk-item b{font-size:10.5px!important;padding:5px 5px 1px!important;line-height:1.25!important}
+.ksh-mk-item span{font-size:10.5px!important;padding:0 5px 6px!important}
+a.ksh-seeall{text-decoration:none!important}
+html.ksh-in .site-footer{display:none!important}
+html.ksh-in body:has(#page-settings.active) .site-footer{display:block!important}
+html.ksh-in a[href="/support"]:not([class*="fab"]):not([class*="float"]):not([id*="fab"]){display:none!important}
+.dsh-contact-item,.dsh-icon-btn{display:none!important}
