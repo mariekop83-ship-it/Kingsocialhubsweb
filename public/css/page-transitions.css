@@ -1,6 +1,6 @@
 /* King Social Hub — lightweight page-to-page transitions */
 :root { --ksh-transition-accent: var(--brand-primary, #16a34a); }
-html.ksh-transition-ready body > :not(#ksh-page-transition):not(script):not(style) {
+html.ksh-transition-ready body > :not(#ksh-page-transition):not(script):not(style):not(.ksh-drawer):not(.ksh-menu-backdrop) {
   animation: kshPageEnter .34s cubic-bezier(.2,.75,.25,1) both;
 }
 @keyframes kshPageEnter {
