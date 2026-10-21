@@ -251,6 +251,48 @@
     <h1>Account Settings</h1>
   </div>
   <div class="section-wrap">
+<!-- KSH-SETTINGS -->
+<div style="max-width:560px;margin:0 auto;padding:0 14px">
+  <div style="border:1px solid #252535;border-radius:14px;background:rgba(255,255,255,.03);padding:16px;margin:0 0 14px">
+    <h3 style="margin:0 0 12px">Profile picture</h3>
+    <div style="display:flex;align-items:center;gap:14px">
+      <img id="settingsAvatarPreview" alt="Profile" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid #16a34a;background:#0d0d0d">
+      <div>
+        <input type="file" id="profilePicInput" accept="image/*" onchange="uploadProfilePic()" style="color:#eeeef5;font-size:13px">
+        <div id="picFeedback" style="font-size:13px;margin-top:6px"></div>
+      </div>
+    </div>
+  </div>
+  <div style="border:1px solid #252535;border-radius:14px;background:rgba(255,255,255,.03);padding:16px;margin:0 0 14px">
+    <h3 style="margin:0 0 4px">Account info</h3>
+    <label style="font-size:13px;opacity:.8">Name</label>
+    <input id="settingsName" type="text" style="width:100%;box-sizing:border-box;padding:12px;margin:6px 0 10px;border-radius:10px;border:1px solid #2e2e42;background:#0d0d0d;color:#eeeef5;font-size:15px">
+    <label style="font-size:13px;opacity:.8">Email</label>
+    <input id="settingsEmail" type="email" style="width:100%;box-sizing:border-box;padding:12px;margin:6px 0 10px;border-radius:10px;border:1px solid #2e2e42;background:#0d0d0d;color:#eeeef5;font-size:15px">
+    <button type="button" onclick="updateProfile()" style="padding:11px 18px;border:0;border-radius:10px;background:#16a34a;color:#fff;font-weight:700;font-size:14px;cursor:pointer">Save changes</button>
+    <div id="profileFeedback" style="font-size:13px;margin-top:8px"></div>
+    <div style="margin-top:14px;font-size:14px">Registered on: <b id="accountCreatedAt">Loading...</b></div>
+  </div>
+  <div id="passwordCard" style="border:1px solid #252535;border-radius:14px;background:rgba(255,255,255,.03);padding:16px;margin:0 0 14px">
+    <h3 style="margin:0 0 4px">Change password</h3>
+    <input id="oldPass" type="password" placeholder="Current password" style="width:100%;box-sizing:border-box;padding:12px;margin:6px 0 10px;border-radius:10px;border:1px solid #2e2e42;background:#0d0d0d;color:#eeeef5;font-size:15px">
+    <input id="newPass" type="password" placeholder="New password (min 6 characters)" style="width:100%;box-sizing:border-box;padding:12px;margin:6px 0 10px;border-radius:10px;border:1px solid #2e2e42;background:#0d0d0d;color:#eeeef5;font-size:15px">
+    <input id="confirmPass" type="password" placeholder="Confirm new password" style="width:100%;box-sizing:border-box;padding:12px;margin:6px 0 10px;border-radius:10px;border:1px solid #2e2e42;background:#0d0d0d;color:#eeeef5;font-size:15px">
+    <button type="button" onclick="changePassword()" style="padding:11px 18px;border:0;border-radius:10px;background:#16a34a;color:#fff;font-weight:700;font-size:14px;cursor:pointer">Update password</button>
+    <div id="settingsFeedback" style="font-size:13px;margin-top:8px"></div>
+  </div>
+  <div id="setPasswordCard" style="display:none;border:1px solid #252535;border-radius:14px;background:rgba(255,255,255,.03);padding:16px;margin:0 0 14px">
+    <h3 style="margin:0 0 4px">Password</h3>
+    <p style="font-size:13px;opacity:.8;margin:0">You signed in with Google, so there is no password to change.</p>
+  </div>
+  <div style="border:1px solid #252535;border-radius:14px;background:rgba(255,255,255,.03);padding:16px;margin:0 0 14px">
+    <h3 style="margin:0 0 4px">Signed-in devices</h3>
+    <div id="devicesRuleNote" style="font-size:12.5px;opacity:.7;margin-bottom:6px"></div>
+    <div id="devicesList"></div>
+  </div>
+</div>
+<script>window.addEventListener('load',function(){setTimeout(function(){try{if(typeof loadSecurityPanel==='function')loadSecurityPanel();}catch(e){}},900);});</script>
+
 </div>
 
 <!-- TOAST -->

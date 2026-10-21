@@ -3,5 +3,4 @@
   <rect width="128" height="128" rx="28" fill="#050806"/>
   <circle cx="64" cy="64" r="51" fill="none" stroke="url(#g)" stroke-width="4"/>
   <path d="M31 43l13 8 10-17 10 15 12-15 8 17 13-8-4 23H35z" fill="url(#g)"/>
-  <path d="M42 72h22c17 0 27 9 27 22s-10 22-27 22H42zm17 12v20h5c8 0 12-3 12-10s-4-10-12-10z" transform="translate(0 -8) scale(.82) translate(8 8)" fill="#f4fff4"/>
 </svg>

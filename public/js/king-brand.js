@@ -138,3 +138,33 @@
   }
   document.addEventListener('DOMContentLoaded',function(){run();setTimeout(run,600);setTimeout(run,1800);});
 })();
+
+/* KSH-UPDATE-5 */
+(function(){
+  if(!document.getElementById('numHowToCard'))return;
+  var heads=['how buying works on this server','notifications you will get'];
+  function hasCtl(n){return n.querySelector&&n.querySelector('button,input,select,textarea,a');}
+  function clean(){
+    document.querySelectorAll('.step-label').forEach(function(e){
+      var t=(e.textContent||'').trim().toLowerCase();
+      if(heads.indexOf(t)<0)return;
+      var n=e.nextElementSibling,c=0;
+      while(n&&c<6&&n.className.indexOf('step-label')<0&&!hasCtl(n)&&!/^H[1-6]$/.test(n.tagName)){
+        n.style.setProperty('display','none','important');n=n.nextElementSibling;c++;
+      }
+      e.style.setProperty('display','none','important');
+    });
+    document.querySelectorAll('div,p,span').forEach(function(e){
+      if(e.children.length===0&&/Stock and prices here change/i.test(e.textContent||'')){
+        var p=e.parentElement,tgt=(p&&p!==document.body&&(p.textContent||'').length<(e.textContent||'').length+40)?p:e;
+        tgt.style.setProperty('display','none','important');
+      }
+    });
+  }
+  var tm=null;
+  function later(){clearTimeout(tm);tm=setTimeout(clean,120);}
+  document.addEventListener('DOMContentLoaded',function(){
+    clean();
+    new MutationObserver(later).observe(document.body,{childList:true,subtree:true});
+  });
+})();

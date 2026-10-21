@@ -244,3 +244,11 @@ html.ksh-locked{overflow:hidden!important}
 .dsh-svc-item{width:auto!important;min-width:0!important;margin:0!important;padding:10px 4px!important;border-radius:12px!important;font-size:11px!important;text-align:center}
 .dsh-svc-item *{max-width:100%}
 @media(max-width:340px){*:has(> .dsh-svc-item){grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+
+/* KSH-UPDATE-5 */
+body:has(#numHowToCard) .back-btn[href="/dashboard"],
+body:has(#numHowToCard) .back-btn[href="/number-history"],
+body:has(#numHowToCard) .pool-guide{display:none!important}
+
+/* KSH-UPDATE-6 */
+.brand-icon,.dbfl-crown-svg{background:url('/img/king-loader.svg') center/cover no-repeat!important;border-radius:50%!important}
