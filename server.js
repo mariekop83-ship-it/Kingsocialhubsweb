@@ -8684,6 +8684,8 @@ app.post('/api/admin/restock-announce', anyAdminAuth, async (req, res) => {
 app.all('/api/*', (req, res) => {
   res.status(404).json({ error: `Unknown API endpoint: ${req.method} ${req.path}` });
 });
+// KSH-UPDATE-4
+app.get(['/tutorials', '/help'], (req, res) => res.sendFile(path.join(__dirname, 'public', req.path.replace(/^\//, '') + '.html')));
 app.get('*', (req, res) => {
   // Always hand back the freshly built HTML — no stale home page from a cache.
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');

@@ -238,3 +238,9 @@ html.ksh-locked{overflow:hidden!important}
 .ksh-sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;color:#eeeef5}
 .ksh-sheet-head button{width:34px;height:34px;border-radius:10px;border:1px solid #2e2e42;background:#131320;color:#eeeef5;font-size:20px;cursor:pointer}
 .ksh-sheet a{display:flex;align-items:center;justify-content:space-between;padding:14px 12px;margin:6px 0;border:1px solid #252535;border-radius:12px;background:#131320;color:#eeeef5;text-decoration:none;font-weight:700;font-size:14px}
+
+/* KSH-UPDATE-3 */
+*:has(> .dsh-svc-item){display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;overflow:visible!important}
+.dsh-svc-item{width:auto!important;min-width:0!important;margin:0!important;padding:10px 4px!important;border-radius:12px!important;font-size:11px!important;text-align:center}
+.dsh-svc-item *{max-width:100%}
+@media(max-width:340px){*:has(> .dsh-svc-item){grid-template-columns:repeat(3,minmax(0,1fr))!important}}

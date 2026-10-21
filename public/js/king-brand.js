@@ -114,3 +114,27 @@
     try{ var u=new URL(a.href,location.href); if(u.origin===location.origin && (u.pathname!==location.pathname||u.search!==location.search)){ show(); setTimeout(function(){ if(document.visibilityState==='visible') hide(); },5000); } }catch(e){}
   },true);
 })();
+
+/* KSH-UPDATE-3 */
+(function(){
+  var re=/notif|bell|lang|flag|support|headset|help|contact|chat/i;
+  function run(){
+    var els=document.querySelectorAll('a,button,div,span');
+    for(var i=0;i<els.length;i++){
+      var e=els[i];
+      if(e.dataset.kshHid)continue;
+      var sig=(e.className&&e.className.baseVal!==undefined?e.className.baseVal:e.className)+' '+(e.id||'')+' '+(e.getAttribute('aria-label')||'')+' '+(e.getAttribute('href')||'');
+      if(!re.test(sig))continue;
+      if(e.closest('.ksh-drawer'))continue;
+      var r=e.getBoundingClientRect();
+      if(r.width>90||r.height>90||r.width<10)continue;
+      if(r.top<0||r.top>110)continue;
+      var fixed=false,n=e;
+      while(n&&n!==document.body){if(getComputedStyle(n).position==='fixed'){fixed=true;break;}n=n.parentElement;}
+      if(fixed)continue;
+      e.style.setProperty('display','none','important');
+      e.dataset.kshHid='1';
+    }
+  }
+  document.addEventListener('DOMContentLoaded',function(){run();setTimeout(run,600);setTimeout(run,1800);});
+})();
