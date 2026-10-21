@@ -972,7 +972,97 @@ tr:hover td{background:rgba(255,255,255,.035)}
       </div>
     </div>
     <!-- ══════════════ BUYNUMBER 2 (Server 2 · GrizzlySMS) ══════════════ -->
-    <div id="tab-numbers2" class="tab-panel">
+    
+<!-- KSH-ADMIN-TABS -->
+<div id="tab-otp2" class="tab-panel">
+  <div class="sec-title">Buy Number 2 (OTP Suite)</div>
+  <div id="kshOtpStatus" style="margin:8px 0">Loading...</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">
+    <button class="btn-primary" type="button" id="kshOtpToggle">...</button>
+    <input id="kshOtpMarkup" type="number" min="0" placeholder="Markup (NGN)" style="padding:8px;border-radius:8px;max-width:160px">
+    <button class="btn-primary" type="button" onclick="kshOtpSaveMarkup()">Save markup</button>
+    <button class="btn-primary" type="button" onclick="kshOtpBalance()">Check provider balance</button>
+  </div>
+  <div id="kshOtpBal" style="margin:6px 0"></div>
+  <div class="sec-title" style="margin-top:14px">Recent orders</div>
+  <div id="kshOtpOrders" style="overflow:auto">Loading...</div>
+</div>
+<div id="tab-boost2adm" class="tab-panel">
+  <div class="sec-title">Boost 2 services</div>
+  <div style="margin:10px 0"><button class="btn-primary" type="button" onclick="kshB2Sync()">Sync from provider</button></div>
+  <div id="kshB2Msg" style="margin:6px 0"></div>
+  <input id="kshB2Q" placeholder="Search services..." oninput="kshB2Render()" style="padding:8px;border-radius:8px;width:100%;max-width:360px;margin-bottom:8px">
+  <div id="kshB2List" style="overflow:auto">Loading...</div>
+</div>
+<div id="tab-tutorialsadm" class="tab-panel">
+  <div class="sec-title">Tutorials</div>
+  <p style="opacity:.8;font-size:14px;line-height:1.5">Product tutorials (images, video or link) are added inside each product. Open Logs, edit a product and use its Tutorial section. Deposit tutorials have their own page.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+    <button class="btn-primary" type="button" onclick="switchTab('logs')">Product tutorials (Logs)</button>
+    <button class="btn-primary" type="button" onclick="switchTab('deptutorials')">Deposit tutorials</button>
+  </div>
+  <div id="kshTutList" style="margin-top:14px"></div>
+</div>
+<script>
+(function(){
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  var otp=null;
+  function otpBtn(){var b=document.getElementById('kshOtpToggle');if(b&&otp)b.textContent='Buy Number 2 is '+(otp.enabled?'ON (tap to turn off)':'OFF (tap to turn on)');}
+  window.kshOtpLoad=async function(){
+    try{otp=await aFetch('/api/admin/otp-suite/status');
+      document.getElementById('kshOtpStatus').innerHTML='Provider key: <b>'+(otp.configured?'configured':'NOT set')+'</b> &middot; Markup: <b>'+esc(otp.markupNgn)+'</b> NGN';
+      document.getElementById('kshOtpMarkup').value=otp.markupNgn==null?'':otp.markupNgn;otpBtn();}
+    catch(e){document.getElementById('kshOtpStatus').textContent='Error: '+e.message;}
+    kshOtpOrders();
+  };
+  document.addEventListener('click',async function(ev){
+    if(ev.target&&ev.target.id==='kshOtpToggle'&&otp){
+      try{await aFetch('/api/admin/otp-suite/config','PUT',{enabled:!otp.enabled});otp.enabled=!otp.enabled;otpBtn();}catch(e){alert(e.message);}
+    }
+  });
+  window.kshOtpSaveMarkup=async function(){
+    try{await aFetch('/api/admin/otp-suite/config','PUT',{markupNgn:Number(document.getElementById('kshOtpMarkup').value||0)});alert('Markup saved');kshOtpLoad();}catch(e){alert(e.message);}
+  };
+  window.kshOtpBalance=async function(){
+    var el=document.getElementById('kshOtpBal');
+    try{var b=await aFetch('/api/admin/otp-suite/balance');el.textContent='Provider balance: '+JSON.stringify(b);}catch(e){el.textContent='Error: '+e.message;}
+  };
+  async function kshOtpOrders(){
+    var el=document.getElementById('kshOtpOrders');
+    try{var rows=await aFetch('/api/admin/otp-suite/orders');
+      if(!Array.isArray(rows)||!rows.length){el.textContent='No orders yet.';return;}
+      el.innerHTML='<table style="width:100%;font-size:13px;border-collapse:collapse"><tr><th align=left>Order</th><th align=left>Number</th><th align=left>Service</th><th align=left>Price</th><th align=left>Status</th><th></th></tr>'+
+      rows.map(function(o){var id=o.id||o._id;return '<tr style="border-top:1px solid #252535"><td>'+esc(String(id).slice(-6))+'</td><td>'+esc(o.phoneNumber||o.number||o.phone||'')+'</td><td>'+esc(o.service||o.serviceName||'')+'</td><td>'+esc(o.price!=null?o.price:(o.amount!=null?o.amount:''))+'</td><td>'+esc(o.status||'')+(o.lastError?' <small>'+esc(o.lastError)+'</small>':'')+'</td><td><button type="button" onclick="kshOtpRefund(\''+esc(id)+'\')">Refund</button></td></tr>';}).join('')+'</table>';
+    }catch(e){el.textContent='Error: '+e.message;}
+  }
+  window.kshOtpRefund=async function(id){
+    if(!confirm('Refund this order to the customer?'))return;
+    try{await aFetch('/api/admin/otp-suite/orders/'+encodeURIComponent(id)+'/refund','POST',{});alert('Refunded');kshOtpOrders();}catch(e){alert(e.message);}
+  };
+
+  var b2=[];
+  window.kshB2Load=async function(){
+    var el=document.getElementById('kshB2List');
+    try{var d=await aFetch('/api/admin/boost2/services');b2=Array.isArray(d)?d:(d&&(d.services||d.list))||[];kshB2Render();}
+    catch(e){el.textContent='Error: '+e.message;}
+  };
+  window.kshB2Render=function(){
+    var q=(document.getElementById('kshB2Q').value||'').toLowerCase(),el=document.getElementById('kshB2List');
+    var rows=b2.filter(function(s){return !q||JSON.stringify(s).toLowerCase().indexOf(q)>-1;}).slice(0,200);
+    el.innerHTML=rows.length?'<table style="width:100%;font-size:13px;border-collapse:collapse"><tr><th align=left>ID</th><th align=left>Name</th><th align=left>Rate</th><th align=left>Enabled</th></tr>'+rows.map(function(s){return '<tr style="border-top:1px solid #252535"><td>'+esc(s.id||s.service||'')+'</td><td>'+esc(s.name||'')+'</td><td>'+esc(s.rate!=null?s.rate:(s.price!=null?s.price:''))+'</td><td>'+(s.enabled===false?'off':'on')+'</td></tr>';}).join('')+'</table>':'No services. Tap Sync.';
+  };
+  window.kshB2Sync=async function(){
+    var m=document.getElementById('kshB2Msg');m.textContent='Syncing...';
+    try{var r=await aFetch('/api/admin/boost2/sync','POST',{});m.textContent=r.message||('Synced '+r.count+' services');kshB2Load();}catch(e){m.textContent='Error: '+e.message;}
+  };
+  window.kshTutLoad=async function(){
+    var el=document.getElementById('kshTutList');
+    try{var d=await aFetch('/api/deposit-tutorials');el.innerHTML='<div style="opacity:.8;font-size:13px">Deposit tutorials currently saved: <b>'+(Array.isArray(d)?d.length:Object.keys(d||{}).length)+'</b></div>';}catch(e){}
+  };
+})();
+</script>
+
+<div id="tab-numbers2" class="tab-panel">
       <div class="sec" style="border-color:var(--gold)">
         <div class="sec-title">Server 2 — Low SMS rate pools</div>
         <div class="form-row">
@@ -2098,6 +2188,9 @@ const ADMIN_NAV = [
     { tab:'logs2', icon:'i-plug', label:'Logs 2 (Marketplace 2)', owner:true, keywords:'nova novasolution marketplace manual switch prices stock' },
     { tab:'logs3', icon:'i-plug', label:'Logs 3 (Marketplace 3)', owner:true, keywords:'rakib rakibsocials marketplace three switch prices stock orders' },
     { tab:'numbers2', icon:'i-smartphone', label:'Server 2 — low SMS rate pools', owner:true },
+    { tab:'otp2', icon:'i-smartphone', label:'Buy Number 2 (OTP Suite)', owner:true, keywords:'otp suite buy number 2 markup orders balance' },
+    { tab:'boost2adm', icon:'i-rocket', label:'Boost 2 services', owner:true, keywords:'boost 2 nova services sync' },
+    { tab:'tutorialsadm', icon:'i-video', label:'Tutorials', owner:true, keywords:'tutorial tutorials video images login how to' },
   ]},
   { group:'Boost', items:[
     { tab:'boost', icon:'i-rocket', label:'Boost settings & profit', accent:'accent' },
@@ -2228,7 +2321,8 @@ function switchTab(name,el) {
   if(name==='campaigns')    cmpLoad();
   if(name==='logs')         { loadLogs(); loadCategories(); loadCategoriesIntoSelects(); loadRestockDemand(); }
   if(name==='tools')        loadTools();
-  if(name==='logs2')        { m2LoadConfig(); m2LoadProducts(false); m2LoadBalance(); m2LoadOrders(); }
+  if(name==='otp2'&&window.kshOtpLoad)kshOtpLoad(); if(name==='boost2adm'&&window.kshB2Load)kshB2Load(); if(name==='tutorialsadm'&&window.kshTutLoad)kshTutLoad();
+  if(name==='logs2') { m2LoadConfig(); m2LoadProducts(false); m2LoadBalance(); m2LoadOrders(); }
   if(name==='logs3')        { m3LoadConfig(); m3LoadProducts(false); m3LoadBalance(); m3LoadOrders(); }
   if(name==='welcomepopup') { wpLoad(); }
   if(name==='users')        { loadUsers(); loadActiveUsersAdmin(); }
