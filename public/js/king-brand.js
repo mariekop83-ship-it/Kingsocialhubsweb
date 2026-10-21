@@ -1,3 +1,13 @@
+/* KSH-UPDATE-19 */
+(function(){
+  var p=location.pathname.replace(/\/+$/,'')||'/';
+  if(!/^\/(dashboard|marketplace[0-9]?|deposit|wallet|purchases|transactions|referrals|settings|boost[a-z0-9-]*|buy-number[a-z0-9-]*|number-history|tools|groups|messages|chat|notifications)$/.test(p))return;
+  var t=null;try{t=localStorage.getItem('ksl_token');}catch(e){}
+  if(!t){document.documentElement.style.display='none';location.replace('/login?next='+encodeURIComponent(p));return;}
+  fetch('/api/user/me',{headers:{Authorization:'Bearer '+t}}).then(function(r){
+    if(r.status===401||r.status===403){try{localStorage.removeItem('ksl_token');localStorage.removeItem('ksl_user');}catch(e){}location.replace('/login?next='+encodeURIComponent(p));}
+  }).catch(function(){});
+})();
 /* KING SOCIAL HUB background selection and light-touch brand consistency. */
 (function(){
   function pick(){

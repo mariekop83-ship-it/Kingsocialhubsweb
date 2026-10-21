@@ -111,7 +111,7 @@
     { href: '/marketplace', label: 'Logs', icon: 'i-grid', match: ['/marketplace', '/purchases'] },
     { href: '/boost', label: 'Boost', icon: 'i-zap', match: ['/boost', '/boost-services', '/boost-history'] },
     { href: '/buy-number', label: 'Numbers', icon: 'i-smartphone', match: ['/buy-number', '/number-history', '/order-status'] },
-    { href: '/settings', label: 'Me', icon: 'i-user', match: ['/settings', '/transactions', '/wallet', '/referrals', '/notifications', '/support'] }
+    { href: '/settings', label: 'Me', icon: 'i-user', match: ['/settings', '/transactions', '/wallet', '/referrals', '/notifications'] }
   ];
   function currentPath() {
     var p = location.pathname.replace(/\.html$/, '');
