@@ -661,3 +661,6 @@ body.app-shell .nav-avatar-wrap { display:block; }
 body.app-shell .nav-guest { display:flex; gap:6px; }
 body.app-shell .nav-guest .btn-nav-login { padding:7px 10px; }
 body.app-shell .nav-guest .btn-nav-reg { display:none; }
+
+/* ksh-one-back */
+.app-backbar { display: none !important; }

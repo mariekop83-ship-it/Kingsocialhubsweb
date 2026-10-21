@@ -375,15 +375,13 @@
 
   /* ── 6. Back to menu on inner pages ────────────────────────────────────── */
   function addBackToMenu() {
-    if (!TOKEN()) return;
-    var here = currentPath();
-    if (here === '/' || here === '/dashboard' || document.querySelector('.app-backbar')) return;
-    var bar = document.createElement('div');
-    bar.className = 'app-backbar';
-    bar.innerHTML = '<a class="app-back" href="/">' + ico('i-arrow-left') + ' Back to menu</a>';
-    var nav = document.querySelector('.navbar');
-    if (nav && nav.parentNode) nav.parentNode.insertBefore(bar, nav.nextSibling);
-    else document.body.insertBefore(bar, document.body.firstChild);
+    /* the old "Back to menu" bar is removed - the single green Back pill is used everywhere */
+    if (window.__kslBackBar || window.__kslBackLoader2) return;
+    window.__kslBackLoader2 = true;
+    var sc = document.createElement('script');
+    sc.src = '/js/back-button.js?v=4';
+    sc.defer = true;
+    document.head.appendChild(sc);
   }
 
   function boot() {

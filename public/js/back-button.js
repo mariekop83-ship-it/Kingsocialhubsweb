@@ -15,6 +15,12 @@
     bar.id = 'kslBackBar';
     bar.innerHTML = '<button type="button" aria-label="Go back">\u2190 Back</button>';
     bar.querySelector('button').onclick = function () {
+      /* deposit sub-screens (Bank Transfer / Payment Link): go back to the method list first */
+      var depOpen = ['depScreen1', 'depScreen2'].some(function (id) {
+        var e = document.getElementById(id);
+        return e && e.style.display !== 'none' && e.offsetParent !== null;
+      });
+      if (depOpen && typeof window.depGoHome === 'function') { window.depGoHome(); return; }
       if (path === '/boost1' || path === '/boost2') { location.href = '/boost'; return; }
       if (path === '/boost') { location.href = '/dashboard'; return; }
       var sameSite = document.referrer && document.referrer.indexOf(location.origin) === 0;
