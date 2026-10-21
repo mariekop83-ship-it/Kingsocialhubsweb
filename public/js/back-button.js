@@ -20,7 +20,9 @@
       var sameSite = document.referrer && document.referrer.indexOf(location.origin) === 0;
       if (sameSite && history.length > 1) history.back(); else location.href = '/dashboard';
     };
-    document.body.insertBefore(bar, document.body.firstChild);
+    /* ksh-after-navbar */ var nav = document.querySelector('.navbar');
+    if (nav && nav.parentNode) nav.parentNode.insertBefore(bar, nav.nextSibling);
+    else document.body.insertBefore(bar, document.body.firstChild);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
 })();

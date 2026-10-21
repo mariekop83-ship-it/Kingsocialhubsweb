@@ -230,6 +230,7 @@ try{if(localStorage.getItem('ksl_token'))document.documentElement.classList.add(
     var w=[].slice.call(document.querySelectorAll('button,a')).find(function(e){return /^wallet$/i.test((e.textContent||'').trim());});
     if(!w||!w.parentElement)return;
     var p=w.parentElement;
+    /* ksh-skip-navcenter */ if(p.id==='navCenter'||(p.classList&&p.classList.contains('nav-center')))return;
     p.style.setProperty('display','flex','important');p.style.setProperty('flex-wrap','wrap','important');
     p.style.setProperty('gap','8px','important');p.style.setProperty('padding','12px 14px','important');
     p.querySelectorAll('button,a').forEach(function(b){
