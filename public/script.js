@@ -3715,7 +3715,7 @@ function openFakeLoad(then) {
     then();
     overlay.classList.remove('show');
     dbflBusy = false;
-  }, 3000);
+  }, 1200);
 }
 // ── METHOD 2: Payment Link (Flutterwave hosted checkout — Bank Transfer / Card / OPay) ─────
 // Deposit fees are calculated and charged entirely server-side (see server.js calcDepositFee)

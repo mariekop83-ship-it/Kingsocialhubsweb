@@ -1,3 +1,5 @@
+/* KSH-UPDATE-20 */
+try{if(location.pathname==='/'&&localStorage.getItem('ksl_token'))location.replace('/dashboard');}catch(e){}
 /* KSH-UPDATE-19 */
 (function(){
   var p=location.pathname.replace(/\/+$/,'')||'/';
@@ -111,7 +113,7 @@
     document.body.appendChild(el); return el;
   }
   function show(){ var e=make(); if(e) e.classList.remove('kb-hide'); }
-  function hide(){ var e=make(); if(!e) return; var wait=Math.max(0,3000-(Date.now()-t0)); setTimeout(function(){ e.classList.add('kb-hide'); },wait); }
+  function hide(){ var e=make(); if(!e) return; var wait=Math.max(0,(location.pathname==='/'?700:1200)-(Date.now()-t0)); setTimeout(function(){ e.classList.add('kb-hide'); },wait); }
   make();                                              // up immediately on first paint of the new page
   if(document.readyState==='complete') hide(); else window.addEventListener('load',hide);
   setTimeout(hide,6000);                               // never trap the visitor if something is slow

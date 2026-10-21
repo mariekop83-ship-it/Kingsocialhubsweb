@@ -59,6 +59,8 @@ const app = express();
 // Render's lightweight readiness probe; intentionally registered before all middleware/auth.
 app.get('/healthz', (req, res) => res.status(200).json({ ok: true }));
 const rateLimit = require('express-rate-limit');
+// KSH-UPDATE-20 landing page for visitors
+app.get('/', (req, res) => { res.set('Cache-Control', 'no-store, must-revalidate'); res.sendFile(path.join(__dirname, 'public', 'home.html')); });
 app.use(cors({ origin: '*', methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'], allowedHeaders: ['Content-Type','Authorization','x-admin-passcode','x-subadmin-token'] }));
 app.options('*', cors()); // handle pre-flight OPTIONS requests
 app.set('trust proxy', 1);
