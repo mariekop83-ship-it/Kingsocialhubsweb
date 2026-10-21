@@ -3211,7 +3211,12 @@ async function loadDepositFragment() {
   const container = document.getElementById('page-deposit');
   if (!container) return false;
   try {
-    const res = await fetch('/deposit.html');
+    /* KSH-DEPOSIT-FETCH-FIX */
+    const _ctl = new AbortController();
+    const _t = setTimeout(() => _ctl.abort(), 10000);
+    let res;
+    try { res = await fetch('/deposit.html?_=' + Date.now(), { signal: _ctl.signal, cache: 'no-store' }); }
+    finally { clearTimeout(_t); }
     if (!res.ok) throw new Error('Failed to load deposit page');
     container.innerHTML = await res.text();
     depositFragmentLoaded = true;
@@ -3220,7 +3225,8 @@ async function loadDepositFragment() {
     depGoHome();
     return true;
   } catch (e) {
-    container.innerHTML = '<div class="page-hero"><h1>Deposit</h1><p>Could not load this page. Please refresh and try again.</p></div>';
+    container.innerHTML = '<div class="page-hero"><h1>Deposit</h1><p>Could not load this page. Please check your connection and try again.</p>' +
+      '<button type="button" class="btn" style="margin-top:14px;padding:12px 22px;border-radius:12px;border:0;background:#16a34a;color:#fff;font-weight:700;cursor:pointer" onclick="loadDeposit()">Retry</button></div>';
     return false;
   }
 }
@@ -3358,14 +3364,14 @@ async function loadDeposit() {
   if (balEl) balEl.textContent = fmt(currentUser?.balance || 0);
   const idEl = document.getElementById('wcGameId');
   if (idEl) idEl.textContent = currentUser?.gameId ? `•••• ${currentUser.gameId.slice(-4).toUpperCase()}` : '•••• ••••';
-  resetDepositFlow();
+  _depSafe(() => resetDepositFlow());
   const rcEl = document.getElementById('depResultCard');
   if (rcEl) rcEl.style.display = 'none';
-  checkPaymentMethodSettings();
-  applyCountryDepositRules();
-  checkPaymentLinkRedirect();
-  loadDepositTutorials();
-  loadDepositSummary();
+  _depSafe(() => checkPaymentMethodSettings());
+  _depSafe(() => applyCountryDepositRules());
+  _depSafe(() => checkPaymentLinkRedirect());
+  _depSafe(() => loadDepositTutorials());
+  _depSafe(() => loadDepositSummary());
   // Do NOT call loadVAInDeposit() here — it runs when user taps the VA card (depGoVA)
 }
 async function loadDepositSummary() {
@@ -3698,6 +3704,7 @@ async function updatePhone() {
 // nothing here fakes data, it just adds a beat of perceived loading before the page appears.
 const DBFL_MESSAGES = ['Loading…', 'Almost there…'];
 let dbflBusy = false;
+/* KSH-LOADER-FIX */
 function openFakeLoad(then) {
   const overlay = document.getElementById('dbfl-overlay');
   const textEl = document.getElementById('dbfl-text');
@@ -3710,12 +3717,28 @@ function openFakeLoad(then) {
     i = (i + 1) % DBFL_MESSAGES.length;
     textEl.textContent = DBFL_MESSAGES[i];
   }, 400);
-  setTimeout(() => {
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
     clearInterval(msgTimer);
-    then();
     overlay.classList.remove('show');
     dbflBusy = false;
+  };
+  setTimeout(() => {
+    // The overlay is closed in "finally", so an error while switching page can never leave it stuck.
+    try { then(); }
+    catch (e) { console.error('[router] page switch failed', e); }
+    finally { finish(); }
   }, 1200);
+  setTimeout(finish, 4000); // hard failsafe
+}
+// Runs a deposit helper without letting one failure stop the whole deposit page.
+function _depSafe(fn) {
+  try {
+    const r = fn();
+    if (r && typeof r.catch === 'function') r.catch(e => console.warn('[deposit]', e));
+  } catch (e) { console.warn('[deposit]', e); }
 }
 // ── METHOD 2: Payment Link (Flutterwave hosted checkout — Bank Transfer / Card / OPay) ─────
 // Deposit fees are calculated and charged entirely server-side (see server.js calcDepositFee)

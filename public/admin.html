@@ -6541,5 +6541,6 @@ async function viewOtpSuiteOrders(){try{const rows=await aFetch('/api/admin/otp-
 async function refundOtpSuiteOrder(){const id=prompt('Paste the OTP Suite order ID from the recent orders list. Only refund after checking the provider outcome:','');if(!id)return;if(!confirm('Refund this order from the customer wallet? Do this only if the provider did not deliver a number/SMS.'))return;try{const r=await aFetch('/api/admin/otp-suite/orders/'+encodeURIComponent(id)+'/refund','POST',{});alert('Refunded ₦'+Number(r.refunded||0).toLocaleString('en-NG'));}catch(e){alert('Refund failed: '+e.message)}}
 </script>
   <script src="/js/page-transitions.js?v=1" defer></script>
+<script src="/js/loader-failsafe.js?v=1" defer></script>
 </body>
 </html>
