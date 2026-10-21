@@ -750,5 +750,64 @@
   });
 })();
 </script>
+
+<!-- KSH-FEATURES -->
+<script>
+(function(){
+  var F=[
+    ['/buy-number','svc-indigo','<svg><use href="#i-smartphone"/></svg>','Buy Numbers',''],
+    ['/boost','svc-violet','<svg><use href="#i-rocket"/></svg>','Boost','NEW'],
+    ['/marketplace','svc-emerald','<span style="font-size:24px">&#128717;</span>','Marketplace',''],
+    ['/tools','svc-cyan','<svg><use href="#i-wrench"/></svg>','Tools &amp; FMT',''],
+    ['/tutorials','svc-orange','<span style="font-size:24px">&#128218;</span>','Tutorials',''],
+    ['/purchases','svc-teal','<svg><use href="#i-clipboard"/></svg>','My Orders',''],
+    ['/transactions','svc-sky','<svg><use href="#i-history"/></svg>','Transactions',''],
+    ['/referrals','svc-orange','<svg><use href="#i-gift"/></svg>','Referrals','']
+  ];
+  var a=document.querySelector('.dsh-svc-item');
+  if(a&&a.parentElement){
+    a.parentElement.innerHTML=F.map(function(f){
+      return '<a class="dsh-svc-item" href="'+f[0]+'"><div class="dsh-svc-icon '+f[1]+'">'+f[2]+'</div><span class="dsh-svc-label">'+f[3]+'</span>'+(f[4]?'<span class="dsh-svc-badge">'+f[4]+'</span>':'')+'</a>';
+    }).join('');
+  }
+
+  // Floating support button -> panel with every support link from the admin panel
+  var sheet=document.createElement('div'),bd=document.createElement('div');
+  bd.className='ksh-sheet-bd';sheet.className='ksh-sheet';
+  sheet.innerHTML='<div class="ksh-sheet-head"><b>Contact support</b><button type="button" id="kshSupX" aria-label="Close">&times;</button></div><div id="kshSupList"><div style="padding:10px;opacity:.7;font-size:13px">Loading...</div></div>';
+  document.body.appendChild(bd);document.body.appendChild(sheet);
+  function close(){sheet.classList.remove('open');bd.classList.remove('open');}
+  bd.addEventListener('click',close);
+  sheet.querySelector('#kshSupX').addEventListener('click',close);
+  var loaded=false;
+  function load(){
+    if(loaded)return;loaded=true;
+    var box=sheet.querySelector('#kshSupList');
+    fetch('/api/public/site-links').then(function(r){return r.ok?r.json():{};}).then(function(l){
+      var items=[];
+      var g=l.telegramCommunityLink||l.whatsappGroupLink,c=l.telegramChannelLink||l.whatsappChannelLink;
+      var t=l.telegramLink||(l.telegramUsername?'https://t.me/'+String(l.telegramUsername).replace(/^@/,''):'');
+      if(g)items.push(['Join Community',g]);
+      if(c)items.push(['Join Channel',c]);
+      if(t&&t!=='#')items.push(['Telegram',t]);
+      if(l.whatsappNumber)items.push(['WhatsApp Support','https://wa.me/'+l.whatsappNumber]);
+      if(!items.length)items.push(['Open support page','/support']);
+      box.innerHTML=items.map(function(i){return '<a href="'+i[1]+'" target="_blank" rel="noopener">'+i[0]+' <span>&rsaquo;</span></a>';}).join('');
+    }).catch(function(){loaded=false;sheet.querySelector('#kshSupList').innerHTML='<a href="/support">Open support page <span>&rsaquo;</span></a>';});
+  }
+  document.addEventListener('click',function(ev){
+    if(ev.target.closest&&ev.target.closest('.ksh-sheet'))return;
+    var n=ev.target;
+    while(n&&n!==document.body&&n.nodeType===1){
+      var sig=(n.className&&n.className.baseVal!==undefined?n.className.baseVal:n.className)+' '+(n.id||'')+' '+(n.getAttribute('aria-label')||'')+' '+(n.getAttribute('href')||'');
+      if(getComputedStyle(n).position==='fixed'&&/support|fab|headset|chat/i.test(sig)&&!/drawer|sheet|backdrop/i.test(sig)){
+        ev.preventDefault();ev.stopImmediatePropagation();
+        load();sheet.classList.add('open');bd.classList.add('open');return;
+      }
+      n=n.parentElement;
+    }
+  },true);
+})();
+</script>
 </body>
 </html>
