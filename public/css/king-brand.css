@@ -312,3 +312,19 @@ body::after{content:"";position:fixed;inset:0;background:#000;z-index:2147483646
 .hm-row .hm-chip.warn{background:rgba(245,158,11,.15);color:#fbbf24}
 .hm-row .hm-chip.bad{background:rgba(239,68,68,.15);color:#f87171}
 .hm-empty{padding:18px;text-align:center;opacity:.7;font-size:13px}
+
+/* KSH-UPDATE-21 */
+#page-login,#page-register,#page-welcome,.auth-card,.auth-wrap,.auth-box{
+  --gold:#22c55e;--gold-light:#4ade80;--gold-dark:#16a34a;--gold2:#4ade80;
+  --accent:#22c55e;--primary:#22c55e;--brand:#22c55e;--blue:#22c55e;--blue-light:rgba(34,197,94,.14);
+  --bg:#000;--card:#0b0b0b;--border:#1d2b22;--text:#eeeef5;--t1:#eeeef5;--t2:#9aa3a0;
+}
+#page-login,#page-register{background:#000!important;color:#eeeef5!important}
+#page-login .auth-card,#page-register .auth-card,#page-login .auth-box,#page-register .auth-box{background:#0b0b0b!important;border:1px solid #1d2b22!important;box-shadow:0 0 30px rgba(34,197,94,.12)!important}
+#page-login h1,#page-login h2,#page-login h3,#page-login label,#page-register h1,#page-register h2,#page-register h3,#page-register label{color:#fff!important}
+#page-login input,#page-register input,#page-login select,#page-register select{background:#000!important;color:#fff!important;border:1px solid #2a3a30!important}
+#page-login input:focus,#page-register input:focus{border-color:#22c55e!important;box-shadow:0 0 0 3px rgba(34,197,94,.18)!important;outline:0}
+#page-login button[type="submit"],#page-register button[type="submit"],#page-login .btn-primary,#page-register .btn-primary,#page-login .auth-btn,#page-register .auth-btn{background:linear-gradient(115deg,#16a34a,#22c55e 60%,#4ade80)!important;color:#fff!important;border:0!important}
+#page-login a,#page-register a,.auth-switch a,.auth-brand{color:#22c55e!important}
+#page-login .auth-brand,#page-register .auth-brand{color:#22c55e!important}
+#page-login p,#page-register p,#page-login small,#page-register small{color:#b8c0bd}
