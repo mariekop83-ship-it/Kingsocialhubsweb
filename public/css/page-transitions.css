@@ -1,6 +1,6 @@
 /* King Social Hub — lightweight page-to-page transitions */
 :root { --ksh-transition-accent: var(--brand-primary, #16a34a); }
-html.ksh-transition-ready body > :not(#ksh-page-transition):not(script):not(style):not(.ksh-drawer):not(.ksh-menu-backdrop) {
+html.ksh-transition-ready body > :not(#ksh-page-transition):not(#dbfl-overlay):not(#kb-loader):not(script):not(style):not(.ksh-drawer):not(.ksh-menu-backdrop) {
   animation: kshPageEnter .34s cubic-bezier(.2,.75,.25,1) both;
 }
 @keyframes kshPageEnter {
@@ -44,12 +44,16 @@ html.ksh-transition-ready body > :not(#ksh-page-transition):not(script):not(styl
 #ksh-page-transition.is-active { opacity: 1; visibility: visible; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
 #ksh-page-transition.is-active::before { opacity: 1; transform: scale(1); }
 #ksh-page-transition.is-active .ksh-transition-card { opacity: 1; transform: translateY(0) scale(1); }
-html.ksh-transition-leaving body > :not(#ksh-page-transition):not(script):not(style) {
+html.ksh-transition-leaving body > :not(#ksh-page-transition):not(#dbfl-overlay):not(#kb-loader):not(script):not(style) {
   opacity: .38; transform: translate3d(0,-5px,0) scale(.997); transition: opacity .16s ease, transform .16s ease;
 }
 @media (prefers-reduced-motion: reduce) {
-  html.ksh-transition-ready body > :not(#ksh-page-transition):not(script):not(style),
-  html.ksh-transition-leaving body > :not(#ksh-page-transition):not(script):not(style) { animation: none !important; transition: none !important; transform: none !important; }
+  html.ksh-transition-ready body > :not(#ksh-page-transition):not(#dbfl-overlay):not(#kb-loader):not(script):not(style),
+  html.ksh-transition-leaving body > :not(#ksh-page-transition):not(#dbfl-overlay):not(#kb-loader):not(script):not(style) { animation: none !important; transition: none !important; transform: none !important; }
   #ksh-page-transition, #ksh-page-transition::before, #ksh-page-transition .ksh-transition-card { transition: none !important; }
   #ksh-page-transition .ksh-transition-dots i { animation: none !important; }
 }
+
+/* KSH-LOADER-STUCK-FIX: the hidden "Loading…" overlay must never stay visible */
+#dbfl-overlay:not(.show) { opacity: 0 !important; visibility: hidden !important; }
+#kb-loader.kb-hide { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
