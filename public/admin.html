@@ -230,6 +230,15 @@ tr:hover td{background:rgba(255,255,255,.035)}
   <link rel="stylesheet" href="/css/page-transitions.css?v=1">
 
 <link rel="stylesheet" href="/css/responsive-device-fit.css?v=1">
+<style id="ksh-admin-drawer-fix">
+.drawer-backdrop{z-index:100000!important}
+.drawer-backdrop:not(.open){display:none!important}
+.adm-drawer{z-index:100001!important}
+.adm-drawer:not(.open){visibility:hidden!important;pointer-events:none!important;transform:translateX(-105%)!important;transition:transform .22s ease,visibility 0s linear .22s!important}
+.adm-drawer.open{visibility:visible!important;pointer-events:auto!important}
+.adm-drawer-close{width:42px!important;height:42px!important;font-size:26px!important;line-height:1!important;display:inline-flex!important;align-items:center;justify-content:center;flex-shrink:0;color:var(--t1)!important;touch-action:manipulation}
+@media(min-width:901px){.adm-drawer,.drawer-backdrop{display:none!important}}
+</style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -2238,7 +2247,7 @@ function admNavHtml(){
     const rows = g.items.map(it => {
       const cls = ['sb-item', it.accent || '', it.owner ? 'owner-only' : ''].filter(Boolean).join(' ');
       const run = it.run ? `;${it.run}()` : '';
-      return `<div class="${cls}" data-tab="${it.tab}" data-label="${it.label}" data-keywords="${(it.keywords||'')}" onclick="switchTab('${it.tab}',this)${run};closeAdminDrawer()">`
+      return `<div class="${cls}" data-tab="${it.tab}" data-label="${it.label}" data-keywords="${(it.keywords||'')}" onclick="closeAdminDrawer();switchTab('${it.tab}',this)${run}">`
         + `<span class="sb-icon"><svg class="icon ${it.icon}" aria-hidden="true"><use href="#${it.icon}"/></svg></span>`
         + `<span class="sb-text">${it.label}</span><span class="sb-chev">&rsaquo;</span></div>`;
     }).join('');
@@ -6542,5 +6551,16 @@ async function refundOtpSuiteOrder(){const id=prompt('Paste the OTP Suite order 
 </script>
   <script src="/js/page-transitions.js?v=1" defer></script>
 <script src="/js/loader-failsafe.js?v=1" defer></script>
+<script>
+/* ksh-admin-drawer-fix: the menu always closes on X, on the dark area, and when a section is picked */
+(function(){
+  function closeNow(){ try{ closeAdminDrawer(); }catch(e){} }
+  document.addEventListener('click', function(e){
+    var t = e.target; if (!t || !t.closest) return;
+    if (t.closest('.adm-drawer-close') || t.closest('#admDrawerBackdrop') || t.closest('#admDrawer .sb-item')) closeNow();
+  }, true);
+  closeNow(); /* start with the menu closed */
+})();
+</script>
 </body>
 </html>

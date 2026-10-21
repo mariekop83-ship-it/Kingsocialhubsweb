@@ -75,4 +75,5 @@ footer a{color:#4ade80;margin:0 8px}
 </div>
 <footer><a href="/terms">Terms &amp; Conditions</a><a href="/login">Sign in</a><a href="/register">Sign up</a><div style="margin-top:10px">&copy; King Social Hub</div></footer>
 <script src="/js/loader-failsafe.js?v=1" defer></script>
+<script>(function(){try{var r=new URLSearchParams(location.search).get("ref");if(!r)return;r=String(r).trim().toUpperCase().slice(0,20);localStorage.setItem("ksh_ref",r);document.querySelectorAll('a[href="/register"]').forEach(function(a){a.href="/register?ref="+encodeURIComponent(r)})}catch(e){}})();</script>
 </body></html>

@@ -1915,7 +1915,8 @@ app.post('/api/auth/register', async (req, res) => {
  if (capError) return res.status(429).json({ error: capError, accountLimit: true });
  const gameId = await generateUniqueGameId();
  const referralCode = await generateUniqueReferralCode();
- const referrer = refCode ? await User.findOne({ referralCode: String(refCode).toUpperCase() }) : null;
+ const referrer = refCode ? await User.findOne({ referralCode: String(refCode).trim().toUpperCase() }) : null;
+ if (String(refCode || '').trim() && !referrer) return res.status(400).json({ error: 'That referral code is not valid. Check it, or leave the box empty.' });
  const signupIp = (req.ip || req.socket?.remoteAddress || '').toString();
  // Worldwide phone handling: the client sends the chosen country plus the local
  // number; countries.normalizePhone turns that into a validated E.164 number.
