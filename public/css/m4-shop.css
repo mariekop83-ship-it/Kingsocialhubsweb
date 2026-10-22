@@ -49,3 +49,24 @@ body.m4-lock{overflow:hidden}
 .m4-ok{color:#2ecc71;font-size:13px;font-weight:700}
 .m4-keys{white-space:pre-wrap;word-break:break-all;background:#0a0a0a;color:#e8e8e8;padding:10px;border-radius:8px;font-size:12px;max-height:200px;overflow:auto;margin:8px 0}
 .m4-copy{min-height:40px;padding:0 16px;border:0;border-radius:8px;background:var(--gold,#16a34a);color:#fff;font-weight:700;cursor:pointer}
+/* ---- v2: bullet-proof checkout layout on Android/iPhone (site CSS was stretching the qty box) ---- */
+.m4-sheet{overflow-x:hidden}
+.m4-sheet *{box-sizing:border-box}
+.m4-line{display:grid !important;grid-template-columns:auto 1fr auto !important;align-items:center !important;gap:8px 10px !important;width:100%}
+.m4-line-t{grid-column:1 / -1 !important;display:block !important;width:100% !important;min-width:0 !important;max-width:100% !important;white-space:normal !important;word-break:normal !important;overflow-wrap:anywhere !important}
+.m4-line-t b{display:block !important;writing-mode:horizontal-tb !important;white-space:normal !important;word-break:normal !important;overflow-wrap:anywhere !important}
+.m4-line-t span{display:block !important}
+.m4-qty{display:inline-flex !important;flex-direction:row !important;width:auto !important;max-width:150px !important}
+.m4-qty button{flex:0 0 auto !important;width:38px !important;min-width:38px !important;height:42px !important;padding:0 !important;margin:0 !important;border:0 !important;background:transparent !important;box-shadow:none !important}
+.m4-qty input{flex:0 0 auto !important;width:44px !important;min-width:0 !important;max-width:44px !important;height:42px !important;padding:0 !important;margin:0 !important;border:0 !important;border-radius:0 !important;background:transparent !important;text-align:center !important;box-shadow:none !important}
+.m4-qty.sm input{width:40px !important;max-width:40px !important}
+.m4-line-sum{text-align:right !important;justify-self:end !important}
+.m4-x{justify-self:end !important;width:36px !important;padding:0 !important}
+.m4-sh-btns button{width:auto !important}
+.m4-card-act{flex-wrap:nowrap}
+.m4-add{min-width:0}
+.m4-buy{background:#16a34a !important;color:#fff !important;opacity:1 !important}
+.m4-ghost{background:var(--card2,#1b1b1b) !important;color:var(--t1,#fff) !important}
+.m4-add{background:#16a34a !important;color:#fff !important}.m4-add.in{background:#2563eb !important}
+.m4-qty input{outline:0 !important;-webkit-appearance:none !important;appearance:none !important;background-color:transparent !important;background-image:none !important}
+.m4-cartbar button,.m4-copy{background:#16a34a !important;color:#fff !important}
