@@ -13,6 +13,7 @@
      5. Add a "Back to menu" control on inner pages.
    Pure add-on: nothing in the original scripts is modified.
    ──────────────────────────────────────────────────────────────────────── */
+(function(){if(window.KingUI||document.getElementById('king-ui-js'))return;var s=document.createElement('script');s.id='king-ui-js';s.src='/js/king-ui.js?v=1';(document.head||document.documentElement).appendChild(s);})(); // KING-UPGRADE
 (function () {
   'use strict';
 
@@ -85,7 +86,7 @@
       '<button class="ksh-menu-toggle" type="button" aria-expanded="false" aria-controls="kshMarketplaceSub">🛍️ <span>Marketplace</span><span class="ksh-chevron">⌄</span></button>' +
       '<div class="ksh-submenu" id="kshMarketplaceSub"><a class="ksh-sub-link" href="/marketplace">Marketplace 1</a><a class="ksh-sub-link" href="/marketplace2">Marketplace 2</a><a class="ksh-sub-link" href="/marketplace3">Marketplace 3</a><a class="ksh-sub-link" href="/marketplace4">Marketplace 4</a></div>' +
       '<button class="ksh-menu-toggle" type="button" aria-expanded="false" aria-controls="kshNumbersSub">📱 <span>Buy Number</span><span class="ksh-chevron">⌄</span></button>' +
-      '<div class="ksh-submenu" id="kshNumbersSub"><a class="ksh-sub-link" href="/buy-number-grizzly">Buy Number 1</a><a class="ksh-sub-link" href="/buy-number-otp">Buy Number 2</a><a class="ksh-sub-link" href="/buy-number-nova">Buy Number 3</a></div>' +
+      '<div class="ksh-submenu" id="kshNumbersSub"><a class="ksh-sub-link" href="/buy-number-1">Buy Number 1</a><a class="ksh-sub-link" href="/buy-number-2">Buy Number 2</a><a class="ksh-sub-link" href="/buy-number-3">Buy Number 3</a></div>' +
       '<button class="ksh-menu-toggle" type="button" aria-expanded="false" aria-controls="kshBoostSub">🚀 <span>Boost</span><span class="ksh-chevron">⌄</span></button>' +
       '<div class="ksh-submenu" id="kshBoostSub"><a class="ksh-sub-link" href="/boost1">Boost 1</a><a class="ksh-sub-link" href="/boost2">Boost 2</a></div>' +
       '<div class="ksh-drawer-label">Learn</div><a class="ksh-drawer-link" href="/tutorials">📚 <span>Tutorials</span></a>' +

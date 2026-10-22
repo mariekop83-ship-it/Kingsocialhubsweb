@@ -8,3 +8,4 @@ public/files/*
 !public/uploads/.gitkeep
 !public/receipts/.gitkeep
 !public/files/.gitkeep
+_upgrade_backup/

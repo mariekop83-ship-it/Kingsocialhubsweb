@@ -1,5 +1,5 @@
 // ══════════════════════ MARKETPLACE THREE PAGE ══════════════════════
-// Same look as the manual marketplace, but products come from /api/market3 (Lucylynxsocials).
+// Same look as the manual marketplace, but products come from the configured catalogue.
 // Loaded after script.js — reuses req(), esc(), P(), showToast(), skeletons(), toggleCatDropdown().
 
 let m3Items = [];
@@ -176,12 +176,14 @@ async function m3CheckOrder(ref, id, qty) {
 
 async function m3Buy(id) {
   if (typeof token === 'undefined' || !token) { showToast('Please log in to buy', 'err'); setTimeout(() => { window.location.href = '/login'; }, 800); return; }
+  const item = m3Items.find(i => i.id === id);
+  if (!item?.productKey) { showToast('Refresh the marketplace and choose the product again.', 'err'); return; }
   const btn = document.getElementById('m3BuyBtn');
   const quantity = Math.max(1, parseInt(document.getElementById('m3Qty').value, 10) || 1);
   const ref = m3Ref || (m3Ref = m3NewRef());
   btn.disabled = true; btn.textContent = 'Processing…';
   try {
-    const r = await req('/api/market3/buy', 'POST', { productId: id, quantity, clientRef: ref }, true);
+    const r = await req('/api/market3/buy', 'POST', { productId: item.productKey, quantity, clientRef: ref }, true);
     m3Ref = m3NewRef();
     if (r.pending) return m3ShowPending(r, id, quantity);
     m3ShowKeys(r, id, quantity);

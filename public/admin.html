@@ -668,7 +668,98 @@ tr:hover td{background:rgba(255,255,255,.035)}
         <div id="m3Orders">Loading…</div>
       </div>
     </div>
-    <div id="tab-welcomepopup" class="tab-panel">
+    <!-- KING-UPGRADE panels -->
+<div id="tab-logs4" class="tab-panel">
+      <div class="sec">
+        <div class="sec-title"><svg class="icon i-settings" aria-hidden="true"><use href="#i-settings"/></svg> Marketplace 4 switch</div>
+        <div class="info-box"><svg class="icon i-pin" aria-hidden="true"><use href="#i-pin"/></svg>
+          Marketplace 4 is powered by the provider. When it is disabled, customers see a maintenance screen and cannot buy.</div>
+        <div class="form-row">
+          <div class="fg"><label>Marketplace 4</label>
+            <button class="btn-gold" type="button" id="m4Btn" onclick="m4Toggle()" style="width:100%">…</button></div>
+        </div>
+        <div class="form-row">
+          <div class="fg" style="flex:2"><label>Provider API URL</label><input type="url" id="m4BaseUrl" placeholder="https://provider.example.com/api/v1"/></div>
+          <div class="fg" style="flex:2"><label>Provider API key (leave blank to keep current)</label><input type="password" id="m4ApiKey" autocomplete="new-password" placeholder="Enter API key securely"/></div>
+        </div>
+        <div class="form-row">
+          <div class="fg" style="flex:2"><label>Maintenance message</label><input type="text" id="m4Msg"/></div>
+        </div>
+        <div class="form-row">
+          <div class="fg"><label>Email me when supplier balance is below (₦)</label><input type="number" id="m4Low" min="0"/></div>
+          <div class="fg"><label>Alert email</label><input type="email" id="m4Email" placeholder="you@example.com"/></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn-gold" type="button" onclick="m4SaveConfig()" style="width:100%">Save</button></div>
+        </div>
+        <div class="info-box" id="m4Balance">Loading supplier balance…</div>
+      </div>
+      <div class="sec" id="m4AttentionSec" style="display:none;border-color:var(--red)">
+        <div class="sec-title" style="color:var(--red)"><svg class="icon i-alert-triangle" aria-hidden="true"><use href="#i-alert-triangle"/></svg> Needs attention</div>
+        <div class="info-box">These customers have paid but their order did not finish cleanly. Open your the provider order history, then either <b>deliver the keys</b> to the customer or <b>refund</b> them. Nothing here is lost.</div>
+        <div id="m4Attention" style="overflow-x:auto"></div>
+      </div>
+      <div class="sec">
+        <div class="sec-title"><svg class="icon i-package" aria-hidden="true"><use href="#i-package"/></svg> Marketplace 4 — the provider products</div>
+        <div class="info-box"><svg class="icon i-pin" aria-hidden="true"><use href="#i-pin"/></svg>
+          Every product from the API shows here, including new ones. Synced products appear automatically using the default markup until you set a custom price. Disable a product to hide it.
+          "API cost" is what the provider charges you; profit = your price − API cost.</div>
+        <div class="form-row">
+          <div class="fg"><input type="text" id="m4Search" placeholder="Search products…" oninput="m4Render()"/></div>
+          <div class="fg"><select id="m4Filter" onchange="m4Render()"><option value="">All products</option><option value="priced">Live (priced)</option><option value="unpriced">Not priced yet</option><option value="instock">In stock</option></select></div>
+          <div class="fg"><button class="btn-sm" type="button" onclick="m4LoadProducts(true)">Refresh from API</button></div>
+        </div>
+        <div id="m4Products" style="overflow-x:auto">Loading…</div>
+      </div>
+      <div class="sec">
+        <div class="sec-title"><svg class="icon i-bar-chart" aria-hidden="true"><use href="#i-bar-chart"/></svg> Marketplace 4 sales &amp; profit</div>
+        <div id="m4Orders">Loading…</div>
+      </div>
+    </div>
+    
+<div id="tab-kinglogos" class="tab-panel">
+  <div class="sec">
+    <div class="sec-title">Product logos</div>
+    <div class="info-box">Upload a logo once (for example Facebook). Every product whose name or category contains one of its keywords — from any provider, in numbers, marketplaces and boosting — will show this logo to customers.</div>
+    <div class="form-row">
+      <div class="fg"><label>Name</label><input type="text" id="kLogoName" placeholder="Facebook"></div>
+      <div class="fg" style="flex:2"><label>Keywords (comma separated)</label><input type="text" id="kLogoKw" placeholder="facebook, fb"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Logo image</label><input type="file" id="kLogoFile" accept="image/*" onchange="kLogoPick(this)"></div>
+      <div class="fg"><label>&nbsp;</label><div id="kLogoPreview"></div></div>
+      <div class="fg"><label>&nbsp;</label><button class="btn-gold" type="button" onclick="kLogoSave()" style="width:100%">Save logo</button></div>
+    </div>
+    <div id="kLogoMsg" style="margin:6px 0"></div>
+  </div>
+  <div class="sec"><div class="sec-title">Uploaded logos</div><div id="kLogoList">Loading…</div></div>
+</div>
+<div id="tab-n3adm" class="tab-panel">
+  <div class="sec">
+    <div class="sec-title">Buy Number 3 switch &amp; sync</div>
+    <div class="info-box" id="n3Info">Loading…</div>
+    <div class="form-row">
+      <div class="fg"><button class="btn-gold" type="button" id="n3Toggle" onclick="n3Toggle()" style="width:100%">…</button></div>
+      <div class="fg"><button class="btn-primary" type="button" onclick="n3Sync()" style="width:100%">Sync services now</button></div>
+    </div>
+    <div class="info-box" id="n3Sync">…</div>
+    <div id="n3Msg" style="margin:6px 0"></div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">Hide a service everywhere</div>
+    <div class="info-box">Type service names exactly as customers see them (for example <b>WhatsApp</b>, <b>Telegram</b>), separated by commas. They disappear from Buy Number 3 in every country.</div>
+    <div class="form-row"><div class="fg" style="flex:3"><input type="text" id="n3Hidden" placeholder="e.g. WhatsApp, Telegram"></div><div class="fg"><button class="btn-gold" type="button" onclick="n3SaveHidden()" style="width:100%">Save</button></div></div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">Services &amp; prices (per country)</div>
+    <div class="form-row">
+      <div class="fg"><select id="n3Country"><option value="">Loading countries…</option></select></div>
+      <div class="fg"><input type="text" id="n3Q" placeholder="Search service…" onkeydown="if(event.key==='Enter')n3LoadServices()"></div>
+      <div class="fg"><button class="btn-sm" type="button" onclick="n3LoadServices()">Load services</button></div>
+    </div>
+    <div id="n3List" style="overflow-x:auto"></div>
+  </div>
+</div>
+
+<div id="tab-welcomepopup" class="tab-panel">
       <div class="sec">
         <div class="sec-title"><svg class="icon i-zap" aria-hidden="true"><use href="#i-zap"/></svg> Welcome Popup Settings</div>
         <div class="info-box"><svg class="icon i-pin" aria-hidden="true"><use href="#i-pin"/></svg>
@@ -998,10 +1089,15 @@ tr:hover td{background:rgba(255,255,255,.035)}
 </div>
 <div id="tab-boost2adm" class="tab-panel">
   <div class="sec-title">Boost 2 services</div>
-  <div style="margin:10px 0"><button class="btn-primary" type="button" onclick="kshB2Sync()">Sync from provider</button></div>
+  <div style="margin:10px 0"><button class="btn-primary" type="button" onclick="kshB2Sync()">Sync from provider</button> <button class="btn-primary" type="button" onclick="kshB2Load()">Refresh list</button></div>
   <div id="kshB2Msg" style="margin:6px 0"></div>
   <input id="kshB2Q" placeholder="Search services..." oninput="kshB2Render()" style="padding:8px;border-radius:8px;width:100%;max-width:360px;margin-bottom:8px">
   <div id="kshB2List" style="overflow:auto">Loading...</div>
+  <div class="sec-title" style="margin-top:24px">Boost 2 orders requiring review</div>
+  <p style="opacity:.8;margin:6px 0 10px">Check uncertain orders against the provider dashboard before confirming or refunding. A refund is only safe after verifying no provider order exists.</p>
+  <button class="btn-primary" type="button" onclick="kshB2ReviewLoad()">Refresh review orders</button>
+  <div id="kshB2ReviewMsg" style="margin:6px 0"></div>
+  <div id="kshB2ReviewList" style="overflow:auto">Loading...</div>
 </div>
 <div id="tab-tutorialsadm" class="tab-panel">
   <div class="sec-title">Tutorials</div>
@@ -1054,15 +1150,66 @@ tr:hover td{background:rgba(255,255,255,.035)}
     var el=document.getElementById('kshB2List');
     try{var d=await aFetch('/api/admin/boost2/services');b2=Array.isArray(d)?d:(d&&(d.services||d.list))||[];kshB2Render();}
     catch(e){el.textContent='Error: '+e.message;}
+    kshB2ReviewLoad();
   };
   window.kshB2Render=function(){
     var q=(document.getElementById('kshB2Q').value||'').toLowerCase(),el=document.getElementById('kshB2List');
     var rows=b2.filter(function(s){return !q||JSON.stringify(s).toLowerCase().indexOf(q)>-1;}).slice(0,200);
-    el.innerHTML=rows.length?'<table style="width:100%;font-size:13px;border-collapse:collapse"><tr><th align=left>ID</th><th align=left>Name</th><th align=left>Rate</th><th align=left>Enabled</th></tr>'+rows.map(function(s){return '<tr style="border-top:1px solid #252535"><td>'+esc(s.id||s.service||'')+'</td><td>'+esc(s.name||'')+'</td><td>'+esc(s.rate!=null?s.rate:(s.price!=null?s.price:''))+'</td><td>'+(s.enabled===false?'off':'on')+'</td></tr>';}).join('')+'</table>':'No services. Tap Sync.';
+    el.innerHTML=rows.length?'<table style="width:100%;min-width:920px;font-size:13px;border-collapse:collapse"><tr><th align=left>ID</th><th align=left>Name</th><th align=left>Provider rate</th><th align=left>Price mode</th><th align=left>Sell price (NGN)</th><th align=left>Markup (NGN)</th><th>Enabled</th><th>Visible</th><th></th></tr>'+rows.map(function(s){
+      var id=Number(s.id),unit=Number(s.rateUnit)||1000;
+      return '<tr data-b2-id="'+id+'" style="border-top:1px solid #252535"><td>'+id+'</td><td>'+esc(s.name||'')+'</td><td>'+esc(s.cost)+' / '+unit.toLocaleString()+'</td><td><select data-field="mode"><option value="markup"'+(s.mode==='markup'?' selected':'')+'>Provider + markup</option><option value="specific"'+(s.mode==='specific'?' selected':'')+'>Specific price</option></select></td><td><input data-field="sellPrice" type="number" min="0" step="0.01" value="'+esc(s.sellPrice)+'" style="width:110px"></td><td><input data-field="markup" type="number" min="0" step="0.01" value="'+esc(s.markup)+'" style="width:110px"></td><td><input data-field="enabled" type="checkbox"'+(s.enabled!==false?' checked':'')+' aria-label="Enable service"></td><td><input data-field="visible" type="checkbox"'+(s.visible!==false?' checked':'')+' aria-label="Show service to customers"></td><td><button type="button" onclick="kshB2Save('+id+',this)">Save</button></td></tr>';
+    }).join('')+'</table>':'No matching services. Tap Sync to load the provider catalogue.';
+  };
+  window.kshB2Save=async function(id,button){
+    var row=document.querySelector('tr[data-b2-id="'+Number(id)+'"]');
+    if(!row)return;
+    var value=function(name){return row.querySelector('[data-field="'+name+'"]');};
+    var body={mode:value('mode').value,sellPrice:Number(value('sellPrice').value),markup:Number(value('markup').value),enabled:value('enabled').checked,visible:value('visible').checked};
+    if(!Number.isFinite(body.sellPrice)||body.sellPrice<0||!Number.isFinite(body.markup)||body.markup<0){document.getElementById('kshB2Msg').textContent='Enter valid non-negative NGN prices.';return;}
+    button.disabled=true;document.getElementById('kshB2Msg').textContent='Saving service settings...';
+    try{await aFetch('/api/admin/boost2/services/'+Number(id),'PUT',body);document.getElementById('kshB2Msg').textContent='Service settings saved.';await kshB2Load();}
+    catch(e){document.getElementById('kshB2Msg').textContent='Could not save service: '+e.message;button.disabled=false;}
   };
   window.kshB2Sync=async function(){
     var m=document.getElementById('kshB2Msg');m.textContent='Syncing...';
-    try{var r=await aFetch('/api/admin/boost2/sync','POST',{});m.textContent=r.message||('Synced '+r.count+' services');kshB2Load();}catch(e){m.textContent='Error: '+e.message;}
+    try{var r=await aFetch('/api/admin/boost2/sync','POST',{});m.textContent=r.message||('Synced '+r.count+' services');await kshB2Load();}catch(e){m.textContent='Error: '+e.message;}
+  };
+  window.kshB2ReviewLoad=async function(){
+    var el=document.getElementById('kshB2ReviewList');
+    if(!el)return;
+    el.textContent='Loading orders requiring review...';
+    try{
+      var rows=await aFetch('/api/admin/boost2/orders');
+      if(!rows.length){el.textContent='No Boost 2 orders require review.';return;}
+      el.innerHTML='<table style="width:100%;min-width:900px;font-size:13px;border-collapse:collapse"><tr><th align=left>Customer</th><th align=left>Service / order</th><th align=left>Target</th><th align=left>Amount</th><th align=left>Status</th><th></th></tr>'+
+      rows.map(function(o){
+        var id=String(o.id||'');
+        if(!/^[a-f0-9]{24}$/i.test(id))return '';
+        var controls=o.status==='pending'
+          ? '<button type="button" data-b2-action="review" data-b2-id="'+id+'">Flag for review</button>'
+          : o.status==='review'
+            ? '<button type="button" data-b2-action="confirm" data-b2-id="'+id+'">Confirm provider order</button> <button type="button" data-b2-action="refund" data-b2-id="'+id+'">Refund after check</button>'
+            : 'Do not retry automatically';
+        return '<tr style="border-top:1px solid #252535"><td>'+esc(o.userName||o.userEmail||'Customer')+'<br><small>'+esc(o.userEmail||'')+'</small></td><td>'+esc(o.itemName||'Boost 2 order')+' · '+esc(o.quantity)+' units<br><small>Internal ref: '+esc(o.clientRef||id)+'</small><br><small>'+esc(o.reviewNote||'')+'</small></td><td style="max-width:240px;overflow-wrap:anywhere">'+esc(o.link||'')+'</td><td>₦'+Number(o.amount||0).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2})+'</td><td>'+esc(o.status)+'</td><td>'+controls+'</td></tr>';
+      }).join('')+'</table>';
+      el.querySelectorAll('[data-b2-action]').forEach(function(button){button.onclick=function(){window.kshB2Resolve(button.dataset.b2Id,button.dataset.b2Action);};});
+    }catch(e){el.textContent='Could not load review orders: '+e.message;}
+  };
+  window.kshB2Resolve=async function(id,action){
+    var body={action:action};
+    if(action==='review'){
+      if(!confirm('Flag this pending order for reconciliation. No wallet change will be made. Continue?'))return;
+    }else if(action==='confirm'){
+      var ref=prompt('First verify the order in the provider dashboard. Enter its confirmed provider order reference:','');
+      if(!ref)return;
+      body.providerOrder=ref.trim();
+      body.status='processing';
+    }else if(action==='refund'){
+      if(!confirm('Only continue after verifying in the provider dashboard that no order was created. The customer will receive ₦ credit. Continue?'))return;
+    }
+    var msg=document.getElementById('kshB2ReviewMsg');
+    try{var result=await aFetch('/api/admin/boost2/orders/'+encodeURIComponent(id)+'/resolve','POST',body);msg.textContent=result.pending?(result.message||'Manual balance reconciliation is required.'):('Order updated: '+result.status+'.');await kshB2ReviewLoad();}
+    catch(e){msg.textContent='Order resolution failed: '+e.message;}
   };
   window.kshTutLoad=async function(){
     var el=document.getElementById('kshTutList');
@@ -1229,11 +1376,11 @@ tr:hover td{background:rgba(255,255,255,.035)}
       <div class="sec">
         <div class="sec-title"><svg class="icon i-plug" aria-hidden="true"><use href="#i-plug"/></svg> Number Servers &amp; Profit Settings</div>
         <div class="info-box"><svg class="icon i-pin" aria-hidden="true"><use href="#i-pin"/></svg>
-          Legacy NovaSolution server is unused. Buy Number 1 = GrizzlySMS; Buy Number 2 = OTP Suite, configured separately below. Grizzly pricing uses the existing USD→₦ rate and profit ladder,
+          Buy Number 3 uses NovaSolution; Buy Number 1 uses GrizzlySMS and Buy Number 2 uses OTP Suite, configured separately below. NovaSolution prices use the service override when set, otherwise the NGN profit ladder.
           priced automatically: cost in $ is converted to ₦ at your rate, then your profit ladder is added on top.
         </div>
         <div class="form-row">
-          <div class="fg"><label>Legacy Server (NovaSolution — unused)</label>
+          <div class="fg"><label>Buy Number 3 (NovaSolution)</label>
             <select id="nscServer1"><option value="true">Enabled</option><option value="false">Disabled</option></select>
           </div>
           <div class="fg"><label>Buy Number 1 (Grizzly — all services)</label>
@@ -1343,7 +1490,7 @@ tr:hover td{background:rgba(255,255,255,.035)}
 
       <div class="sec">
         <div class="sec-title"><svg class="icon i-plug" aria-hidden="true"><use href="#i-plug"/></svg> NovaSolution Provider Status</div>
-        <div class="info-box">The customer number picker reads the live NovaSolution catalog. Server 1 prices use the profit ladder above; server, country and service availability are revalidated before every order.</div>
+        <div class="info-box">Buy Number 3 reads the saved NovaSolution catalogue. Service availability and the final NGN selling price are revalidated before each order.</div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <div id="novaBalanceBox" style="font-size:15px;font-weight:700">NovaSolution balance not loaded yet</div>
           <button class="btn-secondary" type="button" onclick="loadNovaBalance()">Refresh NovaSolution balance</button>
@@ -1353,6 +1500,21 @@ tr:hover td{background:rgba(255,255,255,.035)}
         <div id="novaCatalogSummary" style="font-size:12.5px;color:var(--t2);margin-top:8px">—</div>
         <div id="novaSyncStatus" style="font-size:12.5px;color:var(--t2);margin-top:6px">Customers see the saved list. Tap Sync to pull every server, country and service from the provider and save it. Old data is kept if the provider fails.</div>
         <div id="novaAdminFeedback" class="form-feedback"></div>
+      </div>
+      <div class="sec">
+        <div class="sec-title"><svg class="icon i-search" aria-hidden="true"><use href="#i-search"/></svg> Buy Number 3 Services &amp; Customer Pricing</div>
+        <div class="info-box">Syncing updates the saved provider catalogue without replacing these manual settings. Leave a selling price blank to use the NGN profit ladder above; set ₦0 to hide that service. The Buy Number 3 switch above must also be enabled.</div>
+        <div class="form-row">
+          <div class="fg"><label>Catalogue</label><select id="novaNumberScope" onchange="updateNovaNumberScope();loadNovaNumberServices(false)"><option value="usa">USA services</option><option value="global">Global services</option></select></div>
+          <div class="fg"><label>Country</label><select id="novaNumberCountry" onchange="loadNovaNumberServices(false)"><option value="">Loading countries…</option></select></div>
+          <div class="fg"><label>Search services</label><input id="novaNumberSearch" type="search" placeholder="Service, category, or ID" oninput="renderNovaNumberServices()"/></div>
+          <div class="fg"><label>&nbsp;</label><button class="btn-secondary" type="button" onclick="loadNovaNumberServices(true)">Load / refresh services</button></div>
+        </div>
+        <div id="novaNumberServiceStatus" class="form-feedback"></div>
+        <div style="overflow-x:auto"><table style="width:100%;min-width:760px;font-size:13px;border-collapse:collapse">
+          <thead><tr><th align="left">Service</th><th align="left">Provider cost</th><th align="left">Default price</th><th align="left">Selling price (₦)</th><th>Enabled</th><th>Visible</th><th></th></tr></thead>
+          <tbody id="novaNumberServiceRows"><tr><td colspan="7">Load services to manage pricing and visibility.</td></tr></tbody>
+        </table></div>
       </div>
       <div class="sec">
  <div class="sec-title"><svg class="icon i-user" aria-hidden="true"><use href="#i-user"/></svg> Per-User Pricing (overrides)</div>
@@ -1636,6 +1798,36 @@ tr:hover td{background:rgba(255,255,255,.035)}
       </div>
     </div>
     <div id="tab-sitelinks" class="tab-panel">
+      <div class="sec owner-only">
+        <div class="sec-title">Site-wide brand logo</div>
+        <div class="info-box">Upload a PNG, JPEG, or WebP image (maximum 3 MB). It will replace the crown mark in the site loader, footer, and admin header across the site.</div>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <img id="siteLogoPreview" alt="Current site logo" style="width:64px;height:64px;object-fit:contain;border-radius:12px;background:#111;display:none">
+          <input id="siteLogoFile" type="file" accept="image/png,image/jpeg,image/webp">
+          <button class="btn-primary" type="button" onclick="uploadSiteLogo(this)">Upload logo</button>
+          <button class="btn-primary" type="button" onclick="removeSiteLogo()">Remove logo</button>
+          <span id="siteLogoFeedback" role="status"></span>
+        </div>
+      </div>
+      <div class="sec owner-only">
+        <div class="sec-title">Product brand logos</div>
+        <div class="info-box">Add a persistent PNG, JPEG, or WebP brand logo (maximum 3 MB). Brand names and aliases match product titles/categories across Marketplace 1, 2, and 3. Matching uses whole words or phrases, not fuzzy matching; more specific names take priority. Cloudinary must be configured for persistent uploads.</div>
+        <div class="form-row">
+          <div class="fg"><label for="brandLogoName">Brand name</label><input id="brandLogoName" maxlength="80" placeholder="e.g. WhatsApp"></div>
+          <div class="fg"><label for="brandLogoAliases">Name variations (comma-separated)</label><input id="brandLogoAliases" maxlength="1000" placeholder="e.g. Whats App, WA"></div>
+          <div class="fg"><label for="brandLogoImage">Logo image</label><input id="brandLogoImage" type="file" accept="image/png,image/jpeg,image/webp"></div>
+          <div class="fg" style="display:flex;align-items:center;gap:9px;padding-top:20px">
+            <input id="brandLogoEnabled" type="checkbox" checked style="width:auto">
+            <label for="brandLogoEnabled" style="margin:0">Enabled for customers</label>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="brandLogoSaveBtn" class="btn-primary" type="button" onclick="saveBrandLogoMapping(this)">Add brand logo</button>
+          <button id="brandLogoCancelBtn" class="btn-secondary" type="button" onclick="cancelBrandLogoEdit()" style="display:none">Cancel edit</button>
+        </div>
+        <div id="brandLogoFeedback" role="status" style="margin-top:8px"></div>
+        <div id="brandLogoMappings" style="margin-top:12px">Loading brand logos…</div>
+      </div>
       <div class="sec">
  <div class="sec-title"><svg class="icon i-phone" aria-hidden="true"><use href="#i-phone"/></svg> Contact &amp; Links Settings</div>
  <div class="info-box"><svg class="icon i-pin" aria-hidden="true"><use href="#i-pin"/></svg> These settings are used everywhere across the site — the floating community button, Support page, footer, and buy prompts. Changes take effect immediately across all pages. Fields can be saved individually — you don't need to fill all three at once.</div>
@@ -2196,6 +2388,9 @@ const ADMIN_NAV = [
   { group:'Marketplace settings', owner:true, items:[
     { tab:'logs2', icon:'i-plug', label:'Logs 2 (Marketplace 2)', owner:true, keywords:'nova novasolution marketplace manual switch prices stock' },
     { tab:'logs3', icon:'i-plug', label:'Logs 3 (Marketplace 3)', owner:true, keywords:'rakib rakibsocials marketplace three switch prices stock orders' },
+    { tab:'logs4', icon:'i-plug', label:'Logs 4 (Marketplace 4)', owner:true, keywords:'marketplace four 4 sync switch prices stock orders' },
+    { tab:'n3adm', icon:'i-plug', label:'Buy Number 3', owner:true, keywords:'buy number 3 numbers sync services prices hide on off' },
+    { tab:'kinglogos', icon:'i-zap', label:'Product logos', owner:true, keywords:'logo logos picture image facebook icon brand' },
     { tab:'numbers2', icon:'i-smartphone', label:'Server 2 — low SMS rate pools', owner:true },
     { tab:'otp2', icon:'i-smartphone', label:'Buy Number 2 (OTP Suite)', owner:true, keywords:'otp suite buy number 2 markup orders balance' },
     { tab:'boost2adm', icon:'i-rocket', label:'Boost 2 services', owner:true, keywords:'boost 2 nova services sync' },
@@ -2328,6 +2523,9 @@ function switchTab(name,el) {
   if(name==='otp2'&&window.kshOtpLoad)kshOtpLoad(); if(name==='boost2adm'&&window.kshB2Load)kshB2Load(); if(name==='tutorialsadm'&&window.kshTutLoad)kshTutLoad();
   if(name==='logs2') { m2LoadConfig(); m2LoadProducts(false); m2LoadBalance(); m2LoadOrders(); }
   if(name==='logs3')        { m3LoadConfig(); m3LoadProducts(false); m3LoadBalance(); m3LoadOrders(); }
+  if(name==='logs4')        { m4LoadConfig(); m4LoadProducts(false); m4LoadBalance(); m4LoadOrders(); }
+  if(name==='n3adm')        { n3Load(); }
+  if(name==='kinglogos')    { kLogosLoad(); }
   if(name==='welcomepopup') { wpLoad(); }
   if(name==='users')        { loadUsers(); loadActiveUsersAdmin(); }
   if(name==='credit')       { loadAllUsersFor('qcBody'); refreshCreditUsers(); }
@@ -2339,7 +2537,7 @@ function switchTab(name,el) {
 
   if(name==='receipts')     loadReceipts();
   if(name==='deptutorials') loadDepositTutorialsAdmin();
-  if(name==='numbers')      { try{pollNovaSync();}catch(e){} loadNumberStock(); loadNovaBalance(); loadNovaCatalogSummary(); loadUserNumberPrices(); loadNumberServerConfig(); loadGrizzlyBalance(); loadNumberProfit(); loadAdminHealth(); loadAdminNumberOrders(); }
+  if(name==='numbers')      { try{pollNovaSync();}catch(e){} loadNumberStock(); loadNovaBalance(); loadNovaCatalogSummary(); loadNovaNumberServices(false); loadUserNumberPrices(); loadNumberServerConfig(); loadGrizzlyBalance(); loadNumberProfit(); loadAdminHealth(); loadAdminNumberOrders(); }
   if(name==='numbers2')     { initNumbers2(); loadN2AlertSettings(); loadProviderAnalytics(); }
   if(name==='finance')      { finLoadSettings(); finSearch(); finLoadWebhooks(); }
   if(name==='virtualaccounts') { loadVASettings(); loadVAList(); loadVADeposits(); }
@@ -4552,14 +4750,101 @@ async function loadNovaCatalogSummary() {
   const box = document.getElementById('novaCatalogSummary'); if (!box) return;
   box.textContent = 'Checking live NovaSolution catalog…';
   try {
-    const r = await aFetch('/api/admin/numbers/nova-catalog?scope=usa');
+    const r = await aFetch('/api/admin/numbers/nova-catalog?scope=usa&test=1');
     const d = r.data && typeof r.data === 'object' ? r.data : r;
+    if (r.stale || d.stale) {
+      box.textContent = 'NovaSolution could not be reached. The previously saved catalogue is still available.';
+      const fb = document.getElementById('novaAdminFeedback'); if (fb) fb.textContent = 'Live connection test failed: ' + new Date().toLocaleString();
+      return;
+    }
     const servers = Array.isArray(d.servers) ? d.servers : [];
     const countries = Array.isArray(d.countries) ? d.countries : [];
     const services = Array.isArray(d.services) ? d.services : [];
     box.textContent = `Catalog reachable · ${servers.length} server(s), ${countries.length} country(ies), ${services.length} service(s) in USA scope. Pool-specific choices are only available if NovaSolution exposes them in its catalog/API.`;
     const fb = document.getElementById('novaAdminFeedback'); if (fb) fb.textContent = 'Last catalog check: ' + new Date().toLocaleString();
   } catch (e) { box.textContent = 'Catalog check failed: ' + e.message; }
+}
+let novaNumberServiceList = [];
+let novaNumberCountries = null;
+async function loadNovaNumberCountries() {
+  const select = document.getElementById('novaNumberCountry');
+  if (!select) return;
+  const selected = select.value;
+  if (!novaNumberCountries) {
+    const rows = await aFetch('/api/numbers/live-countries');
+    novaNumberCountries = Array.isArray(rows) ? rows : [];
+  }
+  select.innerHTML = novaNumberCountries.map(country =>
+    `<option value="${esc(country.code)}">${esc(country.name)}</option>`
+  ).join('') || '<option value="US">United States</option>';
+  const hasPrevious = novaNumberCountries.some(country => String(country.code) === selected);
+  const us = novaNumberCountries.find(country => /^us$/i.test(String(country.code)) || /united states/i.test(String(country.name)));
+  if (hasPrevious) select.value = selected;
+  else if (us) select.value = us.code;
+  updateNovaNumberScope();
+}
+function updateNovaNumberScope() {
+  const scope = document.getElementById('novaNumberScope')?.value;
+  const country = document.getElementById('novaNumberCountry');
+  if (!country) return;
+  country.disabled = scope === 'usa';
+  if (scope === 'usa') {
+    const us = novaNumberCountries?.find(item => /^us$/i.test(String(item.code)) || /united states/i.test(String(item.name)));
+    if (us) country.value = us.code;
+  }
+}
+function renderNovaNumberServices() {
+  const body = document.getElementById('novaNumberServiceRows');
+  if (!body) return;
+  const query = (document.getElementById('novaNumberSearch')?.value || '').trim().toLowerCase();
+  const rows = novaNumberServiceList.filter(service =>
+    !query || `${service.name} ${service.category} ${service.serviceId} ${service.serverId}`.toLowerCase().includes(query)
+  );
+  body.innerHTML = rows.length ? rows.map(service => {
+    const suffix = `${service.serverId}_${service.serviceId}`;
+    return `<tr style="border-top:1px solid var(--border2,rgba(255,255,255,.12))">
+      <td>${esc(service.name)}<br><small>${esc(service.category)} · Service ${service.serviceId} · Server ${service.serverId}</small></td>
+      <td>₦${Number(service.costNgn || 0).toLocaleString('en-NG',{maximumFractionDigits:2})}</td>
+      <td>₦${Number(service.automaticPrice || 0).toLocaleString('en-NG',{maximumFractionDigits:2})}</td>
+      <td><input id="novaNumberPrice${suffix}" type="number" min="0" step="0.01" value="${service.priceNgn == null ? '' : esc(service.priceNgn)}" placeholder="Use default" aria-label="Selling price for ${esc(service.name)}" style="width:125px"></td>
+      <td align="center"><input id="novaNumberEnabled${suffix}" type="checkbox" ${service.enabled ? 'checked' : ''} aria-label="Enable ${esc(service.name)}"></td>
+      <td align="center"><input id="novaNumberVisible${suffix}" type="checkbox" ${service.visible ? 'checked' : ''} aria-label="Show ${esc(service.name)} to customers"></td>
+      <td><button class="btn-sm" type="button" onclick="saveNovaNumberService(${service.serverId},${service.serviceId})">Save</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7">No matching services. Check the catalogue or search term.</td></tr>';
+}
+async function loadNovaNumberServices(refresh) {
+  const status = document.getElementById('novaNumberServiceStatus');
+  const body = document.getElementById('novaNumberServiceRows');
+  if (!status || !body) return;
+  status.textContent = 'Loading saved services…';
+  try {
+    await loadNovaNumberCountries();
+    const scope = document.getElementById('novaNumberScope').value;
+    const country = document.getElementById('novaNumberCountry').value;
+    const data = await aFetch(`/api/admin/numbers/nova-services?scope=${encodeURIComponent(scope)}&country=${encodeURIComponent(country)}${refresh ? '&refresh=1' : ''}`);
+    novaNumberServiceList = Array.isArray(data.services) ? data.services : [];
+    status.textContent = `${novaNumberServiceList.length} services${data.stale ? ' · provider unavailable; showing the saved catalogue' : ''}${data.syncedAt ? ' · saved ' + new Date(data.syncedAt).toLocaleString() : ''}.`;
+    renderNovaNumberServices();
+  } catch (e) {
+    status.textContent = 'Could not load services: ' + e.message;
+    body.innerHTML = '<tr><td colspan="7">Service settings were not changed.</td></tr>';
+  }
+}
+async function saveNovaNumberService(serverId, serviceId) {
+  const suffix = `${serverId}_${serviceId}`;
+  const status = document.getElementById('novaNumberServiceStatus');
+  const price = document.getElementById(`novaNumberPrice${suffix}`).value;
+  try {
+    await aFetch('/api/admin/numbers/nova-services', 'PUT', {
+      serviceId, serverId, country: document.getElementById('novaNumberCountry').value,
+      priceNgn: price === '' ? null : Number(price),
+      enabled: document.getElementById(`novaNumberEnabled${suffix}`).checked,
+      visible: document.getElementById(`novaNumberVisible${suffix}`).checked
+    });
+    status.textContent = 'Service settings saved.';
+    await loadNovaNumberServices(false);
+  } catch (e) { status.textContent = 'Could not save service settings: ' + e.message; }
 }
 // ── PER-USER NUMBER PRICE OVERRIDES ──────────────────────────
 let unpPriceSheetCache = []; // this admin's standard Price Sheet rows — used to populate the Provider/Country pickers below
@@ -5066,6 +5351,11 @@ async function loadSiteLinksAdmin() {
   loadContactLinksAdmin();
   try {
     const links = await aFetch('/api/admin/site-links');
+    const logoPreview = document.getElementById('siteLogoPreview');
+    if (logoPreview) {
+      logoPreview.src = links.logoUrl || '';
+      logoPreview.style.display = links.logoUrl ? 'block' : 'none';
+    }
     const num = links.whatsappNumber || '';
     const grp = links.whatsappGroupLink || '';
     const chn = links.whatsappChannelLink || '';
@@ -5086,6 +5376,146 @@ async function loadSiteLinksAdmin() {
     const prevChn = document.getElementById('slChannelPreviewBtn');
     if (prevChn && chn) { prevChn.href = chn; prevChn.style.display = 'inline'; }
   } catch (e) { setFb(document.getElementById('slFeedback'), e.message, 'err'); }
+  loadBrandLogoMappings();
+}
+let brandLogoEditingKey = '';
+let brandLogoMappings = [];
+async function loadBrandLogoMappings() {
+  const box = document.getElementById('brandLogoMappings');
+  if (!box) return;
+  box.textContent = 'Loading brand logos…';
+  try {
+    brandLogoMappings = await aFetch('/api/admin/brand-logos');
+    renderBrandLogoMappings();
+  } catch (e) {
+    box.textContent = 'Could not load brand logos: ' + e.message;
+  }
+}
+function renderBrandLogoMappings() {
+  const box = document.getElementById('brandLogoMappings');
+  if (!box) return;
+  box.innerHTML = brandLogoMappings.length ? brandLogoMappings.map(row => `
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px;margin:8px 0;border:1px solid var(--border2);border-radius:10px;background:var(--bg3)">
+      <img src="${esc(row.logoUrl)}" alt="${esc(row.brand)} logo" loading="lazy" onerror="this.style.visibility='hidden'" style="width:52px;height:52px;object-fit:contain;background:#111;border-radius:8px;flex:0 0 auto">
+      <div style="flex:1;min-width:160px">
+        <b>${esc(row.brand)}</b> <small style="color:var(--t2)">(${esc(row.brandKey)})</small>
+        <div style="font-size:12px;color:var(--t2);overflow-wrap:anywhere">${row.aliases.length ? esc(row.aliases.join(', ')) : 'No aliases'}</div>
+        <div style="font-size:12px;color:var(--t2)">${row.enabled ? 'Enabled' : 'Disabled'}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn-sm" type="button" onclick="editBrandLogoMapping('${esc(row.brandKey)}')">Edit / replace</button>
+        <button class="btn-sm" type="button" onclick="toggleBrandLogoMapping('${esc(row.brandKey)}')">${row.enabled ? 'Disable' : 'Enable'}</button>
+        <button class="btn-sm" type="button" onclick="deleteBrandLogoMapping('${esc(row.brandKey)}')">Delete</button>
+      </div>
+    </div>`).join('') : '<div style="color:var(--t2);padding:12px 0">No product brand logos are configured yet.</div>';
+}
+function editBrandLogoMapping(brandKey) {
+  const row = brandLogoMappings.find(item => item.brandKey === brandKey);
+  if (!row) return;
+  brandLogoEditingKey = row.brandKey;
+  document.getElementById('brandLogoName').value = row.brand;
+  document.getElementById('brandLogoAliases').value = (row.aliases || []).join(', ');
+  document.getElementById('brandLogoEnabled').checked = row.enabled;
+  document.getElementById('brandLogoImage').value = '';
+  document.getElementById('brandLogoSaveBtn').textContent = 'Save brand logo';
+  document.getElementById('brandLogoCancelBtn').style.display = 'inline-block';
+  document.getElementById('brandLogoFeedback').textContent = `Editing ${row.brand}. Choose a new image only to replace its logo.`;
+}
+function cancelBrandLogoEdit() {
+  brandLogoEditingKey = '';
+  document.getElementById('brandLogoName').value = '';
+  document.getElementById('brandLogoAliases').value = '';
+  document.getElementById('brandLogoImage').value = '';
+  document.getElementById('brandLogoEnabled').checked = true;
+  document.getElementById('brandLogoSaveBtn').textContent = 'Add brand logo';
+  document.getElementById('brandLogoCancelBtn').style.display = 'none';
+  document.getElementById('brandLogoFeedback').textContent = '';
+}
+async function saveBrandLogoMapping(button) {
+  const name = document.getElementById('brandLogoName').value.trim();
+  const fileInput = document.getElementById('brandLogoImage');
+  const file = fileInput.files && fileInput.files[0];
+  const feedback = document.getElementById('brandLogoFeedback');
+  if (!name) { feedback.textContent = 'Enter a brand name.'; return; }
+  if (!brandLogoEditingKey && !file) { feedback.textContent = 'Choose a logo image.'; return; }
+  if (file && (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 3 * 1024 * 1024)) {
+    feedback.textContent = 'Choose a PNG, JPEG, or WebP image under 3 MB.'; return;
+  }
+  const form = new FormData();
+  form.append('brand', name);
+  form.append('aliases', document.getElementById('brandLogoAliases').value);
+  form.append('enabled', String(document.getElementById('brandLogoEnabled').checked));
+  if (file) form.append('image', file);
+  const method = brandLogoEditingKey ? 'PUT' : 'POST';
+  const endpoint = brandLogoEditingKey ? `/api/admin/brand-logos/${encodeURIComponent(brandLogoEditingKey)}` : '/api/admin/brand-logos';
+  const progress = progressBarFor(feedback);
+  progress.show();
+  button.disabled = true;
+  feedback.textContent = file ? 'Uploading and saving logo…' : 'Saving brand settings…';
+  try {
+    await aFetchUpload(endpoint, method, form, progress.set);
+    cancelBrandLogoEdit();
+    await loadBrandLogoMappings();
+    feedback.textContent = `Brand logo for ${name} saved.`;
+  } catch (e) {
+    feedback.textContent = 'Could not save this brand logo: ' + e.message;
+  } finally {
+    progress.hide();
+    button.disabled = false;
+  }
+}
+async function toggleBrandLogoMapping(brandKey) {
+  const row = brandLogoMappings.find(item => item.brandKey === brandKey);
+  if (!row) return;
+  try {
+    await aFetch(`/api/admin/brand-logos/${encodeURIComponent(brandKey)}`, 'PUT', { enabled: !row.enabled });
+    await loadBrandLogoMappings();
+  } catch (e) {
+    document.getElementById('brandLogoFeedback').textContent = 'Could not update visibility: ' + e.message;
+  }
+}
+async function deleteBrandLogoMapping(brandKey) {
+  const row = brandLogoMappings.find(item => item.brandKey === brandKey);
+  if (!row) return;
+  const confirmed = window.kslConfirm
+    ? await window.kslConfirm(`Delete the ${row.brand} logo mapping?`, { title: 'Delete brand logo', okText: 'Delete', cancelText: 'Keep it', danger: true })
+    : window.confirm(`Delete the ${row.brand} logo mapping?`);
+  if (!confirmed) return;
+  try {
+    await aFetch(`/api/admin/brand-logos/${encodeURIComponent(brandKey)}`, 'DELETE');
+    document.getElementById('brandLogoFeedback').textContent = `${row.brand} logo mapping deleted.`;
+    if (brandLogoEditingKey === brandKey) cancelBrandLogoEdit();
+    await loadBrandLogoMappings();
+  } catch (e) {
+    document.getElementById('brandLogoFeedback').textContent = 'Could not delete this mapping: ' + e.message;
+  }
+}
+async function uploadSiteLogo(button) {
+  const input = document.getElementById('siteLogoFile'), feedback = document.getElementById('siteLogoFeedback');
+  const file = input.files && input.files[0];
+  if (!file) { feedback.textContent = 'Choose a logo image first.'; return; }
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 3 * 1024 * 1024) {
+    feedback.textContent = 'Choose a PNG, JPEG, or WebP image under 3 MB.'; return;
+  }
+  const form = new FormData(); form.append('image', file);
+  const progress = progressBarFor(feedback); progress.show();
+  button.disabled = true; feedback.textContent = 'Uploading site logo...';
+  try {
+    await aFetchUpload('/api/admin/brand-logo', 'POST', form, progress.set);
+    feedback.textContent = 'Site logo saved and will appear across the site.';
+    input.value = '';
+    await loadSiteLinksAdmin();
+  } catch (e) { feedback.textContent = 'Could not upload the site logo: ' + e.message; }
+  finally { progress.hide(); button.disabled = false; }
+}
+async function removeSiteLogo() {
+  const feedback = document.getElementById('siteLogoFeedback');
+  if (!(await (window.kslConfirm ? window.kslConfirm('Remove the custom site logo and restore the default mark?', { title: 'Remove site logo', okText: 'Remove logo', cancelText: 'Keep logo', danger: true }) : Promise.resolve(window.confirm('Remove the custom site logo?'))))) return;
+  try {
+    await aFetch('/api/admin/brand-logo', 'DELETE');
+    feedback.textContent = 'Custom logo removed.';
+    await loadSiteLinksAdmin();
+  } catch (e) { feedback.textContent = 'Could not remove the site logo: ' + e.message; }
 }
 // Save a single field without requiring all three to be filled
 async function saveSiteLinksField(field) {
@@ -6512,6 +6942,7 @@ async function pollNovaSync() {
     } else {
       if (btn) btn.disabled = false;
       if (box) box.textContent = (s.message || 'Idle.') + (s.lastSyncedAt ? ' Last saved: ' + new Date(s.lastSyncedAt).toLocaleString() + '.' : '');
+      await loadNovaNumberServices(true);
     }
   } catch (e) { if (box) box.textContent = 'Could not read sync status: ' + e.message; if (btn) btn.disabled = false; }
 }
@@ -6562,5 +6993,6 @@ async function refundOtpSuiteOrder(){const id=prompt('Paste the OTP Suite order 
   closeNow(); /* start with the menu closed */
 })();
 </script>
+<script src="/js/admin-king.js?v=1"></script>
 </body>
 </html>

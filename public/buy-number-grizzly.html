@@ -910,7 +910,7 @@ async function loadNumOptions() {
   const serverSelect = document.getElementById('numNovaServerSelect');
   try {
     [numNovaServers, numCountries] = await Promise.all([
-      req('/api/numbers/nova-servers', 'GET', null, false),
+      req('/api/numbers/n3-servers', 'GET', null, false),
       req('/api/numbers/live-countries', 'GET', null, false)
     ]);
     if (!numNovaServers.length || !numCountries.length) throw new Error('No servers or countries are available right now.');
@@ -1467,7 +1467,7 @@ function selectServer(id) {
   if (info && !info.enabled) { showToast('That server is switched off right now'); return; }
   activeNumberServer = id;
 
-  // The old WhatsApp-specific notice is not applicable to NovaSolution — Buy Number 1
+  // The old WhatsApp-specific notice is not applicable to this number service.
   // covers many other services where this doesn't apply, so it only shows here, every time
   // Unavailable option is opened (not on general page load, and not for Buy Number 1).
   if (id === 'server1' && !localStorage.getItem('kls_s1_news')) { document.getElementById('annOverlay').classList.add('show'); localStorage.setItem('kls_s1_news', '1'); }
@@ -1539,11 +1539,11 @@ async function loadG2Services() {
   if (!g2Services.length) {
     try {
       const c = JSON.parse(localStorage.getItem('kls_g2_services') || 'null');
-      if (Array.isArray(c) && c.length) {
+      if (Array.isArray(c) && c.length && c.every(s => s && typeof s.code === 'string' && s.code.startsWith('ksh1.'))) {
         g2Services = c; fromCache = true;
         empty.style.display = 'none'; form.style.display = 'block';
         renderG2Services(g2Services); renderG2PopularChips();
-      }
+      } else localStorage.removeItem('kls_g2_services');
     } catch (e) {}
   }
   try {
@@ -1947,7 +1947,7 @@ async function fetchG2Providers(service, country) {
 
 function renderG2Providers(keepSelection) {
   const providerSel = document.getElementById('g2ProviderSelect');
-  const prev = keepSelection ? g2Providers[Number(providerSel.value)]?.maxPrice : null;
+  const prev = keepSelection ? g2Providers[Number(providerSel.value)]?.poolKey : null;
   providerSel.innerHTML = '<option value="">Select a provider…</option>' +
     g2Providers.map((p, i) => {
       const poolNo = Number(String(p.label || '').match(/Pool\s*(\d+)/i)?.[1] || i + 1);
@@ -1955,7 +1955,7 @@ function renderG2Providers(keepSelection) {
       return `<option value="${i}">${esc(p.flag || '🌍')} ${esc(p.label || ('Pool ' + (i + 1)))} — ${speed} — ${PRICE(p.price)} (${p.count} left)</option>`;
     }).join('');
   providerSel.disabled = false;
-  const keepIdx = prev == null ? -1 : g2Providers.findIndex(p => Math.abs(p.maxPrice - prev) < 0.0001);
+  const keepIdx = prev == null ? -1 : g2Providers.findIndex(p => p.poolKey === prev);
   if (keepIdx >= 0) { providerSel.value = String(keepIdx); onG2ProviderChange(); }
   else { document.getElementById('g2ProviderValueText').textContent = 'Select a provider…'; onG2ProviderChange(); }
   return keepIdx;
@@ -2061,11 +2061,11 @@ async function buyNumberServer2() {
 
   // FINAL live check — never let anyone confirm payment against a stale price or a sold-out tier.
   btn.disabled = true; btn.textContent = 'Checking availability…'; setFb(fb, '', '');
-  const wanted = p.maxPrice, wasPrice = p.price;
+  const wanted = p.poolKey, wasPrice = p.price;
   try {
     const fresh = await fetchG2Providers(service, country);
     g2Providers = fresh;
-    const idx = fresh.findIndex(t => Math.abs(t.maxPrice - wanted) < 0.0001 && t.count > 0);
+    const idx = fresh.findIndex(t => t.poolKey === wanted && t.count > 0);
     if (idx < 0) {
       renderG2Providers(false);
       setG2Stock('Checked just now — that provider is gone');
@@ -2091,7 +2091,7 @@ async function buyNumberServer2() {
 
   btn.disabled = true; btn.textContent = 'Processing…';
   try {
-    const order = await req('/api/numbers/server2/buy', 'POST', { service, country, maxPrice: p.maxPrice, operator: selectedG2Operator() }, true);
+    const order = await req('/api/numbers/server2/buy', 'POST', { service, country, poolKey: p.poolKey, operator: selectedG2Operator() }, true);
     setFb(fb, '', '');
     showNumWaitStep(order);
     loadBalance();

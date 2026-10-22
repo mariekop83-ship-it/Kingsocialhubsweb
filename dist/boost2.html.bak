@@ -1,0 +1,69 @@
+<!doctype html><html lang="en"><head>
+  <link rel="icon" type="image/png" href="/favicon.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SMM Boosting 2 | King Social Hub</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/brand.css"><style>body{background:#0b0d11;color:#f3f5f8;padding:18px}.wrap{max-width:980px;margin:24px auto}.panel,.item{background:#171a20;border:1px solid #282e38;border-radius:16px;padding:16px;margin:12px 0}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}input,select{width:100%;padding:13px;border-radius:10px;background:#101319;color:white;border:1px solid #343c49;margin:7px 0}button,.btn{border:0;border-radius:10px;background:#68a9d5;color:#07121c;font-weight:800;padding:12px 16px;cursor:pointer}button:disabled{opacity:.5}.items{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}.price{color:#7db8e0;font-weight:800}.muted{color:#a2aab6}.item h3{margin:0 0 8px}.notice{padding:10px;border-radius:8px;background:#202833;margin:10px 0;white-space:pre-wrap}@media(max-width:600px){.row{grid-template-columns:1fr}}</style><link rel="stylesheet" href="/css/promo-notifications.css?v=1"><link rel="stylesheet" href="/css/announce.css?v=3"><script src="/js/kls-ui.js?v=2"></script>  <link rel="stylesheet" href="/css/page-transitions.css?v=1">
+
+<link rel="stylesheet" href="/css/responsive-device-fit.css?v=1">
+</head><body><main class="wrap"><a href="/dashboard">← Dashboard</a><h1>SMM Boosting 2</h1><p class="muted">Social media services · prices in Nigerian Naira (₦)</p><div class="panel"><input id="search" placeholder="Search services…"><button id="refresh">Refresh services</button><div id="notice" class="notice">Loading services…</div><div id="services" class="items"></div></div><div class="panel"><h2>Place an order</h2><div id="selected">Choose a service above.</div><label>Public post/profile/video link</label><input id="link" type="url" placeholder="https://…"><div class="row"><div><label>Quantity</label><input id="qty" type="number" min="1" value="100"></div><div><label>Estimated total</label><p id="total" class="price">₦0</p></div></div><button id="buy" disabled>Place order</button></div></main><script>
+const $ = id => document.getElementById(id);
+let all = [], chosen = null;
+const money = n => '₦' + Number(n || 0).toLocaleString('en-NG', { maximumFractionDigits: 2 });
+const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+async function api(url, opt = {}) {
+  const token = localStorage.getItem('ksl_token') || localStorage.getItem('token') || '';
+  const response = await fetch(url, { ...opt, headers: { 'Content-Type':'application/json', ...(token ? { Authorization:'Bearer ' + token } : {}), ...(opt.headers || {}) } });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || data.message || 'Request failed');
+  return data;
+}
+function render() {
+  const query = $('search').value.toLowerCase();
+  $('services').innerHTML = all.filter(service => (service.name + ' ' + service.category).toLowerCase().includes(query)).map(service =>
+    `<article class="item"><h3>${esc(service.name)}</h3><p class="muted">${esc(service.category)} · ${service.min}–${service.max}</p><p class="price">${money(service.price)} / 1,000</p><button onclick="pick(${Number(service.id)})">Select service</button></article>`
+  ).join('') || '<p>No matching priced services. Ask the admin to sync the catalogue and set prices.</p>';
+}
+window.pick = id => {
+  chosen = all.find(service => Number(service.id) === Number(id));
+  $('selected').textContent = chosen ? chosen.name + ' · ' + money(chosen.price) + ' per 1,000' : 'Choose a service';
+  $('qty').min = chosen?.min || 1; $('qty').max = chosen?.max || 100000; $('qty').value = chosen?.min || 100;
+  $('buy').disabled = !chosen; calc();
+};
+function calc() { const quantity = Number($('qty').value || 0); $('total').textContent = chosen ? money(chosen.price * quantity / 1000) : money(0); }
+async function load(refresh = false) {
+  $('notice').textContent = 'Loading services…';
+  try {
+    const data = await api('/api/boost2/services' + (refresh ? '?refresh=1' : ''));
+    all = data.services || [];
+    $('notice').textContent = all.length ? `${all.length} services available${data.stale ? ' (cached catalogue)' : ''}.` : (data.message || 'No enabled, priced services are available yet.');
+    render();
+  } catch (error) { $('notice').textContent = error.message + '\nCheck the NovaSolution API key and provider catalogue in the admin panel.'; }
+}
+$('search').oninput = render;
+$('refresh').onclick = () => load(true);
+$('qty').oninput = calc;
+$('buy').onclick = async () => {
+  if (!chosen) return;
+  const quantity = Number($('qty').value), link = $('link').value.trim();
+  if (!/^https?:\/\//i.test(link)) { if (window.KLS) KLS.banner('Enter a valid public http(s) link.', 'error'); else alert('Enter a valid public http(s) link.'); return; }
+  if (!Number.isInteger(quantity) || quantity < chosen.min || quantity > chosen.max) { const message = `Quantity must be ${chosen.min}–${chosen.max}.`; if (window.KLS) KLS.banner(message, 'error'); else alert(message); return; }
+  const total = chosen.price * quantity / 1000;
+  const approved = window.kslConfirm ? await window.kslConfirm(`Place ${chosen.name} order for ${money(total)}?`, { title:'Confirm boosting order', okText:'Place order', cancelText:'Review details' }) : window.confirm(`Place ${chosen.name} order for ${money(total)}?`);
+  if (!approved) return;
+  $('buy').disabled = true; $('buy').textContent = 'Submitting…';
+  try {
+    const data = await api('/api/boost2/orders', { method:'POST', body:JSON.stringify({ serviceId:chosen.id, quantity, link }) });
+    const status = String(data.status || 'processing');
+    const isDone = /^(success|completed|complete)$/i.test(status);
+    const isFailed = /^(failed|error|rejected)$/i.test(status);
+    const message = isDone ? `Order completed. Paid ${money(data.amountPaid)}.` : isFailed ? `The provider reported this order as ${status}. Check your order history before placing it again.` : `Order accepted for processing. Status: ${status}. Paid ${money(data.amountPaid)}. Check your order history for updates.`;
+    if (window.KLS) KLS.banner(message, isDone ? 'success' : isFailed ? 'error' : 'info', { title:isDone ? 'Order complete' : isFailed ? 'Order needs attention' : 'Order submitted', ms:7000 });
+    else alert(message);
+    $('link').value = '';
+  } catch (error) {
+    if (window.KLS) KLS.banner(error.message, 'error', { title:'Order not confirmed', ms:7000 }); else alert(error.message);
+  } finally { $('buy').disabled = !chosen; $('buy').textContent = 'Place order'; }
+};
+load();
+</script>
+<script src="/js/announcements.js?v=3"></script><script src="/js/app-shell.js?v=2" defer></script>
+<script src="/js/section-tabs.js?v=1" defer></script>
+  <script src="/js/page-transitions.js?v=1" defer></script>
+</body></html>

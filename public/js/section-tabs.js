@@ -4,12 +4,12 @@
   var path = location.pathname.replace(/\/$/, '') || '/';
   var groups = {
     numbers: {
-      pages: ['/buy-number-grizzly', '/buy-number-otp', '/buy-number-nova', '/buy-number', '/number-history'],
+      pages: ['/buy-number-1', '/buy-number-2', '/buy-number-3', '/buy-number', '/number-history'],
       tabs: [
-        ['📱 Buy Number 1', '/buy-number-grizzly', ['/buy-number-grizzly']],
-        ['🔐 Buy Number 2', '/buy-number-otp', ['/buy-number-otp']],
-        ['🌐 Buy Number 3', '/buy-number-nova', ['/buy-number-nova']],
-        ['⚡ Active Numbers', '#activeNumbersCard', ['/buy-number-grizzly', '/buy-number-otp', '/buy-number-nova']],
+        ['📱 Buy Number 1', '/buy-number-1', ['/buy-number-1']],
+        ['🔐 Buy Number 2', '/buy-number-2', ['/buy-number-2']],
+        ['🌐 Buy Number 3', '/buy-number-3', ['/buy-number-3']],
+        ['⚡ Active Numbers', '#activeNumbersCard', ['/buy-number-1', '/buy-number-2', '/buy-number-3']],
         ['💬 SMS History', '/number-history', ['/number-history']]
       ]
     },
@@ -51,19 +51,19 @@
       var href = tab[1];
       var isActive = tab[2].indexOf(path) !== -1;
       if (href.charAt(0) === '#') {
-        if (path === '/buy-number') href = '/buy-number-grizzly#activeNumbersCard';
-        else if (path === '/buy-number-otp' || path === '/buy-number-nova') href = '#orders';
+        if (path === '/buy-number') href = '/buy-number-1#activeNumbersCard';
+        else if (path === '/buy-number-2' || path === '/buy-number-3') href = '#orders';
         else href = path + href;
       }
       return '<a class="ksh-service-tab' + (isActive ? ' is-active' : '') + '" href="' + href + '">' + tab[0] + '</a>';
     }).join('');
     heading.parentNode.insertBefore(nav, heading);
     // Make the active order/number panel reachable by the shortcut on each provider page.
-    if (path === '/buy-number-grizzly') {
+    if (path === '/buy-number-1') {
       var active = document.getElementById('activeNumbersCard');
       if (active) active.id = 'activeNumbersCard';
     }
-    if (path === '/buy-number-otp' || path === '/buy-number-nova') {
+    if (path === '/buy-number-2' || path === '/buy-number-3') {
       var orders = document.getElementById('orders');
       if (orders && !orders.id) orders.id = 'orders';
     }

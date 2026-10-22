@@ -1,5 +1,44 @@
 /* KSH-UPDATE-20 */
 try{if(location.pathname==='/'&&localStorage.getItem('ksl_token'))location.replace('/dashboard');}catch(e){}
+/* Apply the owner-configured logo to shared brand marks without changing page behavior. */
+(function(){
+  function imageUrl(value){
+    try{
+      var u=new URL(String(value||''),location.href);
+      if(u.protocol!=='https:'&&u.origin!==location.origin)return '';
+      return u.href;
+    }catch(e){return '';}
+  }
+  function applyLogo(url){
+    if(!url)return;
+    document.querySelectorAll('.kb-logo').forEach(function(el){
+      el.style.backgroundImage='none';
+      var img=document.createElement('img');img.src=url;img.alt='King Social Hub';img.decoding='async';
+      img.style.cssText='width:100%;height:100%;object-fit:contain;border-radius:inherit;position:relative;z-index:1';
+      el.replaceChildren(img);
+    });
+    document.querySelectorAll('.footer-crown,.tb-logo,.dbfl-crown-svg').forEach(function(el){
+      var img=document.createElement('img');img.src=url;img.alt='King Social Hub';img.decoding='async';
+      img.style.cssText='width:100%;height:100%;object-fit:contain;border-radius:inherit';
+      el.replaceChildren(img);
+    });
+    document.querySelectorAll('.nav-brand').forEach(function(el){
+      if(el.querySelector('img[data-site-logo]'))return;
+      if(el.firstChild&&el.firstChild.nodeType===3)el.firstChild.nodeValue=el.firstChild.nodeValue.replace(/^\s*👑\s*/,'');
+      var img=document.createElement('img');img.src=url;img.alt='';img.dataset.siteLogo='1';img.decoding='async';
+      img.style.cssText='width:26px;height:26px;object-fit:contain;vertical-align:middle;margin-right:6px';
+      el.insertBefore(img,el.firstChild);
+    });
+  }
+  function loadLogo(){
+    fetch('/api/public/site-links',{cache:'no-store'}).then(function(r){
+      if(!r.ok)throw new Error('Logo settings are unavailable');
+      return r.json();
+    }).then(function(data){applyLogo(imageUrl(data.logoUrl));}).catch(function(){});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadLogo);
+  else loadLogo();
+})();
 /* KSH-UPDATE-19 */
 (function(){
   var p=location.pathname.replace(/\/+$/,'')||'/';

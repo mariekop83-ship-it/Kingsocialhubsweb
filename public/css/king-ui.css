@@ -1,0 +1,19 @@
+.kui-host{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:2147483000;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;padding:0 12px}
+.kui-banner{pointer-events:auto;display:flex;align-items:center;gap:10px;max-width:520px;width:100%;box-sizing:border-box;padding:12px 14px;border-radius:14px;background:#111827;color:#f9fafb;border:1px solid #374151;box-shadow:0 12px 32px rgba(0,0,0,.45);font:600 14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;transform:translateY(-24px);opacity:0;transition:transform .25s ease,opacity .25s ease}
+.kui-banner.kui-in{transform:none;opacity:1}
+.kui-ico{flex:0 0 24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:900;background:#3b82f6;color:#fff}
+.kui-ok .kui-ico{background:#16a34a}.kui-err .kui-ico,.kui-warn .kui-ico{background:#dc2626}.kui-warn .kui-ico{background:#d97706}
+.kui-ok{border-color:#166534}.kui-err{border-color:#991b1b}
+.kui-txt{flex:1;word-break:break-word}.kui-x{background:none;border:0;color:#9ca3af;font-size:20px;line-height:1;cursor:pointer;padding:0 2px}
+.kui-back{position:fixed;inset:0;z-index:2147483100;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 14px) 12px 12px;opacity:0;transition:opacity .2s}
+.kui-back.kui-in{opacity:1}
+.kui-confirm{width:100%;max-width:460px;background:#111827;color:#f9fafb;border:1px solid #374151;border-radius:16px;padding:16px;box-shadow:0 18px 44px rgba(0,0,0,.55);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;transform:translateY(-20px);transition:transform .25s}
+.kui-back.kui-in .kui-confirm{transform:none}
+.kui-ct{font-weight:800;font-size:16px;margin-bottom:6px}.kui-cm{font-size:14px;line-height:1.5;color:#d1d5db;white-space:pre-wrap}
+.kui-cb{display:flex;gap:10px;margin-top:14px}.kui-btn{flex:1;border:0;border-radius:11px;padding:12px;font-weight:800;font-size:14px;cursor:pointer}
+.kui-no{background:#1f2937;color:#e5e7eb;border:1px solid #374151}.kui-yes{background:#16a34a;color:#fff}
+.kui-load{position:fixed;inset:0;z-index:2147483200;background:rgba(8,10,14,.88);backdrop-filter:blur(4px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#f9fafb;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;opacity:0;transition:opacity .2s;text-align:center;padding:20px}
+.kui-load.kui-in{opacity:1}.kui-lt{font-weight:800;font-size:17px}.kui-ls{font-size:12px;color:#9ca3af}
+.kui-spin{width:54px;height:54px;border-radius:50%;border:5px solid #374151;border-top-color:#22c55e;animation:kuispin .8s linear infinite}
+@keyframes kuispin{to{transform:rotate(360deg)}}
+.kui-logo{width:36px;height:36px;border-radius:10px;object-fit:contain;background:#fff;padding:3px;flex:0 0 36px}

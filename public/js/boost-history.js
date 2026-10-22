@@ -15,22 +15,49 @@
   const money = n => (window.KLSMoney && typeof window.KLSMoney.amount === 'function')
     ? window.KLSMoney.amount(n)
     : '₦' + Number(n || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const moneyNgn = n => '₦' + Number(n || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const $ = id => document.getElementById(id);
   let bucket = 'all';
+  const boost2Bucket = status => {
+    const value = String(status || '').toLowerCase();
+    if (['success', 'complete', 'completed', 'delivered'].includes(value)) return 'delivered';
+    if (['failed', 'error', 'rejected', 'refunded'].includes(value)) return 'failed';
+    return 'pending';
+  };
 
   async function load(silent) {
     if (!silent) $('bhList').innerHTML = '<div class="bst-empty">Loading your boosts…</div>';
-    let data;
-    try { data = await api('/api/boost/orders?bucket=' + bucket); }
-    catch (e) { if (!silent) $('bhList').innerHTML = `<div class="bst-empty">${esc(e.message)}</div>`; return; }
-    const c = data.counts || {};
-    $('cAll').textContent = c.all || 0; $('cPending').textContent = c.pending || 0;
-    $('cDelivered').textContent = c.delivered || 0; $('cFailed').textContent = c.failed || 0;
-    const orders = data.orders || [];
+    const [boost1Result, boost2Result] = await Promise.allSettled([
+      api('/api/boost/orders?bucket=' + bucket),
+      api('/api/boost2/orders'),
+    ]);
+    const boost1 = boost1Result.status === 'fulfilled' ? boost1Result.value : { orders: [], counts: {} };
+    const boost2 = boost2Result.status === 'fulfilled' ? boost2Result.value : { orders: [], counts: {} };
+    const c1 = boost1.counts || {}, c2 = boost2.counts || {};
+    $('cAll').textContent = (Number(c1.all) || 0) + (Number(c2.all) || 0);
+    $('cPending').textContent = (Number(c1.pending) || 0) + (Number(c2.pending) || 0);
+    $('cDelivered').textContent = (Number(c1.delivered) || 0) + (Number(c2.delivered) || 0);
+    $('cFailed').textContent = (Number(c1.failed) || 0) + (Number(c2.failed) || 0);
+    const orders = (boost1.orders || []).map(o => ({ ...o, provider: 'boost1' }));
+    for (const o of boost2.orders || []) {
+      const status = String(o.status || 'processing');
+      const order = {
+        id: o.orderId, provider: 'boost2', service: o.itemName || 'Boost 2 order',
+        platform: 'Boost 2', quantity: o.quantity, link: o.link, price: o.amountPaid,
+        status: status === 'review' ? 'being checked' : status,
+        bucket: boost2Bucket(status), createdAt: o.createdAt,
+      };
+      if (bucket === 'all' || bucket === order.bucket) orders.push(order);
+    }
+    orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const errors = [];
+    if (boost1Result.status === 'rejected') errors.push('Boosting 1 history could not be loaded.');
+    if (boost2Result.status === 'rejected') errors.push('Boosting 2 history could not be loaded.');
+    if (!orders.length && errors.length) { $('bhList').innerHTML = `<div class="bst-empty">${esc(errors.join(' '))}</div>`; return; }
     if (!orders.length) { $('bhList').innerHTML = '<div class="bst-empty">No boosts here yet. <a href="/boost">Start one →</a></div>'; return; }
     $('bhList').innerHTML = orders.map(o => `
-      <button class="bst-order" data-id="${esc(o.id)}">
+      <button class="bst-order" data-id="${esc(o.id)}" data-provider="${esc(o.provider)}">
         <div class="bst-order-main">
           <div class="bst-order-name">${esc(o.service)}</div>
           <div class="bst-order-meta">${esc(o.platform)} · ${Number(o.quantity).toLocaleString()} units · ${new Date(o.createdAt).toLocaleString()}</div>
@@ -38,18 +65,31 @@
         </div>
         <div class="bst-order-side">
           <span class="bst-badge ${esc(o.bucket)}">${esc(o.status)}</span>
-          <span class="bst-order-price">${money(o.price)}</span>
+          <span class="bst-order-price">${o.provider === 'boost2' ? moneyNgn(o.price) : money(o.price)}</span>
         </div>
       </button>`).join('');
-    $('bhList').querySelectorAll('.bst-order').forEach(b => b.onclick = () => openDetail(b.dataset.id));
+    if (errors.length) $('bhList').insertAdjacentHTML('afterbegin', `<div class="bst-empty">${esc(errors.join(' '))}</div>`);
+    $('bhList').querySelectorAll('.bst-order').forEach(b => b.onclick = () => openDetail(b.dataset.id, b.dataset.provider));
   }
 
-  async function openDetail(id) {
+  async function openDetail(id, provider = 'boost1') {
     $('bhDetail').hidden = false;
     $('bhdBody').innerHTML = '<div class="bst-empty">Refreshing live status…</div>';
     let o;
-    try { o = await api('/api/boost/orders/' + id); }
+    try { o = await api((provider === 'boost2' ? '/api/boost2/orders/' : '/api/boost/orders/') + encodeURIComponent(id)); }
     catch (e) { $('bhdBody').innerHTML = `<div class="bst-empty">${esc(e.message)}</div>`; return; }
+    if (provider === 'boost2') {
+      const status = String(o.status || 'processing');
+      $('bhdTitle').textContent = o.itemName || 'Boost 2 order';
+      $('bhdBody').innerHTML = `
+        <div class="bst-badge ${boost2Bucket(status)}">${esc(status === 'review' ? 'being checked' : status)}</div>
+        <div class="bst-kv"><span>Quantity</span><b>${Number(o.quantity).toLocaleString()} units</b></div>
+        <div class="bst-kv"><span>Link</span><b>${esc(o.link)}</b></div>
+        <div class="bst-kv"><span>Amount</span><b>${moneyNgn(o.amountPaid)}</b></div>
+        <div class="bst-kv"><span>Placed</span><b>${new Date(o.createdAt).toLocaleString()}</b></div>
+        ${['pending', 'review', 'refunding'].includes(status.toLowerCase()) ? '<div class="bst-hint">This order is still being processed or checked. Please review your order history before placing another order.</div>' : ''}`;
+      return;
+    }
     $('bhdTitle').textContent = o.service;
     const pct = o.quantity ? Math.min(100, Math.round((o.delivered / o.quantity) * 100)) : 0;
     $('bhdBody').innerHTML = `

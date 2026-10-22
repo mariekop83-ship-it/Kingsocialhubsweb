@@ -32,6 +32,7 @@ require('dotenv').config();
 })();
 
 const _crypto = require('crypto');
+const { sealRef, openRef } = require('./lib/opaque-ref');
 // Constant-time string compare (stops timing attacks on passcodes / webhook hashes)
 function safeEqual(a, b) {
   const x = Buffer.from(String(a == null ? '' : a)), y = Buffer.from(String(b == null ? '' : b));
@@ -189,6 +190,7 @@ app.use((req, res, next) => {
 });
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 app.use((req, res, next) => { stripOperators(req.body); stripOperators(req.query); next(); });
+require('./lib/king-upgrade').early(app, { mongoose }); // KING-UPGRADE early
 // index:false so '/' reaches the SEO-meta-injecting route below instead of being auto-served raw.
 // HTML pages are never cached: visitors were still being served an old copy of
 // the home page (and other pages) out of the browser/CDN cache after a deploy.
@@ -203,6 +205,10 @@ app.use((req, res, next) => { stripOperators(req.body); stripOperators(req.query
   });
 });
 app.use((req, res, next) => { if ((req.path || '').toLowerCase() === '/admin.html') return res.status(404).send('Not found'); next(); });
+app.use((req, res, next) => {
+  if (/\.(?:bak|backup|old|orig|swp|tmp)$/i.test(req.path || '')) return res.sendStatus(404);
+  next();
+});
 app.use(express.static('public', {
   index: false,
   setHeaders(res, filePath) {
@@ -675,6 +681,7 @@ const siteLinksSchema = new mongoose.Schema({
   telegramCommunityLink: { type: String, default: '' },
  whatsappChatLink: { type: String, default: '' },
  supportHours: { type: String, default: '' },
+ logoUrl: { type: String, default: '' },
  updatedAt: { type: Date, default: Date.now }
 });
 const SiteLinks = mongoose.model('SiteLinks', siteLinksSchema);
@@ -768,7 +775,7 @@ const GRIZZLY_ERRORS = {
 // Every Grizzly call goes through here so logging + error shape stay consistent.
 async function grizzlyRequest(action, params = {}) {
   const query = { api_key: GRIZZLY_API_KEY, action, ...params };
-  console.log(`[grizzly] ${action}`, JSON.stringify(params));
+  console.log(`[grizzly] ${action} request`);
   let res;
   try {
     res = await grizzlyAxios.get(GRIZZLY_BASE_URL, { params: query });
@@ -778,7 +785,7 @@ async function grizzlyRequest(action, params = {}) {
     throw err;
   }
   const body = res.data;
-  console.log(`[grizzly] ${action} ->`, typeof body === 'string' ? body.slice(0, 200) : JSON.stringify(body).slice(0, 300));
+  console.log(`[grizzly] ${action} completed`);
   if (typeof body === 'string') {
     const trimmed = body.trim();
     // "ACCESS_BALANCE:12.34" / "STATUS_OK:1234" style answers are successes, not errors.
@@ -801,8 +808,8 @@ async function grizzlyRequest(action, params = {}) {
 // Grizzly's dollar cost, and the flat-naira profit ladder used for markup.
 const numberServerConfigSchema = new mongoose.Schema({
   key: { type: String, default: 'main', unique: true },
-  server1Enabled: { type: Boolean, default: false },   // legacy NovaSolution server; disabled for this build
-  // Server 1 profit ladder (₦ added on top of the live NovaSolution cost).
+  server1Enabled: { type: Boolean, default: false },   // Buy Number 3 — NovaSolution
+  // Default Buy Number 3 profit ladder (₦ added on top of the live NovaSolution cost).
   server1MarkupTiers: {
     type: [{ upTo: Number, profit: Number }],
     default: [
@@ -862,6 +869,23 @@ const numberServerConfigSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 const NumberServerConfig = mongoose.model('NumberServerConfig', numberServerConfigSchema);
+
+const novaNumberServiceConfigSchema = new mongoose.Schema({
+  key: { type: String, required: true, unique: true, index: true },
+  serviceId: { type: Number, required: true },
+  serverId: { type: Number, required: true },
+  country: { type: String, required: true, lowercase: true, trim: true },
+  priceNgn: { type: Number, default: null, min: 0 },
+  enabled: { type: Boolean, default: true },
+  visible: { type: Boolean, default: true },
+  updatedAt: { type: Date, default: Date.now }
+});
+const NovaNumberServiceConfig = mongoose.models.NovaNumberServiceConfig
+  || mongoose.model('NovaNumberServiceConfig', novaNumberServiceConfigSchema);
+
+function novaNumberServiceConfigKey(serverId, serviceId, country) {
+  return `${String(country || '').trim().toLowerCase()}:${Number(serverId)}:${Number(serviceId)}`;
+}
 
 async function getNumberServerConfig() {
   let cfg = await NumberServerConfig.findOne({ key: 'main' });
@@ -1560,10 +1584,13 @@ const anyAdminAuth = async (req, res, next) => {
  if (p && safeEqual(p, process.env.ADMIN_PASSCODE)) { req.adminRole = 'super'; return next(); }
  return subAdminAuth(req, res, next);
 };
+const { brandLogoFor } = require('./lib/brand-logos').register({
+ app, mongoose, adminAuth, cloudinary, cloudinaryConfigured
+});
 // Marketplace 2 (RakibSocials API) + marketplace on/off switches — see lib/market2.js
-require('./lib/market2').register(app, { mongoose, User, Transaction, auth, anyAdminAuth, sendAdminEmail });
+require('./lib/market2').register(app, { mongoose, User, Transaction, auth, anyAdminAuth, sendAdminEmail, brandLogoFor });
 // Marketplace 3 (Lucylynxsocials API) - see lib/market3.js
-require('./lib/market3').register(app, { mongoose, User, Transaction, auth, anyAdminAuth, sendAdminEmail });
+require('./lib/market3').register(app, { mongoose, User, Transaction, auth, anyAdminAuth, sendAdminEmail, brandLogoFor });
 require('./lib/otp-suite')(app, { mongoose, User, Transaction, auth, anyAdminAuth });
 
 // Owner-only integration diagnostics. This reports readiness without ever
@@ -2574,7 +2601,7 @@ app.get('/api/logs', optionalAuth, async (req, res) => {
  const logs = await Log.find(filter).select('-details -toolLink -deliverableFile -subAccounts.details -subAccounts.toolLink -subAccounts.deliverableFile').sort({ createdAt: -1 });
  const categories = await Category.find();
  const showReviewsFor = new Set(categories.filter(c => c.showReviews).map(c => c.name));
- const visible = logs.map(l => {
+ const visible = await Promise.all(logs.map(async l => {
  const obj = l.toObject();
  if (!showReviewsFor.has(l.category)) {
  obj.reviews = [];
@@ -2592,8 +2619,10 @@ app.get('/api/logs', optionalAuth, async (req, res) => {
  } else {
  obj.soldOut = obj.maxPurchases > 0 && obj.soldCount >= obj.maxPurchases;
  }
+ const brandLogo = await brandLogoFor(obj.title, obj.category);
+ if (brandLogo) obj.picture = brandLogo;
  return obj;
- });
+ }));
  res.json(visible);
 });
 app.get('/api/logs/:id', optionalAuth, async (req, res) => {
@@ -2621,6 +2650,8 @@ app.get('/api/logs/:id', optionalAuth, async (req, res) => {
  } else {
  obj.soldOut = obj.maxPurchases > 0 && obj.soldCount >= obj.maxPurchases;
  }
+ const brandLogo = await brandLogoFor(obj.title, obj.category);
+ if (brandLogo) obj.picture = brandLogo;
  res.json(obj);
 });
 app.post('/api/logs/:id/notify-restock', auth, async (req, res) => {
@@ -6183,10 +6214,10 @@ async function releaseNumberOnProvider(listing) {
  const ok = /ACCESS_CANCEL|ACCESS_ACTIVATION/i.test(raw);
  listing.providerCancelled = ok;
  listing.providerCancelDetail = raw.slice(0, 200);
- if (!ok) console.error('grizzly cancel returned unexpected response:', raw);
+ if (!ok) console.error('grizzly cancel returned an unconfirmed result.');
  return { ok, detail: raw };
  } catch (e) {
- console.error('grizzly cancel failed (our refund still proceeds):', e.message);
+ console.error('grizzly cancel request failed:', e.name);
  listing.providerCancelled = false;
  listing.providerCancelDetail = String(e.message || e).slice(0, 200);
  return { ok: false, detail: listing.providerCancelDetail };
@@ -6346,9 +6377,25 @@ async function novaRequest(method, path, options = {}) {
   }
 }
 function novaErrorResponse(res, err) {
+  let status = Number(err.status) || 502;
+  if (err.provider && (status === 401 || status === 403)) status = 502;
+  return res.status(status >= 400 && status <= 599 ? status : 502)
+    .json({ error: 'The number service is temporarily unavailable. Please try again shortly.' });
+}
+function novaAdminErrorResponse(res, err) {
   const status = Number(err.status) || 502;
   return res.status(status >= 400 && status <= 599 ? status : 502)
     .json({ error: err.message || 'Request failed', details: err.details || undefined });
+}
+function sealNovaPublicRef(kind, value) {
+  try { return sealRef(`nova:${kind}`, value, process.env.JWT_SECRET); }
+  catch (e) { throw novaHttpError(503, 'Number services are temporarily unavailable.'); }
+}
+function openNovaPublicRef(kind, token) {
+  try { return openRef(`nova:${kind}`, token, process.env.JWT_SECRET); }
+  catch (e) {
+    throw novaHttpError(400, 'Please refresh the number catalogue and select a service again.');
+  }
 }
 
 function novaUnwrap(payload) {
@@ -6469,9 +6516,15 @@ function novaServicePriceNgn(service, cfg, opts) {
   return Math.ceil(cost + Math.max(0, markup));
 }
 
+async function getNovaNumberServiceConfig(serverId, serviceId, country) {
+  return NovaNumberServiceConfig.findOne({
+    key: novaNumberServiceConfigKey(serverId, serviceId, country)
+  }).lean();
+}
+
 // Internal proxy endpoints for the number-picker flow. Catalog requests are server-side,
 // so the Nova key is never sent to the customer browser.
-app.get('/api/nova/numbers/catalog', auth, async (req, res) => {
+app.get('/api/nova/numbers/catalog', anyAdminAuth, async (req, res) => {
   try {
     const scope = String(req.query.scope || 'usa').toLowerCase() === 'global' ? 'global' : 'usa';
     const params = { scope };
@@ -6496,31 +6549,29 @@ app.get('/api/numbers/options', async (req, res) => {
 });
 app.get('/api/numbers/nova-servers', optionalAuth, async (req, res) => {
  try {
-   // 'usa' scope = servers that sell USA numbers; 'global' scope = all-countries servers.
-   // Keep the provider's own server names (e.g. "USA Server 1"), minus any brand word.
+   // Return generic option labels; provider server names and IDs remain internal.
    const scopes = await Promise.allSettled(['usa', 'global'].map(scope => novaGetCatalog({ scope })));
    if (scopes.every(r => r.status === 'rejected')) throw scopes[0].reason;
-   const clean = n => String(n || '').replace(/nova\s*solution|novasolution|nova/ig, '').replace(/\s{2,}/g, ' ').replace(/^[\s\-–—:·|]+|[\s\-–—:·|]+$/g, '').trim();
    const seen = new Map();
-   const add = (id, rawName, scope) => {
+   const add = (id, scope) => {
      id = Number(id);
      if (!Number.isInteger(id) || id <= 0) return;
-     const name = clean(rawName);
      const prev = seen.get(id);
-     if (!prev) seen.set(id, { id, name, scope });
-     else { if (!prev.name && name) prev.name = name; if (scope === 'usa') prev.scope = 'usa'; }
+     if (!prev) seen.set(id, { id, scope });
+     else if (scope === 'usa') prev.scope = 'usa';
    };
    ['usa', 'global'].forEach((scope, i) => {
      if (scopes[i].status !== 'fulfilled') return;
-     for (const sv of novaServerRows(scopes[i].value)) add(sv.id, sv.name || sv.label || sv.title, scope);
-     for (const row of novaServiceRows(scopes[i].value)) add(row.server_id ?? row.serverId, row.server_name || row.server, scope);
+     for (const sv of novaServerRows(scopes[i].value)) add(sv.id, scope);
+     for (const row of novaServiceRows(scopes[i].value)) add(row.server_id ?? row.serverId, scope);
    });
+   const counts = { usa: 0, global: 0 };
    const servers = [...seen.values()].sort((x, y) => (x.scope === y.scope ? x.id - y.id : (x.scope === 'usa' ? -1 : 1)))
      .map(sv => {
        const isUsa = sv.scope === 'usa';
-       const base = sv.name || `Server ${sv.id}`;
-       const name = isUsa ? (/usa|united states/i.test(base) ? base : `USA ${base}`) : (/^all\b/i.test(base) ? base : `All Countries ${base}`);
-       return { id: sv.id, name, scope: isUsa ? 'usa' : 'global' };
+       const scope = isUsa ? 'usa' : 'global';
+       counts[scope]++;
+       return { key: sealNovaPublicRef('server', { id: sv.id, scope }), name: `${isUsa ? 'USA' : 'Global'} Server ${counts[scope]}`, scope };
      });
    res.set('Cache-Control', 'no-store'); res.json(servers);
  } catch (e) { novaErrorResponse(res, e); }
@@ -6567,6 +6618,10 @@ async function novaRequestRetry(method, path, options) {
 // Reads every page of a number catalog (the provider may paginate).
 async function novaFetchCatalogFull(params) {
   const first = await novaRequestRetry('GET', '/catalog/numbers', { params });
+  const firstData = novaUnwrap(first);
+  if (!Array.isArray(firstData.services) && !Array.isArray(first?.services)) {
+    throw new Error('The provider returned an invalid number catalogue.');
+  }
   let services = novaServiceRows(first);
   const rowKey = r => `${r.id ?? r.service_id}:${r.server_id ?? r.serverId ?? r.server?.id ?? ''}`;
   const seen = new Set(services.map(rowKey));
@@ -6585,12 +6640,17 @@ async function novaFetchCatalogFull(params) {
     const flagged = hasMoreFlag(last);
     if (!flagged && !(page === 1 && services.length >= 20) && !(page > 1 && last.__added >= 20)) break;
     page++;
-    let next;
-    try { next = await novaRequestRetry('GET', '/catalog/numbers', { params: { ...params, page } }); } catch (e) { break; }
+    const next = await novaRequestRetry('GET', '/catalog/numbers', { params: { ...params, page } });
     const more = novaServiceRows(next).filter(r => { const k = rowKey(r); if (seen.has(k)) return false; seen.add(k); return true; });
-    if (!more.length) break;
+    if (!more.length) {
+      if (flagged) throw new Error('The provider number catalogue is incomplete.');
+      break;
+    }
     services = services.concat(more);
     last = Object.assign({}, next, { __added: more.length });
+  }
+  if (page >= 60 && (hasMoreFlag(last) || last.__added >= 20)) {
+    throw new Error('The provider number catalogue exceeded the safe pagination limit.');
   }
   return { servers: novaServerRows(first), countries: novaCountryRows(first), services };
 }
@@ -6598,11 +6658,14 @@ async function novaGetCatalog(params, opts = {}) {
   const key = novaCacheKey(params);
   const doc = await NovaCache.findOne({ key }).lean();
   const age = doc ? Date.now() - new Date(doc.syncedAt).getTime() : Infinity;
-  const need = !doc || (opts.refresh && age > NOVA_REFRESH_COOLDOWN_MS) || (opts.fresh && age > 60 * 1000);
+  const need = !doc || opts.force || (opts.refresh && age > NOVA_REFRESH_COOLDOWN_MS) || (opts.fresh && age > 60 * 1000);
   if (!need) return { ...doc.payload, syncedAt: doc.syncedAt, stale: false };
   let job = _novaInflight.get(key);
   if (!job) {
     job = novaFetchCatalogFull(params).then(async payload => {
+      if (!payload.services.length && Array.isArray(doc?.payload?.services) && doc.payload.services.length) {
+        return { ...doc.payload, syncedAt: doc.syncedAt, stale: true };
+      }
       const syncedAt = new Date();
       await NovaCache.updateOne({ key }, { $set: { payload, syncedAt, error: '' } }, { upsert: true });
       return { ...payload, syncedAt, stale: false };
@@ -6629,14 +6692,16 @@ async function novaSyncAll() {
   if (novaSync.running) return;
   Object.assign(novaSync, { running: true, total: 2, done: 0, failed: 0, current: 'servers', startedAt: new Date(), finishedAt: null, message: 'Starting…' });
   try {
-    const usa = await novaGetCatalog({ scope: 'usa' }, { refresh: true, fresh: true }); novaSync.done++;
-    const glob = await novaGetCatalog({ scope: 'global' }, { refresh: true, fresh: true }); novaSync.done++;
+    const usa = await novaGetCatalog({ scope: 'usa' }, { refresh: true, fresh: true, force: true }); novaSync.done++;
+    if (usa.stale) novaSync.failed++;
+    const glob = await novaGetCatalog({ scope: 'global' }, { refresh: true, fresh: true, force: true }); novaSync.done++;
+    if (glob.stale) novaSync.failed++;
     const slugs = [...new Set(novaCountryRows(glob).map(novaCountryParam).filter(Boolean))];
     novaSync.total = 2 + slugs.length;
     for (const slug of slugs) {
       novaSync.current = slug;
       try {
-        const r = await novaGetCatalog({ scope: 'global', country: slug }, { refresh: true, fresh: true });
+        const r = await novaGetCatalog({ scope: 'global', country: slug }, { refresh: true, fresh: true, force: true });
         if (r.stale) novaSync.failed++;
       } catch (e) { novaSync.failed++; }
       novaSync.done++;
@@ -6656,26 +6721,35 @@ app.get('/api/numbers/live-services', optionalAuth, async (req, res) => {
  try {
    const country = String(req.query.country || '').trim();
    if (!country) return res.status(400).json({ error: 'country is required' });
-   const serverId = Number(req.query.serverId || req.query.server_id || 0);
+   const serverRef = req.query.serverKey ? openNovaPublicRef('server', String(req.query.serverKey)) : null;
+   const serverId = serverRef ? Number(serverRef.id) : Number(req.query.serverId || req.query.server_id || 0);
+   const cfg = await getNumberServerConfig();
+   if (!cfg.server1Enabled) return res.json([]);
    const cat = await novaCatalogForCountry(country, { refresh: String(req.query.refresh || '') === '1' });
    const services = cat.services || [];
-   const cfg = await getNumberServerConfig();
    const sidOf = s => Number(s.server_id ?? s.serverId ?? s.server?.id);
    // Only filter by server when the rows actually say which server they belong to.
    const hasServerInfo = services.some(s => Number.isInteger(sidOf(s)) && sidOf(s) > 0);
    const picked = (serverId && hasServerInfo) ? services.filter(s => sidOf(s) === serverId) : services;
    const minorOf = s => { const m = Number(s.price_minor); if (Number.isFinite(m)) return m; const x = Number(s.price ?? s.cost); return Number.isFinite(x) ? Math.round(x * 100) : NaN; };
+   const configs = await NovaNumberServiceConfig.find({
+     key: { $in: picked.map(s => novaNumberServiceConfigKey(sidOf(s) || serverId, Number(s.id ?? s.service_id), country)) }
+   }).lean();
+   const configByKey = new Map(configs.map(c => [c.key, c]));
    const out = picked.map(s => {
      const minor = minorOf(s);
      const name = novaServiceDisplayName(s);
+     const serviceId = Number(s.id ?? s.service_id);
+     const config = configByKey.get(novaNumberServiceConfigKey(sidOf(s) || serverId, serviceId, country));
+     const automaticPrice = novaServicePriceNgn({ ...s, price_minor: minor }, cfg);
      return {
-       serviceId: String(s.id ?? s.service_id), provider: name,
-       serverId: sidOf(s), serverName: String(s.server_name || s.server?.name || ''),
-       price: novaServicePriceNgn({ ...s, price_minor: minor }, cfg), costNgn: Number.isFinite(minor) ? minor / 100 : 0, priceMinor: Number.isFinite(minor) ? minor : 0,
-       emoji: serviceEmoji(s.code || s.slug || name, name), icon: serviceIconUrl(s.code || s.slug || name, name), rawName: s.name || s.service || '',
-       syncedAt: cat.syncedAt, stale: !!cat.stale
+      serviceKey: sealNovaPublicRef('service', { serviceId, serverId: sidOf(s) || serverId, country: String(country).toLowerCase() }),
+      provider: name,
+      price: config?.priceNgn != null ? Number(config.priceNgn) : automaticPrice,
+      enabled: config?.enabled !== false, visible: config?.visible !== false,
+      emoji: serviceEmoji(s.code || s.slug || name, name), icon: serviceIconUrl(s.code || s.slug || name, name),
      };
-   }).filter(x => x.price != null && x.price > 0)
+   }).filter(x => x.enabled && x.visible && x.price != null && x.price > 0)
      // Popular apps first (WhatsApp, Telegram, …), then A→Z, so nothing is hard to find.
      .sort((a, b) => {
        const pa = POPULAR_NAME_ORDER(a.provider), pb = POPULAR_NAME_ORDER(b.provider);
@@ -6703,7 +6777,7 @@ async function novaPlaceOrder(serviceId, idempotencyKey) {
   try { return await call(); }
   catch (first) {
     if (!first.ambiguous) throw first;
-    console.error('[NOVA] order outcome unclear, retrying once with the same Idempotency-Key:', first.message);
+    console.error('[NOVA] order outcome unclear; retrying once with the same Idempotency-Key.');
     await new Promise(r => setTimeout(r, 1500));
     try { return await call(); }
     catch (second) {
@@ -6713,6 +6787,33 @@ async function novaPlaceOrder(serviceId, idempotencyKey) {
       throw second;
     }
   }
+}
+async function holdNovaNumberOrder({ userId, service, serviceId, serverId, countryCode, sellPrice, idempotencyKey, sessionId = '', phoneNumber = '', orderNumber = '', costNgn = null, reason }) {
+  let listing = null;
+  try {
+    listing = await NumberListing.create({
+      provider: novaServiceDisplayName(service),
+      country: String(countryCode),
+      phoneNumber: phoneNumber || 'pending-review',
+      cost: Number.isFinite(costNgn) ? costNgn : Math.max(0, Number(service?.price_minor || 0) / 100),
+      sellPrice,
+      status: 'needs_review',
+      soldTo: userId,
+      soldAt: new Date(),
+      server: 'server1',
+      novaSessionId: String(sessionId || ''),
+      novaOrderNumber: String(orderNumber || phoneNumber || ''),
+      novaServiceId: serviceId,
+      novaServerId: serverId,
+      novaIdempotencyKey: idempotencyKey,
+      providerError: String(reason || 'Provider order requires reconciliation.').slice(0, 300),
+      providerErrorAt: new Date()
+    });
+  } catch (e) {
+    console.error('[NOVA-REVIEW] could not persist held order:', e.name);
+  }
+  console.error(`[NOVA-REVIEW] order requires reconciliation user=${userId} service=${serviceId} server=${serverId} idempotencyKey=${idempotencyKey} listing=${listing?._id || 'NOT SAVED'}`);
+  return listing;
 }
 // Shared Server 1 (NovaSolution) purchase used by the customer route and the developer API.
 // pricing: 'customer' (normal markup) or 'api' (apiProfitPercent % of the markup).
@@ -6729,7 +6830,13 @@ async function novaPurchaseNumber({ userId, serviceId, serverId, countryCode, ex
   let service = services.find(x => Number(x.id ?? x.service_id) === serviceId && (!hasServerInfo || sidOf(x) === serverId));
   if (service && !Number.isFinite(Number(service.price_minor)) && Number.isFinite(Number(service.price ?? service.cost))) service = { ...service, price_minor: Math.round(Number(service.price ?? service.cost) * 100) };
   if (!service) throw novaHttpError(400, 'That service is no longer available on this server. Refresh and choose again.', { code: 'SERVICE_UNAVAILABLE' });
-  const sellPrice = novaServicePriceNgn(service, cfg, { api: pricing === 'api' });
+  const serviceConfig = await getNovaNumberServiceConfig(serverId, serviceId, countryCode);
+  if (serviceConfig?.enabled === false || (pricing !== 'api' && serviceConfig?.visible === false)) {
+    throw novaHttpError(400, 'That service is not currently available. Please choose another service.');
+  }
+  const sellPrice = pricing !== 'api' && serviceConfig?.priceNgn != null
+    ? Number(serviceConfig.priceNgn)
+    : novaServicePriceNgn(service, cfg, { api: pricing === 'api' });
   if (!Number.isFinite(sellPrice) || sellPrice <= 0) throw novaHttpError(400, 'No valid price is available for this service right now.');
   // Price lock: the caller sends the price the customer confirmed; never charge a different amount silently.
   const expected = Number(expectedPrice);
@@ -6748,23 +6855,14 @@ async function novaPurchaseNumber({ userId, serviceId, serverId, countryCode, ex
     if (providerErr.ambiguousOutcome) {
       // Nova may have created the order. Keep the money on hold and flag it for a manual check
       // instead of refunding (which could leave you paying Nova for a number the customer got refunded for).
-      let held = null;
-      try {
-        held = await NumberListing.create({
-          provider: novaServiceDisplayName(service),
-          country: String(countryCode), phoneNumber: 'pending-review',
-          cost: Number(service.price_minor || 0) / 100, sellPrice, status: 'needs_review', soldTo: userId, soldAt: new Date(),
-          server: 'server1', novaServiceId: serviceId, novaServerId: serverId, novaIdempotencyKey: idempotencyKey,
-          providerError: String(providerErr.message || '').slice(0, 300), providerErrorAt: new Date()
-        });
-      } catch (recErr) {
-        console.error('[NOVA-REVIEW] could not record held order:', recErr.message);
-      }
-      console.error(`[NOVA-REVIEW] UNCONFIRMED ORDER user=${userId} amount=${sellPrice} service=${serviceId} server=${serverId} idempotencyKey=${idempotencyKey} listing=${held?._id || 'NOT SAVED'}`);
+      const held = await holdNovaNumberOrder({
+        userId, service, serviceId, serverId, countryCode, sellPrice, idempotencyKey,
+        reason: 'Provider outcome is unclear; reconcile before refunding.'
+      });
       throw novaHttpError(502, 'We could not confirm this order with the provider. Your payment is on hold while we check — if no number was issued you will be refunded in full. Please do not retry yet.', { code: 'ORDER_UNCONFIRMED', orderId: held?._id });
     }
     await User.updateOne({ _id: userId }, { $inc: { balance: sellPrice } });
-    await Transaction.create({ userId, type: 'admin_credit', amount: sellPrice, description: 'Refund: the provider rejected the number order', status: 'success' });
+    await Transaction.create({ userId, type: 'refund', amount: sellPrice, description: 'Buy Number 3 refund — provider rejected the order', status: 'success' });
     throw providerErr;
   }
   const pd = novaUnwrap(providerResult);
@@ -6775,16 +6873,23 @@ async function novaPurchaseNumber({ userId, serviceId, serverId, countryCode, ex
   const actualMinor = Number(session.price_minor ?? order.price_minor ?? pd.price_minor);
   const actualCostNgn = Number.isFinite(actualMinor) && actualMinor >= 0 ? actualMinor / 100 : null;
   if (actualCostNgn !== null && actualCostNgn >= sellPrice) {
-    try { if (sessionId) await novaRequest('POST', `/numbers/sessions/${encodeURIComponent(sessionId)}/cancel`); } catch (_) {}
-    await User.updateOne({ _id: userId }, { $inc: { balance: sellPrice } });
-    await Transaction.create({ userId, type: 'admin_credit', amount: sellPrice, description: 'Refund: the provider price exceeded the configured customer price', status: 'success' });
-    throw novaHttpError(409, 'Pricing changed during checkout. Your wallet was refunded; refresh the catalog and try again.', { code: 'PRICE_CHANGED' });
+    const held = await holdNovaNumberOrder({
+      userId, service, serviceId, serverId, countryCode, sellPrice, idempotencyKey, sessionId,
+      phoneNumber: String(session.number || order.number || pd.number || '').trim(),
+      orderNumber: String(order.number || ''),
+      costNgn: actualCostNgn,
+      reason: 'Provider price exceeded the confirmed customer price; verify and cancel/refund manually.'
+    });
+    throw novaHttpError(502, 'The provider price changed during checkout. Your payment is on hold while we verify the order; please do not retry yet.', { code: 'ORDER_UNCONFIRMED', orderId: held?._id });
   }
   if (!phoneNumber || !sessionId) {
-    try { if (sessionId) await novaRequest('POST', `/numbers/sessions/${encodeURIComponent(sessionId)}/cancel`); } catch (_) {}
-    await User.updateOne({ _id: userId }, { $inc: { balance: sellPrice } });
-    await Transaction.create({ userId, type: 'admin_credit', amount: sellPrice, description: 'Refund: the provider returned an incomplete number order', status: 'success' });
-    throw novaHttpError(502, 'The order came back incomplete. Your wallet has been refunded; please try again.');
+    const held = await holdNovaNumberOrder({
+      userId, service, serviceId, serverId, countryCode, sellPrice, idempotencyKey, sessionId,
+      phoneNumber, orderNumber: String(order.number || ''),
+      costNgn: actualCostNgn,
+      reason: 'Provider response was incomplete; verify the provider order before refunding.'
+    });
+    throw novaHttpError(502, 'The provider has not confirmed the number details yet. Your payment is on hold while we verify the order; please do not retry.', { code: 'ORDER_UNCONFIRMED', orderId: held?._id });
   }
   let listing;
   let serverName = `Server ${serverId}`;
@@ -6803,10 +6908,14 @@ async function novaPurchaseNumber({ userId, serviceId, serverId, countryCode, ex
       novaServiceId: serviceId, novaServerId: serverId, novaIdempotencyKey: idempotencyKey
     });
   } catch (saveErr) {
-    try { await novaRequest('POST', `/numbers/sessions/${encodeURIComponent(sessionId)}/cancel`); } catch (_) {}
-    await User.updateOne({ _id: userId }, { $inc: { balance: sellPrice } });
-    await Transaction.create({ userId, type: 'admin_credit', amount: sellPrice, description: 'Refund: the provider order could not be saved locally', status: 'success' });
-    throw saveErr;
+    const held = await holdNovaNumberOrder({
+      userId, service, serviceId, serverId, countryCode, sellPrice, idempotencyKey, sessionId,
+      phoneNumber, orderNumber: String(order.number || phoneNumber),
+      costNgn: actualCostNgn,
+      reason: 'Provider accepted the order but local order persistence failed; verify before refunding.'
+    });
+    console.error('[NOVA-REVIEW] accepted number order could not be saved normally:', saveErr.name);
+    throw novaHttpError(502, 'Your number order is being verified. Your payment is on hold; please do not retry yet.', { code: 'ORDER_UNCONFIRMED', orderId: held?._id });
   }
   // The provider order and local listing now exist. Do not refund a valid number just
   // because the transaction-log or referral subsystem has a temporary database error.
@@ -6816,13 +6925,17 @@ async function novaPurchaseNumber({ userId, serviceId, serverId, countryCode, ex
   return { listing, sellPrice, sessionId, serverName };
 }
 function novaPurchaseErrorResponse(res, e) {
-  console.error('the provider number purchase failed:', e.message);
+  console.error('the provider number purchase failed:', e.name, e.status || '');
   let st = Number(e.status);
   if (!(st >= 400 && st <= 599)) st = 500;
   // A provider-side 401/403 means OUR Nova key is wrong; never send that to the customer as 401
   // (the browser would treat it as "you are logged out").
   if (e.provider && (st === 401 || st === 403)) st = 502;
-  const body = { error: e.message || 'Failed to buy number from the provider.' };
+  const body = {
+    error: e.provider
+      ? 'The number provider could not complete the request. Please try again shortly.'
+      : (e.status ? e.message : 'Could not complete the number order. Please try again shortly.')
+  };
   if (typeof e.code === 'string') body.code = e.code;
   if (e.newPrice) body.newPrice = e.newPrice;
   if (e.orderId) body.orderId = e.orderId;
@@ -6830,16 +6943,29 @@ function novaPurchaseErrorResponse(res, e) {
 }
 app.post('/api/numbers/buy', auth, async (req, res) => {
  try {
+   let serviceId = Number(req.body.serviceId || req.body.service_id);
+   let serverId = Number(req.body.serverId || req.body.server_id);
+   let countryCode = String(req.body.country || '').trim();
+   if (req.body.serviceKey) {
+     const ref = openNovaPublicRef('service', String(req.body.serviceKey));
+     if (!/^\d+$/.test(String(ref.serviceId)) || !/^\d+$/.test(String(ref.serverId)) ||
+         String(ref.country || '').toLowerCase() !== countryCode.toLowerCase()) {
+       return res.status(400).json({ error: 'Please refresh the number catalogue and select a service again.' });
+     }
+     serviceId = Number(ref.serviceId);
+     serverId = Number(ref.serverId);
+     countryCode = String(ref.country);
+   }
    const r = await novaPurchaseNumber({
      userId: req.user._id,
-     serviceId: Number(req.body.serviceId || req.body.service_id),
-     serverId: Number(req.body.serverId || req.body.server_id),
-     countryCode: String(req.body.country || '').trim(),
+     serviceId,
+     serverId,
+     countryCode,
      expectedPrice: req.body.expectedPrice,
      pricing: 'customer'
    });
    const l = r.listing;
-   res.json({ orderId: l._id, phoneNumber: l.phoneNumber, expiresAt: l.expiresAt, provider: l.provider, country: l.country, server: `Server ${l.novaServerId}`, amountPaid: r.sellPrice, sessionId: r.sessionId });
+   res.json({ orderId: l._id, phoneNumber: l.phoneNumber, expiresAt: l.expiresAt, provider: l.provider, country: l.country, amountPaid: r.sellPrice });
  } catch (e) { novaPurchaseErrorResponse(res, e); }
 });
 app.get('/api/numbers/status/:orderId', auth, async (req, res) => {
@@ -6866,7 +6992,7 @@ app.get('/api/numbers/status/:orderId', auth, async (req, res) => {
  await listing.save();
  }
  } catch (e) {
- console.error('code poll failed (will retry next poll):', e.message);
+ console.error('code poll failed (will retry next poll):', e.name);
  listing.providerError = String(e.message || e).slice(0, 300);
  listing.providerErrorAt = new Date();
  try { await listing.save(); } catch (_) {}
@@ -6875,12 +7001,12 @@ app.get('/api/numbers/status/:orderId', auth, async (req, res) => {
 
  listing = await expireStaleNumberOrder(listing);
  res.json({
- id: listing._id, provider: listing.provider, country: listing.country, phoneNumber: listing.phoneNumber,
- status: listing.code ? 'delivered' : listing.status === 'sold' ? 'pending' : listing.status,
+ id: listing._id, product: listing.server === 'server2' ? 'Buy Number 1' : 'Buy Number 3',
+ provider: listing.server === 'server2' ? 'Buy Number 1' : 'Buy Number 3', country: listing.country, phoneNumber: listing.phoneNumber,
+ status: listing.code ? 'delivered' : ['sold', 'needs_review'].includes(listing.status) ? 'pending' : listing.status,
  code: listing.code, expiresAt: listing.expiresAt, createdAt: listing.soldAt || listing.createdAt,
- server: listing.server || 'server1', sellPrice: listing.sellPrice,
- providerError: listing.providerError || '', providerErrorAt: listing.providerErrorAt || null,
- codeAddedAt: listing.codeAddedAt || null, cancelledAt: listing.cancelledAt || null, expiredAt: listing.expiredAt || null, operator: listing.operator || '', providerCancelled: !!listing.providerCancelled,
+ sellPrice: listing.sellPrice, checkPending: !!listing.providerError,
+ codeAddedAt: listing.codeAddedAt || null, cancelledAt: listing.cancelledAt || null, expiredAt: listing.expiredAt || null, operator: listing.operator && listing.operator !== 'any' ? prettifyServiceName(listing.operator) : '',
  refunded: listing.status === 'expired' || listing.status === 'cancelled' ? listing.sellPrice : null
  });
  } catch (e) { res.status(500).json({ error: 'Failed to check status' }); }
@@ -6897,27 +7023,27 @@ app.post('/api/numbers/cancel/:orderId', auth, async (req, res) => {
  if (user) { await User.updateOne({ _id: user._id }, { $inc: { balance: listing.sellPrice } }); await Transaction.create({ userId: user._id, type: 'admin_credit', amount: listing.sellPrice, description: `Refund: ${listing.provider} number (${listing.country}) — cancelled by user`, status: 'success' }); }
  res.json({
  status: 'cancelled', refunded: listing.sellPrice,
- providerCancelled: !!released?.ok,
- providerMessage: released?.ok
- ? 'Cancelled on the provider too — the activation is closed on their side.'
- : 'You were refunded in full. The provider did not confirm the cancellation yet; it closes automatically when the number expires.'
+ message: released?.ok
+ ? 'The number was cancelled and your wallet was refunded.'
+ : 'Your wallet was refunded. The number will finish closing automatically when its rental period ends.'
  });
- } catch (e) { res.status(500).json({ error: 'Failed to cancel: ' + e.message }); }
+ } catch (e) { console.error('[numbers] cancellation failed:', e.name); res.status(500).json({ error: 'Could not cancel this number right now. Please check order status or contact support.' }); }
 });
 app.get('/api/numbers/my-orders', auth, async (req, res) => {
  try {
  const mine = await NumberListing.find({ soldTo: req.user._id }).sort({ soldAt: -1 }).limit(50);
  for (const l of mine) await expireStaleNumberOrder(l);
  const combined = mine.map(l => ({
- id: l._id, provider: l.server === 'server2' ? 'Buy Number 1' : 'Buy Number 2', country: l.country, phoneNumber: l.phoneNumber,
- status: l.code ? 'delivered' : l.status === 'sold' ? 'pending' : l.status,
+ id: l._id, product: l.server === 'server2' ? 'Buy Number 1' : 'Buy Number 3',
+ provider: l.server === 'server2' ? 'Buy Number 1' : 'Buy Number 3', country: l.country, phoneNumber: l.phoneNumber,
+ status: l.code ? 'delivered' : ['sold', 'needs_review'].includes(l.status) ? 'pending' : l.status,
  code: l.code, expiresAt: l.expiresAt, createdAt: l.soldAt || l.createdAt, sellPrice: l.sellPrice,
- server: l.server || 'server1', providerError: l.providerError || '', providerErrorAt: l.providerErrorAt || null,
- codeAddedAt: l.codeAddedAt || null, cancelledAt: l.cancelledAt || null, expiredAt: l.expiredAt || null, operator: l.operator || '', providerCancelled: !!l.providerCancelled,
+ checkPending: !!l.providerError,
+ codeAddedAt: l.codeAddedAt || null, cancelledAt: l.cancelledAt || null, expiredAt: l.expiredAt || null, operator: l.operator && l.operator !== 'any' ? prettifyServiceName(l.operator) : '',
  refunded: l.status === 'expired' || l.status === 'cancelled' ? l.sellPrice : null
  }));
  const OtpSuiteOrder = mongoose.models.OtpSuiteOrder;
- if (OtpSuiteOrder) { const otp = await OtpSuiteOrder.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(100).lean(); combined.push(...otp.map(o => ({ id:o._id, provider:'Buy Number 2', country:o.countryName || o.countryCode, phoneNumber:o.phoneNumber || '', status:o.status === 'received' || o.sms ? 'delivered' : o.status, code:o.sms || '', createdAt:o.createdAt, sellPrice:o.price || 0, server:'server1', providerError:o.lastError || '', refunded:o.refunded ? (o.price || 0) : null }))); }
+ if (OtpSuiteOrder) { const otp = await OtpSuiteOrder.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(100).lean(); combined.push(...otp.map(o => ({ id:o._id, product:'Buy Number 2', provider:'Buy Number 2', country:o.countryName || o.countryCode, phoneNumber:o.phoneNumber || '', status:o.status === 'received' || o.sms ? 'delivered' : o.status, code:o.sms || '', createdAt:o.createdAt, sellPrice:o.price || 0, checkPending:!!o.lastError, refunded:o.refunded ? (o.price || 0) : null }))); }
  combined.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
  res.json(combined);
  } catch (e) { res.status(500).json({ error: 'Failed to load orders' }); }
@@ -6968,11 +7094,12 @@ app.get('/api/numbers/my-orders/search', auth, async (req, res) => {
  for (const l of rows) await expireStaleNumberOrder(l);
 
  const pageOrders = rows.map(l => ({
- id: l._id, provider: l.server === 'server2' ? 'Buy Number 1' : 'Buy Number 2', country: l.country, phoneNumber: l.phoneNumber,
- status: l.code ? 'delivered' : l.status === 'sold' ? 'pending' : l.status,
+ id: l._id, product: l.server === 'server2' ? 'Buy Number 1' : 'Buy Number 3',
+ provider: l.server === 'server2' ? 'Buy Number 1' : 'Buy Number 3', country: l.country, phoneNumber: l.phoneNumber,
+ status: l.code ? 'delivered' : ['sold', 'needs_review'].includes(l.status) ? 'pending' : l.status,
  code: l.code, expiresAt: l.expiresAt, createdAt: l.soldAt || l.createdAt, sellPrice: l.sellPrice,
- server: l.server || 'server1',
- codeAddedAt: l.codeAddedAt || null, cancelledAt: l.cancelledAt || null, expiredAt: l.expiredAt || null, operator: l.operator || '', providerCancelled: !!l.providerCancelled,
+ checkPending: !!l.providerError,
+ codeAddedAt: l.codeAddedAt || null, cancelledAt: l.cancelledAt || null, expiredAt: l.expiredAt || null, operator: l.operator && l.operator !== 'any' ? prettifyServiceName(l.operator) : '',
  refunded: l.status === 'expired' || l.status === 'cancelled' ? l.sellPrice : null
  }));
  let allPageOrders = pageOrders;
@@ -6983,10 +7110,10 @@ app.get('/api/numbers/my-orders/search', auth, async (req, res) => {
    else if (status === 'pending') otpQ.status = { $in: ['pending','waiting','review'] };
    else if (status) otpQ.status = status;
    const otpRows = await mongoose.models.OtpSuiteOrder.find(otpQ).sort({createdAt:-1}).limit(100).lean();
-   allPageOrders = allPageOrders.concat(otpRows.map(o => ({id:o._id,provider:'Buy Number 2',country:o.countryName||o.countryCode,phoneNumber:o.phoneNumber||'',status:o.sms?'delivered':o.status,code:o.sms||'',createdAt:o.createdAt,sellPrice:o.price||0,server:'server1',providerError:o.lastError||'',refunded:o.refunded?(o.price||0):null})));
+   allPageOrders = allPageOrders.concat(otpRows.map(o => ({id:o._id,product:'Buy Number 2',provider:'Buy Number 2',country:o.countryName||o.countryCode,phoneNumber:o.phoneNumber||'',status:o.sms?'delivered':o.status,code:o.sms||'',createdAt:o.createdAt,sellPrice:o.price||0,checkPending:!!o.lastError,refunded:o.refunded?(o.price||0):null})));
    allPageOrders.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
  }
- res.json({ server, page:safePage, pages, limit, total:total + (allPageOrders.length-pageOrders.length), orders:allPageOrders });
+ res.json({ page:safePage, pages, limit, total:total + (allPageOrders.length-pageOrders.length), orders:allPageOrders });
  } catch (e) { res.status(500).json({ error: 'Failed to search orders' }); }
 });
 
@@ -7179,9 +7306,10 @@ app.get('/api/admin/numbers/orders', anyAdminAuth, async (req, res) => {
 app.get('/api/numbers/servers', async (req, res) => {
  try {
  const cfg = await getNumberServerConfig();
+ const configuredDefaultOperator = String(cfg.server2DefaultOperator || 'any').toLowerCase();
  res.json([
  { id: 'server1', name: 'Server 1', description: 'Live server catalog with services and live prices.', enabled: !!cfg.server1Enabled },
- { id: 'server2', name: 'Server 2 — All services & countries', description: 'Hundreds of services and countries, live stock and live prices.', enabled: !!cfg.server2Enabled, providerMode: cfg.server2ProviderMode || 'pools', defaultOperator: cfg.server2DefaultOperator || 'any' }
+ { id: 'server2', name: 'Server 2 — All services & countries', description: 'Hundreds of services and countries, live stock and live prices.', enabled: !!cfg.server2Enabled, providerMode: cfg.server2ProviderMode || 'pools', defaultOperator: configuredDefaultOperator === 'any' ? 'any' : sealGrizzlyOperatorRef(configuredDefaultOperator) }
  ]);
  } catch (e) { res.status(500).json({ error: 'Failed to load servers' }); }
 });
@@ -7311,6 +7439,32 @@ async function requireServer2(res) {
  if (!cfg.server2Enabled) { res.status(400).json({ error: 'Server 2 is temporarily switched off — please try Server 1.' }); return null; }
  return cfg;
 }
+function sealGrizzlyServiceRef(code) {
+ return sealRef('grizzly:service', { code: String(code) }, process.env.JWT_SECRET);
+}
+function openGrizzlyServiceRef(value) {
+ try {
+  const ref = openRef('grizzly:service', String(value || ''), process.env.JWT_SECRET);
+  const code = String(ref.code || '').trim();
+  return code && code.length <= 100 ? code : '';
+ } catch (_) { return ''; }
+}
+function sealGrizzlyPoolRef(service, country, maxPrice) {
+ const secret = String(process.env.JWT_SECRET || '');
+ if (secret.length < 32) throw new Error('Secure number references are unavailable.');
+ const payload = `${String(service)}\0${String(country)}\0${String(Number(maxPrice))}`;
+ return crypto.createHmac('sha256', secret).update(`grizzly:pool\0${payload}`).digest('base64url');
+}
+function sealGrizzlyOperatorRef(operator) {
+ const secret = String(process.env.JWT_SECRET || '');
+ if (secret.length < 32) throw new Error('Secure number references are unavailable.');
+ return crypto.createHmac('sha256', secret).update(`grizzly:operator\0${String(operator).toLowerCase()}`).digest('base64url');
+}
+async function resolveGrizzlyServiceRef(value) {
+ const code = openGrizzlyServiceRef(value);
+ if (!code || !(await getGrizzlyServices()).some(service => service.code === code)) return '';
+ return code;
+}
 
 // Full service catalogue (every service Grizzly sells), each with an icon. The client
 // searches this list locally, so nothing is truncated here — a cut-off list is exactly
@@ -7326,8 +7480,8 @@ app.get('/api/numbers/server2/services', async (req, res) => {
  (b.popular ? 1 : 0) - (a.popular ? 1 : 0) ||
  (a.popular && b.popular ? POPULAR_SERVICE_CODES.indexOf(a.code) - POPULAR_SERVICE_CODES.indexOf(b.code) : 0) ||
  a.name.localeCompare(b.name));
- res.json(list);
- } catch (e) { res.status(502).json({ error: e.message }); }
+ res.json(list.map(service => ({ ...service, code: sealGrizzlyServiceRef(service.code) })));
+ } catch (e) { console.error('[numbers] service catalogue unavailable:', e.name); res.status(502).json({ error: 'Number services are temporarily unavailable. Please try again shortly.' }); }
 });
 
 // Countries that actually have stock for the chosen service, with our ₦ price and flag.
@@ -7335,7 +7489,7 @@ app.get('/api/numbers/server2/countries', async (req, res) => {
  try {
  const cfg = await requireServer2(res);
  if (!cfg) return;
- const service = String(req.query.service || '').trim();
+ const service = await resolveGrizzlyServiceRef(String(req.query.service || ''));
  if (!service) return res.status(400).json({ error: 'service is required' });
  const [prices, countries] = await Promise.all([getGrizzlyPricesCached(service), getGrizzlyCountries()]);
  const byId = new Map(countries.map(c => [c.id, c]));
@@ -7346,13 +7500,13 @@ app.get('/api/numbers/server2/countries', async (req, res) => {
  const meta = byId.get(String(countryId));
  const name = meta?.name || `Country ${countryId}`;
  const { price, costNgn } = grizzlyPriceNgn(info.cost, cfg);
- out.push({ id: String(countryId), name, flag: meta?.flag || countryFlag(name), count: info.count, price, costNgn });
+ out.push({ id: String(countryId), name, flag: meta?.flag || countryFlag(name), count: info.count, price });
  }
  // Default is alphabetical (A→Z) so a country is easy to find; ?sort=price gives cheapest first.
  if (String(req.query.sort || 'name') === 'price') out.sort((a, b) => a.price - b.price || b.count - a.count);
  else out.sort((a, b) => a.name.localeCompare(b.name));
  res.json(out);
- } catch (e) { res.status(502).json({ error: e.message }); }
+ } catch (e) { console.error('[numbers] country catalogue unavailable:', e.name); res.status(502).json({ error: 'Country availability is temporarily unavailable. Please try again shortly.' }); }
 });
 
 // "Providers" on Grizzly are price tiers — each tier is a different pool of numbers.
@@ -7360,7 +7514,7 @@ app.get('/api/numbers/server2/providers', async (req, res) => {
  try {
  const cfg = await requireServer2(res);
  if (!cfg) return;
- const service = String(req.query.service || '').trim();
+ const service = await resolveGrizzlyServiceRef(String(req.query.service || ''));
  const country = String(req.query.country || '').trim();
  if (!service || !country) return res.status(400).json({ error: 'service and country are required' });
  const [data, countries] = await Promise.all([getGrizzlyPoolsCached(service + '|' + country, service, country), getGrizzlyCountries()]);
@@ -7370,14 +7524,15 @@ app.get('/api/numbers/server2/providers', async (req, res) => {
    .sort(([a], [b]) => Number(a) - Number(b));
  const shownTiers = cfg.server2HideLowPools ? availableTiers.slice(3) : availableTiers;
  const out = shownTiers.map(([costUsd, count], i) => {
- const { price, costNgn } = grizzlyPriceNgn(Number(costUsd), cfg);
+ const maxPrice = Number(costUsd);
+ const { price } = grizzlyPriceNgn(maxPrice, cfg);
  return {
- maxPrice: Number(costUsd), count: Number(count), price, costNgn,
+ poolKey: sealGrizzlyPoolRef(service, country, maxPrice), count: Number(count), price,
  label: `Pool ${i + 1 + (cfg.server2HideLowPools ? 3 : 0)}`, flag: meta?.flag || '🌍', countryName: meta?.name || country
  };
- }).sort((a, b) => a.price - b.price || a.maxPrice - b.maxPrice);
+ }).sort((a, b) => a.price - b.price);
  res.json(out);
- } catch (e) { res.status(502).json({ error: e.message }); }
+ } catch (e) { console.error('[numbers] pool availability unavailable:', e.name); res.status(502).json({ error: 'Number availability is temporarily unavailable. Please try again shortly.' }); }
 });
 
 
@@ -7407,10 +7562,10 @@ app.get('/api/numbers/server2/operators', async (req, res) => {
  if (!country) return res.status(400).json({ error: 'country is required' });
  const list = await getGrizzlyOperators(country);
  res.json(list.map(code => ({
- code,
+ code: code === 'any' ? 'any' : sealGrizzlyOperatorRef(code),
  name: code === 'any' ? 'Any operator (recommended)' : prettifyServiceName(code)
  })));
- } catch (e) { res.status(502).json({ error: e.message }); }
+ } catch (e) { console.error('[numbers] operator list unavailable:', e.name); res.status(502).json({ error: 'Operator options are temporarily unavailable. Please try again shortly.' }); }
 });
 
 // Buy: charge the customer in ₦, then request the number from Grizzly.
@@ -7418,14 +7573,21 @@ app.post('/api/numbers/server2/buy', auth, async (req, res) => {
  try {
  const cfg = await requireServer2(res);
  if (!cfg) return;
- const service = String(req.body.service || '').trim();
+ const service = await resolveGrizzlyServiceRef(String(req.body.service || ''));
  const country = String(req.body.country || '').trim();
- const maxPrice = Number(req.body.maxPrice || 0);
- if (!service || !country || !maxPrice) return res.status(400).json({ error: 'Please re-pick service, country and provider, then try again.' });
+ const poolKey = String(req.body.poolKey || '');
+ if (!service || !country || !poolKey) return res.status(400).json({ error: 'Please re-pick service, country and provider, then try again.' });
  // Operator choice — only honoured when the admin turned operator picking on.
  const mode = cfg.server2ProviderMode || 'pools';
- let operator = String(req.body.operator || '').trim().toLowerCase();
- if (mode === 'pools' || !operator) operator = String(cfg.server2DefaultOperator || 'any').toLowerCase();
+ const operatorRef = String(req.body.operator || '').trim();
+ let operator = '';
+ if (mode === 'pools' || !operatorRef) operator = String(cfg.server2DefaultOperator || 'any').toLowerCase();
+ else if (operatorRef === 'any') operator = 'any';
+ else {
+ const available = await getGrizzlyOperators(country);
+ operator = available.find(code => code !== 'any' && sealGrizzlyOperatorRef(code) === operatorRef) || '';
+ if (!operator) return res.status(400).json({ error: 'That operator is not available for this country — pick another one.' });
+ }
  if (operator && operator !== 'any') {
  const allowed = await getGrizzlyOperators(country);
  if (!allowed.map(o => o.toLowerCase()).includes(operator)) {
@@ -7436,8 +7598,11 @@ app.post('/api/numbers/server2/buy', auth, async (req, res) => {
  // Re-check live stock + price so a customer can never pay a stale amount.
  const data = await grizzlyRequest('getPricesV2', { service, country });
  const tiers = data?.[country]?.[service] || {};
- const tierKey = Object.keys(tiers).find(k => Math.abs(Number(k) - maxPrice) < 0.0001);
+ const tierKey = Object.keys(tiers).find(k =>
+  Number(tiers[k]) > 0 && sealGrizzlyPoolRef(service, country, Number(k)) === poolKey
+ );
  if (!tierKey || !Number(tiers[tierKey])) return res.status(400).json({ error: 'That provider just sold out — please pick another one.' });
+ const maxPrice = Number(tierKey);
  if (cfg.server2HideLowPools) {
  const lowPools = Object.entries(tiers).filter(([, c]) => Number(c) > 0).map(([k]) => Number(k)).sort((a, b) => a - b).slice(0, 3);
  if (lowPools.some(k => Math.abs(k - maxPrice) < 0.0001)) return res.status(400).json({ error: 'That provider is not available right now — please pick another one.' });
@@ -7457,7 +7622,8 @@ app.post('/api/numbers/server2/buy', auth, async (req, res) => {
  } catch (e) {
  SystemError.create({ source: 'grizzly', message: `getNumberV2 failed: ${e.message}`, detail: `service=${service} country=${country} maxPrice=${maxPrice}`, context: { userId: user._id } }).catch(() => {});
  await _refundS2();
- return res.status(400).json({ error: e.message });
+ console.error('[numbers] number purchase request failed:', e.name, e.grizzlyCode || '');
+ return res.status(502).json({ error: 'The number provider could not complete the request. Check your wallet balance before retrying, and contact support if needed.' });
  }
  if (!bought || !bought.phoneNumber) { await _refundS2(); return res.status(400).json({ error: 'Provider did not return a number — nothing was charged, please try again.' }); }
 
@@ -7477,7 +7643,7 @@ app.post('/api/numbers/server2/buy', auth, async (req, res) => {
  await creditReferralCommission(user, chargeAmount, `${serviceName} number (${countryName})`);
 
  res.json({ orderId: claimed._id, phoneNumber: claimed.phoneNumber, expiresAt: claimed.expiresAt, provider: claimed.provider, country: claimed.country, amountPaid: chargeAmount });
- } catch (e) { res.status(500).json({ error: 'Failed to buy number: ' + e.message }); }
+ } catch (e) { console.error('[numbers] purchase processing failed:', e.name); res.status(500).json({ error: 'Could not complete the number purchase. Please check your order history or contact support.' }); }
 });
 
 // ── Admin: server switches, ₦ rate, profit ladder, provider balance, profit report ──
@@ -7684,14 +7850,81 @@ app.get('/api/admin/numbers/profit', anyAdminAuth, async (req, res) => {
 });
 
 app.get('/api/admin/numbers/nova-balance', anyAdminAuth, async (req, res) => {
- try { res.json(novaUnwrap(await novaRequest('GET', '/balance'))); } catch (e) { novaErrorResponse(res, e); }
+ try { res.json(novaUnwrap(await novaRequest('GET', '/balance'))); } catch (e) { novaAdminErrorResponse(res, e); }
 });
 app.get('/api/admin/numbers/nova-catalog', anyAdminAuth, async (req, res) => {
  try {
    const scope = String(req.query.scope || 'usa') === 'global' ? 'global' : 'usa';
    const params = { scope, ...(req.query.country ? { country: String(req.query.country) } : {}) };
-   res.json(await novaGetCatalog(params, { refresh: String(req.query.refresh || '') === '1' }));
- } catch (e) { novaErrorResponse(res, e); }
+   const test = String(req.query.test || '') === '1';
+   res.json(await novaGetCatalog(params, { refresh: test || String(req.query.refresh || '') === '1', fresh: test, force: test }));
+ } catch (e) { novaAdminErrorResponse(res, e); }
+});
+app.get('/api/admin/numbers/nova-services', anyAdminAuth, async (req, res) => {
+ try {
+   const scope = String(req.query.scope || 'usa').toLowerCase() === 'global' ? 'global' : 'usa';
+   const country = String(req.query.country || (scope === 'usa' ? 'US' : '')).trim().slice(0, 80);
+   if (!country) return res.status(400).json({ error: 'Choose a country for the global catalogue.' });
+   let params = { scope };
+   if (scope === 'global') {
+     const resolved = await novaResolveCountry(country);
+     params = { scope: 'global', ...(resolved.country ? { country: resolved.country } : {}) };
+   }
+   const catalog = await novaGetCatalog(params, { refresh: String(req.query.refresh || '') === '1' });
+   const cfg = await getNumberServerConfig();
+   const q = String(req.query.q || '').trim().toLowerCase();
+   const rows = (catalog.services || []).map(service => {
+     const serviceId = Number(service.id ?? service.service_id);
+     const serverId = Number(service.server_id ?? service.serverId ?? service.server?.id);
+     if (!Number.isInteger(serviceId) || serviceId <= 0 || !Number.isInteger(serverId) || serverId <= 0) return null;
+     const costMinor = Number(service.price_minor);
+     const costNgn = Number.isFinite(costMinor) && costMinor >= 0
+       ? costMinor / 100
+       : Math.max(0, Number(service.price ?? service.cost) || 0);
+     const name = novaServiceDisplayName(service);
+     return { serviceId, serverId, name, category: String(service.category || 'Other'), costNgn,
+       automaticPrice: novaServicePriceNgn({ ...service, price_minor: Number.isFinite(costMinor) ? costMinor : Math.round(costNgn * 100) }, cfg) };
+   }).filter(service => service && (!q || `${service.name} ${service.category} ${service.serviceId} ${service.serverId}`.toLowerCase().includes(q)));
+   const keys = rows.map(service => novaNumberServiceConfigKey(service.serverId, service.serviceId, country));
+   const saved = await NovaNumberServiceConfig.find({ key: { $in: keys } }).lean();
+   const byKey = new Map(saved.map(setting => [setting.key, setting]));
+   res.set('Cache-Control', 'no-store');
+   res.json({
+     syncedAt: catalog.syncedAt || null,
+     stale: !!catalog.stale,
+     services: rows.map(service => {
+       const setting = byKey.get(novaNumberServiceConfigKey(service.serverId, service.serviceId, country));
+       return { ...service, priceNgn: setting?.priceNgn ?? null, enabled: setting?.enabled !== false, visible: setting?.visible !== false };
+     })
+   });
+ } catch (e) { novaAdminErrorResponse(res, e); }
+});
+app.put('/api/admin/numbers/nova-services', anyAdminAuth, async (req, res) => {
+ try {
+   const serviceId = Number(req.body?.serviceId), serverId = Number(req.body?.serverId);
+   const country = String(req.body?.country || '').trim().slice(0, 80);
+   if (!Number.isInteger(serviceId) || serviceId <= 0 || !Number.isInteger(serverId) || serverId <= 0 || !country) {
+     return res.status(400).json({ error: 'A valid service, server, and country are required.' });
+   }
+   const set = { updatedAt: new Date() };
+   if (req.body.priceNgn !== undefined) {
+     const raw = req.body.priceNgn;
+     if (raw === null || raw === '') set.priceNgn = null;
+     else {
+       const price = Number(raw);
+       if (!Number.isFinite(price) || price < 0) return res.status(400).json({ error: 'Selling price must be ₦0 or more, or blank to use the default price.' });
+       set.priceNgn = price;
+     }
+   }
+   if (typeof req.body.enabled === 'boolean') set.enabled = req.body.enabled;
+   if (typeof req.body.visible === 'boolean') set.visible = req.body.visible;
+   const config = await NovaNumberServiceConfig.findOneAndUpdate(
+     { key: novaNumberServiceConfigKey(serverId, serviceId, country) },
+     { $set: { ...set, serviceId, serverId, country: country.toLowerCase() } },
+     { upsert: true, new: true, runValidators: true }
+   ).lean();
+   res.json({ ok: true, service: config });
+ } catch (e) { res.status(500).json({ error: 'Could not save Buy Number 3 service settings.' }); }
 });
 app.get('/api/admin/user-number-prices', anyAdminAuth, async (req, res) => {
  try {
@@ -7943,7 +8176,7 @@ app.get('/api/public/site-links', async (req, res) => {
  const links = await getSiteLinks();
  const tgUser = String(links.telegramUsername || '').replace(/^@/, '');
    const tgLink = links.telegramLink || ('https://t.me/' + tgUser);
-   res.json({ whatsappNumber: links.whatsappNumber, adminPhone: links.adminPhone || links.whatsappNumber, whatsappGroupLink: links.whatsappGroupLink, whatsappChannelLink: links.whatsappChannelLink, telegramUsername: tgUser, telegramLink: tgLink, telegramChannelLink: links.telegramChannelLink || '', telegramCommunityLink: links.telegramCommunityLink || '', whatsappChatLink: links.whatsappChatLink || ('https://wa.me/' + links.whatsappNumber), supportHours: links.supportHours || '' });
+   res.json({ whatsappNumber: links.whatsappNumber, adminPhone: links.adminPhone || links.whatsappNumber, whatsappGroupLink: links.whatsappGroupLink, whatsappChannelLink: links.whatsappChannelLink, telegramUsername: tgUser, telegramLink: tgLink, telegramChannelLink: links.telegramChannelLink || '', telegramCommunityLink: links.telegramCommunityLink || '', whatsappChatLink: links.whatsappChatLink || ('https://wa.me/' + links.whatsappNumber), supportHours: links.supportHours || '', logoUrl: links.logoUrl || '' });
  } catch (e) { res.status(500).json({ error: 'Failed to load site links' }); }
 });
 app.get('/api/admin/site-links', anyAdminAuth, async (req, res) => {
@@ -8001,6 +8234,42 @@ app.post('/api/admin/site-links', anyAdminAuth, async (req, res) => {
  console.log(`[admin] site-links updated:`, JSON.stringify(update));
  res.json({ ok: true, whatsappNumber: doc.whatsappNumber, adminPhone: doc.adminPhone || doc.whatsappNumber, whatsappGroupLink: doc.whatsappGroupLink, whatsappChannelLink: doc.whatsappChannelLink, telegramUsername: doc.telegramUsername, telegramLink: doc.telegramLink, telegramChannelLink: doc.telegramChannelLink || '', telegramCommunityLink: doc.telegramCommunityLink || '', whatsappChatLink: doc.whatsappChatLink, supportHours: doc.supportHours });
  } catch (e) { res.status(500).json({ error: 'Failed to update site links: ' + e.message }); }
+});
+const brandLogoUpload = multer({
+ storage: makeStorage('uploads', 'image'),
+ limits: { fileSize: 3 * 1024 * 1024 },
+ fileFilter: (req, file, cb) => {
+  const extensions = { 'image/png': ['.png'], 'image/jpeg': ['.jpg', '.jpeg'], 'image/webp': ['.webp'] };
+  const allowed = extensions[file.mimetype];
+  if (!allowed || !allowed.includes(path.extname(file.originalname).toLowerCase())) return cb(new Error('Use a PNG, JPEG, or WebP image.'));
+  cb(null, true);
+ }
+});
+app.post('/api/admin/brand-logo', adminAuth, (req, res, next) => {
+ brandLogoUpload.single('image')(req, res, err => {
+  if (err) return res.status(400).json({ error: err.message || 'Could not upload the logo.' });
+  next();
+ });
+}, async (req, res) => {
+ try {
+  if (!req.file) return res.status(400).json({ error: 'Choose a PNG, JPEG, or WebP logo image.' });
+  const logoUrl = fileUrl(req.file);
+  if (!logoUrl) return res.status(500).json({ error: 'The logo upload did not return a usable image URL.' });
+  await SiteLinks.findByIdAndUpdate('main', { $set: { logoUrl, updatedAt: new Date() } }, { upsert: true, new: true });
+  res.json({ ok: true, logoUrl });
+ } catch (e) {
+  console.error('[admin] brand logo update failed:', e.name);
+  res.status(500).json({ error: 'Could not save the site logo.' });
+ }
+});
+app.delete('/api/admin/brand-logo', adminAuth, async (req, res) => {
+ try {
+  await SiteLinks.findByIdAndUpdate('main', { $set: { logoUrl: '', updatedAt: new Date() } }, { upsert: true, new: true });
+  res.json({ ok: true, logoUrl: '' });
+ } catch (e) {
+  console.error('[admin] brand logo removal failed:', e.name);
+  res.status(500).json({ error: 'Could not remove the site logo.' });
+ }
 });
 app.get('/api/admin/payment-methods', anyAdminAuth, async (req, res) => {
  try {
@@ -8178,9 +8447,12 @@ app.get('/dashboard', (req, res) => (res.set('Cache-Control', 'no-store, must-re
 app.get('/games', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'game.html'))));
 app.get('/giveaways', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'giveaway.html'))));
 app.get('/buy-number', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'buy-number.html'))));
-app.get('/buy-number-grizzly', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'buy-number-grizzly.html'))));
-app.get('/buy-number-otp', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'buy-number-otp.html'))));
-app.get('/buy-number-nova', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'buy-number-nova.html'))));
+app.get('/buy-number-1', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'buy-number-grizzly.html'))));
+app.get('/buy-number-grizzly', (req, res) => res.redirect(301, '/buy-number-1'));
+app.get('/buy-number-2', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'buy-number-otp.html'))));
+app.get('/buy-number-otp', (req, res) => res.redirect(301, '/buy-number-2'));
+app.get('/buy-number-3', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'buy-number-nova.html'))));
+app.get('/buy-number-nova', (req, res) => res.redirect(301, '/buy-number-3'));
 app.get('/virtual-account', (req, res) => res.redirect(301, '/deposit'));
 app.get('/number-history', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'number-history.html'))));
 app.get('/order-status', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'order-status.html'))));
@@ -8684,6 +8956,14 @@ app.post('/api/admin/restock-announce', anyAdminAuth, async (req, res) => {
 // answers with JSON. Registering the HTML fallback ahead of an API route makes
 // that route return a web page to fetch(), which is impossible to debug from
 // the browser — keep this block at the very end of the file.
+// KING-UPGRADE late: logo library, Buy Number 3 admin, Marketplace 4, Boost 2 order page
+try {
+  require('./lib/king-upgrade').late(app, { mongoose, anyAdminAuth, getNumberServerConfig, novaCatalogForCountry, novaServiceDisplayName, novaServicePriceNgn, novaSyncState: () => ({ ...novaSync }) });
+} catch (kingErr) { console.error('[king-upgrade] failed to load:', kingErr.message); }
+try {
+  require('./lib/market4').register(app, { mongoose, User, Transaction, auth, anyAdminAuth, sendAdminEmail });
+} catch (m4Err) { console.error('[market4] failed to load:', m4Err.message); }
+app.get('/boost2/order', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'boost2-order.html'))));
 app.all('/api/*', (req, res) => {
   res.status(404).json({ error: `Unknown API endpoint: ${req.method} ${req.path}` });
 });

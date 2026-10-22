@@ -1,5 +1,5 @@
 // ══════════════════════ MARKETPLACE TWO PAGE ══════════════════════
-// Same look as the manual marketplace, but products come from /api/market2 (RakibSocials).
+// Same look as the manual marketplace, but products come from the configured catalogue.
 // Loaded after script.js — reuses req(), esc(), P(), showToast(), skeletons(), toggleCatDropdown().
 
 let m2Items = [];
@@ -112,11 +112,13 @@ function m2Total(price) {
 }
 async function m2Buy(id) {
   if (typeof token === 'undefined' || !token) { showToast('Please log in to buy', 'err'); setTimeout(() => { window.location.href = '/login'; }, 800); return; }
+  const item = m2Items.find(i => i.id === id);
+  if (!item?.productKey) { showToast('Refresh the marketplace and choose the product again.', 'err'); return; }
   const btn = document.getElementById('m2BuyBtn');
   const quantity = Math.max(1, parseInt(document.getElementById('m2Qty').value, 10) || 1);
   btn.disabled = true; btn.textContent = 'Processing…';
   try {
-    const r = await req('/api/market2/buy', 'POST', { productId: id, quantity }, true);
+    const r = await req('/api/market2/buy', 'POST', { productId: item.productKey, quantity }, true);
     if (r.pending) {
       document.getElementById('m2Result').innerHTML = `<div class="pc-details-wrap" style="margin-top:16px">
         <p style="color:var(--green,#2ecc71);font-weight:700;margin:0 0 8px">Payment received — ${P(r.amountPaid)}</p>
