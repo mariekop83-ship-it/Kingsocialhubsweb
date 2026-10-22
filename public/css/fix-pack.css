@@ -23,13 +23,13 @@
 }
 @media (max-width: 620px) {
   .mkt-toolbar {
-    position: sticky; top: 0; z-index: 40;
+    position: static;
     flex-direction: column;
     padding: 10px;
   }
   .mkt-toolbar > * { width: 100%; max-width: none !important; }
   .mkt-chips {
-    position: sticky; top: 66px; z-index: 39;
+    position: static;
     background: var(--bg); padding-top: 8px;
   }
 }
