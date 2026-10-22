@@ -4,6 +4,7 @@
 <link rel="stylesheet" href="/css/responsive-device-fit.css?v=1">
 <link rel="stylesheet" href="/css/ksh-header-clean.css?v=20261022b">
 <script src="/js/ksh-menu-guard.js?v=20261022b" defer></script>
+<link rel="stylesheet" href="/css/ksh-ui-fixes.css?v=20261022c">
 </head><body><main class="wrap"><a href="/buy-number">← All number services</a><h1>Buy Number 2</h1><p class="muted">Choose a country and service, then purchase using your NGN wallet.</p><div class="panel"><div class="row"><div><label for="country">Country</label><select id="country"><option value="">Loading countries…</option></select></div><div><label for="service">Service</label><select id="service" disabled><option value="">Select a country first</option></select></div></div><div id="price" class="muted" style="margin:12px 0"></div><button id="buy" disabled>Buy Number</button><div id="notice" role="status" class="msg" style="display:none"></div></div><div class="panel"><h2>My Number Orders</h2><p class="muted">SMS updates refresh automatically while an order is waiting.</p><div id="orders">Loading orders…</div></div></main><script>
 const token=()=>localStorage.getItem('ksl_token')||localStorage.getItem('token')||'';
 const $=id=>document.getElementById(id);let countries=[],services=[],orders=[],timer=null,countdownTimer=null;
