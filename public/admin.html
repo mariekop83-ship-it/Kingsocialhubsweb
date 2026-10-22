@@ -416,7 +416,7 @@ tr:hover td{background:rgba(255,255,255,.035)}
         <div class="sec-title">Marketplace &amp; Server 2 settings</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button type="button" class="btn-primary" onclick="switchTab('logs2')">Marketplace 2 (Rakib Socials) — switches &amp; prices</button>
-          <button type="button" class="btn-primary" onclick="switchTab('logs3')">Marketplace 3 (Lucylynxsocials) — switch &amp; prices</button>
+          <button type="button" class="btn-primary" onclick="switchTab('logs3')">Marketplace 3 (Sujan Department) — switch &amp; prices</button>
           <button type="button" class="btn-primary" onclick="switchTab('numbers2')">Server 2 — low SMS rate pools</button>
           <button type="button" class="btn-primary" onclick="showProviderReadiness()">Provider connections health</button>
           <button type="button" class="btn-primary" onclick="checkOtpSuiteBalance()">Buy Number 2 — OTP Suite balance</button>
@@ -628,13 +628,13 @@ tr:hover td{background:rgba(255,255,255,.035)}
       <div class="sec">
         <div class="sec-title"><svg class="icon i-settings" aria-hidden="true"><use href="#i-settings"/></svg> Marketplace 3 switch</div>
         <div class="info-box"><svg class="icon i-pin" aria-hidden="true"><use href="#i-pin"/></svg>
-          Marketplace 3 is powered by Lucylynxsocials. When it is disabled, customers see a maintenance screen and cannot buy.</div>
+          Marketplace 3 is powered by Sujan Department. When it is disabled, customers see a maintenance screen and cannot buy.</div>
         <div class="form-row">
           <div class="fg"><label>Marketplace 3</label>
             <button class="btn-gold" type="button" id="m3Btn" onclick="m3Toggle()" style="width:100%">…</button></div>
         </div>
         <div class="form-row">
-          <div class="fg" style="flex:2"><label>Provider API URL</label><input type="url" id="m3BaseUrl" placeholder="https://lucylynxsocials.com/api/v1"/></div>
+          <div class="fg" style="flex:2"><label>Provider API URL</label><input type="url" id="m3BaseUrl" placeholder="https://api.sujandepartment.com/reseller/v1"/></div>
           <div class="fg" style="flex:2"><label>Provider API key (leave blank to keep current)</label><input type="password" id="m3ApiKey" autocomplete="new-password" placeholder="Enter API key securely"/></div>
         </div>
         <div class="form-row">
@@ -649,14 +649,14 @@ tr:hover td{background:rgba(255,255,255,.035)}
       </div>
       <div class="sec" id="m3AttentionSec" style="display:none;border-color:var(--red)">
         <div class="sec-title" style="color:var(--red)"><svg class="icon i-alert-triangle" aria-hidden="true"><use href="#i-alert-triangle"/></svg> Needs attention</div>
-        <div class="info-box">These customers have paid but their order did not finish cleanly. Open your Lucylynxsocials order history, then either <b>deliver the keys</b> to the customer or <b>refund</b> them. Nothing here is lost.</div>
+        <div class="info-box">These customers have paid but their order did not finish cleanly. Open your the supplier order history, then either <b>deliver the keys</b> to the customer or <b>refund</b> them. Nothing here is lost.</div>
         <div id="m3Attention" style="overflow-x:auto"></div>
       </div>
       <div class="sec">
-        <div class="sec-title"><svg class="icon i-package" aria-hidden="true"><use href="#i-package"/></svg> Marketplace 3 — Lucylynxsocials products</div>
+        <div class="sec-title"><svg class="icon i-package" aria-hidden="true"><use href="#i-package"/></svg> Marketplace 3 — Sujan Department products</div>
         <div class="info-box"><svg class="icon i-pin" aria-hidden="true"><use href="#i-pin"/></svg>
           Every product from the API shows here, including new ones. Synced products appear automatically using the default markup until you set a custom price. Disable a product to hide it.
-          "API cost" is what Lucylynxsocials charges you; profit = your price − API cost.</div>
+          "API cost" is what the supplier charges you; profit = your price − API cost.</div>
         <div class="form-row">
           <div class="fg"><input type="text" id="m3Search" placeholder="Search products…" oninput="m3Render()"/></div>
           <div class="fg"><select id="m3Filter" onchange="m3Render()"><option value="">All products</option><option value="priced">Live (priced)</option><option value="unpriced">Not priced yet</option><option value="instock">In stock</option></select></div>
@@ -6816,7 +6816,7 @@ async function m3LoadConfig(){
     document.getElementById('m3Msg').value=m3Cfg.maintenanceMessage||'';
     document.getElementById('m3Low').value=m3Cfg.lowBalanceNgn||0;
     document.getElementById('m3Email').value=m3Cfg.alertEmail||'';
-    document.getElementById('m3BaseUrl').value=m3Cfg.baseUrl||'https://lucylynxsocials.com/api/v1';
+    document.getElementById('m3BaseUrl').value=m3Cfg.baseUrl||'https://api.sujandepartment.com/reseller/v1';
   } catch(e){ document.getElementById('m3Balance').textContent='Could not load Marketplace 3 settings: '+e.message; }
 }
 async function m3Toggle(){
@@ -6827,7 +6827,7 @@ async function m3SaveConfig(){
 }
 async function m3LoadBalance(){
   const el=document.getElementById('m3Balance');
-  try { const b=await aFetch('/api/admin/market3/balance'); el.innerHTML=`Supplier (Lucylynxsocials) balance: <b>${m2N(b.balance)}</b> · alert below ${m2N(b.threshold)}`; el.style.color = b.balance < b.threshold ? 'var(--red)' : ''; }
+  try { const b=await aFetch('/api/admin/market3/balance'); el.innerHTML=`Supplier balance: <b>${m2N(b.balance)}</b> · alert below ${m2N(b.threshold)}`; el.style.color = b.balance < b.threshold ? 'var(--red)' : ''; }
   catch(e){ el.textContent='Balance check failed: '+e.message+' — check the Marketplace 3 API key in settings'; el.style.color='var(--red)'; }
 }
 async function m3LoadProducts(refresh){
@@ -6872,7 +6872,7 @@ function m3RenderAttention(list){
   sec.style.display='';
   el.innerHTML=`<table class="data-table" style="width:100%"><thead><tr><th>Date</th><th>Customer</th><th>Product</th><th>Paid</th><th>Status</th><th>What happened</th><th>Fix</th></tr></thead><tbody>`+
     list.map(o=>`<tr><td>${new Date(o.createdAt).toLocaleString()}</td><td>${esc(o.userEmail)}</td><td>${esc(o.title)}</td><td>${m2N(o.sellTotal)}</td><td><b>${esc(o.status)}</b></td><td style="max-width:260px">${esc(o.note||'Waiting to finish…')}</td>
-      <td style="min-width:240px">${o.status==='review'||o.status==='pending'?`<textarea id="m3k_${o._id}" rows="3" placeholder="Paste the keys from Lucylynxsocials, one per line" style="width:100%"></textarea>
+      <td style="min-width:240px">${o.status==='review'||o.status==='pending'?`<textarea id="m3k_${o._id}" rows="3" placeholder="Paste the keys from the supplier, one per line" style="width:100%"></textarea>
         <button class="btn-sm" type="button" onclick="m3Deliver('${o._id}')">Deliver keys</button>
         <button class="btn-sm" type="button" style="background:var(--red)" onclick="m3Refund('${o._id}')">Refund customer</button>`
         :`<button class="btn-sm" type="button" onclick="m3Resync('${o._id}')">Re-send to customer</button>`}</td></tr>`).join('')+'</tbody></table>';
@@ -6884,7 +6884,7 @@ async function m3Deliver(id){
   try { await aFetch('/api/admin/market3/orders/'+id+'/deliver','POST',{keys}); alert('Delivered to the customer'); m3LoadOrders(); } catch(e){ alert(e.message); }
 }
 async function m3Refund(id){
-  if(!confirm('Refund this customer the full amount? Only do this if the order was NOT delivered by Lucylynxsocials.')) return;
+  if(!confirm('Refund this customer the full amount? Only do this if the order was NOT delivered by the supplier.')) return;
   try { await aFetch('/api/admin/market3/orders/'+id+'/refund','POST',{}); alert('Customer refunded'); m3LoadOrders(); } catch(e){ alert(e.message); }
 }
 async function m3Resync(id){
