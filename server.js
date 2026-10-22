@@ -6676,7 +6676,7 @@ async function novaGetCatalog(params, opts = {}) {
   const key = novaCacheKey(params);
   const doc = await NovaCache.findOne({ key }).lean();
   const age = doc ? Date.now() - new Date(doc.syncedAt).getTime() : Infinity;
-  const need = !doc || opts.force || (opts.refresh && age > NOVA_REFRESH_COOLDOWN_MS) || (opts.fresh && age > 60 * 1000);
+  const need = !doc || opts.force || (opts.refresh && age > NOVA_REFRESH_COOLDOWN_MS) || (opts.fresh && age > 60 * 1000) || (opts.maxAgeMs && age > opts.maxAgeMs);
   if (!need) return { ...doc.payload, syncedAt: doc.syncedAt, stale: false };
   let job = _novaInflight.get(key);
   if (!job) {
@@ -6841,11 +6841,19 @@ async function novaPurchaseNumber({ userId, serviceId, serverId, countryCode, ex
   if (!Number.isInteger(serviceId) || serviceId <= 0 || !countryCode || !Number.isInteger(serverId) || serverId <= 0) {
     throw novaHttpError(400, 'Select a server, country and service before purchasing.');
   }
-  const catalogPayload = await novaCatalogForCountry(countryCode, { fresh: true });
-  const services = catalogPayload.services || [];
+  // Use the stored catalogue (up to 15 min old) so checkout is fast. Re-pulling the whole provider
+  // catalogue here was what made "Buy number" take very long. Only if the service is not found in
+  // the stored copy do we pull a fresh one. The provider order call still validates stock, and the
+  // price check after it protects against a changed provider price.
   const sidOf = x => Number(x.server_id ?? x.serverId ?? x.server?.id);
-  const hasServerInfo = services.some(x => Number.isInteger(sidOf(x)) && sidOf(x) > 0);
-  let service = services.find(x => Number(x.id ?? x.service_id) === serviceId && (!hasServerInfo || sidOf(x) === serverId));
+  const findInCatalog = (payload) => {
+    const rows = payload.services || [];
+    const withServer = rows.some(x => Number.isInteger(sidOf(x)) && sidOf(x) > 0);
+    return rows.find(x => Number(x.id ?? x.service_id) === serviceId && (!withServer || sidOf(x) === serverId));
+  };
+  let catalogPayload = await novaCatalogForCountry(countryCode, { maxAgeMs: 15 * 60 * 1000 });
+  let service = findInCatalog(catalogPayload);
+  if (!service) { catalogPayload = await novaCatalogForCountry(countryCode, { fresh: true }); service = findInCatalog(catalogPayload); }
   if (service && !Number.isFinite(Number(service.price_minor)) && Number.isFinite(Number(service.price ?? service.cost))) service = { ...service, price_minor: Math.round(Number(service.price ?? service.cost) * 100) };
   if (!service) throw novaHttpError(400, 'That service is no longer available on this server. Refresh and choose again.', { code: 'SERVICE_UNAVAILABLE' });
   const serviceConfig = await getNovaNumberServiceConfig(serverId, serviceId, countryCode);
