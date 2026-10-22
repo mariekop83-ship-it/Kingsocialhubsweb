@@ -1157,8 +1157,8 @@ async function buyNumber() {
     const order = await req('/api/numbers/buy', 'POST', { country, serviceId, provider: match.provider, serverId: Number(selectedNovaServerId), expectedPrice: match.price }, true, 90000);
     order.amountPaid = order.amountPaid || match.price || 0;
     setFb(fb, '', '');
-    showNumWaitStep(order);
-    loadBalance();
+    location.href = '/active-number?s=3&id=' + encodeURIComponent(order.orderId);
+    return;
   } catch (e) {
     if (/insufficient balance/i.test(e.message)) {
       fb.innerHTML = `<svg class="icon i-x-circle" aria-hidden="true"><use href="#i-x-circle"/></svg> ${esc(e.message)} — <a href="/deposit">fund your wallet</a>`;
@@ -2097,8 +2097,8 @@ async function buyNumberServer2() {
   try {
     const order = await req('/api/numbers/server2/buy', 'POST', { service, country, poolKey: p.poolKey, operator: selectedG2Operator() }, true);
     setFb(fb, '', '');
-    showNumWaitStep(order);
-    loadBalance();
+    location.href = '/active-number?s=1&id=' + encodeURIComponent(order.orderId);
+    return;
   } catch (e) {
     if (/insufficient balance/i.test(e.message)) {
       fb.innerHTML = `<svg class="icon i-x-circle" aria-hidden="true"><use href="#i-x-circle"/></svg> ${esc(e.message)} — <a href="/deposit">fund your wallet</a>`;
