@@ -20,7 +20,7 @@ window.addEventListener('pageshow', function(e){ if (e.persisted) window.locatio
 // The chat page is split into two routes even though 'chat' remains the internal page name;
 // the actual group-vs-DM view is chosen via switchChatMode() before/after routing.
 const PAGE_TO_PATH = {
-  home: '/', market: '/marketplace', market2: '/marketplace2', market3: '/marketplace3', tools: '/tools', deposit: '/deposit', wallet: '/wallet',
+  home: '/', market: '/marketplace', market2: '/marketplace2', market3: '/marketplace3', market4: '/marketplace4', tools: '/tools', deposit: '/deposit', wallet: '/wallet',
   purchases: '/purchases', transactions: '/transactions', support: '/support',
   settings: '/settings', login: '/login', register: '/register', terms: '/terms',
   games: '/games', groups: '/groups', dm: '/messages', referrals: '/referrals',
@@ -1073,7 +1073,7 @@ function showPageReal(p, opts) {
   // 'groups' and 'dm' are routed as separate URLs but both render the shared #page-chat markup;
   // switchChatMode() flips which half of that markup is visible.
   const isChatSubPage = (p === 'groups' || p === 'dm');
-  const domPage = isChatSubPage ? 'chat' : ((p === 'market2' || p === 'market3') ? 'market' : p);
+  const domPage = isChatSubPage ? 'chat' : ((p === 'market2' || p === 'market3' || p === 'market4') ? 'market' : p);
   const el = document.getElementById('page-' + domPage);
   if (!el) {
     // SAFETY NET: never blank the screen. Standalone HTML files only contain their own
@@ -1086,7 +1086,7 @@ function showPageReal(p, opts) {
   }
   document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
   // Pages that require a logged-in account to view (browsing listings requires login/signup)
-  const requiresAuth = ['home','market','market2','market3','tools','deposit','wallet','purchases','transactions','settings','chat','games','groups','dm','referrals','notifications','numberhistory'];
+  const requiresAuth = ['home','market','market2','market3','market4','tools','deposit','wallet','purchases','transactions','settings','chat','games','groups','dm','referrals','notifications','numberhistory'];
   if (requiresAuth.includes(p) && !token) {
     showToast('Please login or create an account to browse King Social Hub','err');
     const welcomeEl = document.getElementById('page-welcome');
@@ -1113,6 +1113,7 @@ function showPageReal(p, opts) {
     market:       () => loadMarket('all'),
     market2:      () => window.initMarket2?.(),
     market3:      () => window.initMarket3?.(),
+    market4:      () => window.initMarket4?.(),
     tools:        loadTools,
     deposit:      loadDeposit,
     wallet:       () => (window.KLSWallet ? window.KLSWallet.load() : null),
