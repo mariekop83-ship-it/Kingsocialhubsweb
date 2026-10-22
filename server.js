@@ -7031,7 +7031,7 @@ app.get('/api/numbers/status/:orderId', auth, async (req, res) => {
  provider: listing.server === 'server2' ? 'Buy Number 1' : 'Buy Number 3', country: listing.country, phoneNumber: listing.phoneNumber,
  status: listing.code ? 'delivered' : ['sold', 'needs_review'].includes(listing.status) ? 'pending' : listing.status,
  code: listing.code, expiresAt: listing.expiresAt, createdAt: listing.soldAt || listing.createdAt,
- sellPrice: listing.sellPrice, checkPending: !!listing.providerError,
+ sellPrice: listing.sellPrice, service: listing.provider, checkPending: !!listing.providerError,
  codeAddedAt: listing.codeAddedAt || null, cancelledAt: listing.cancelledAt || null, expiredAt: listing.expiredAt || null, operator: listing.operator && listing.operator !== 'any' ? prettifyServiceName(listing.operator) : '',
  refunded: listing.status === 'expired' || listing.status === 'cancelled' ? listing.sellPrice : null
  });
@@ -8480,6 +8480,7 @@ app.get('/buy-number-otp', (req, res) => res.redirect(301, '/buy-number-2'));
 app.get('/buy-number-3', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'buy-number-nova.html'))));
 app.get('/buy-number-nova', (req, res) => res.redirect(301, '/buy-number-3'));
 app.get('/virtual-account', (req, res) => res.redirect(301, '/deposit'));
+app.get('/active-number', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'active-number.html'))));
 app.get('/number-history', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'number-history.html'))));
 app.get('/order-status', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'order-status.html'))));
 app.get('/marketplace2', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'marketplace2.html'))));
