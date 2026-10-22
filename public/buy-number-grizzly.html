@@ -395,7 +395,7 @@ if (typeof window.kslConfirm !== 'function') {
     <a class="tb-link" href="/number-history">History →</a>
   </div>
 
-  <div class="hero" id="numHero">
+  <div class="hero" id="numHero" style="display:none">
  <div class="chip"><svg class="icon i-smartphone" aria-hidden="true"><use href="#i-smartphone"/></svg> Buy Numbers</div>
     <h1>Rent a Virtual Number</h1>
     <p>Get a real number for SMS/OTP verification. Your payment is only ever kept if a code actually arrives — otherwise it's refunded automatically.</p>
@@ -523,7 +523,7 @@ if (typeof window.kslConfirm !== 'function') {
   </style>
 
   <!-- SERVER SWITCHER — the only thing shown until a server is tapped -->
-  <div class="card" id="numServerCard">
+  <div class="card" id="numServerCard" style="display:none">
     <div class="number-section-index">01 / SELECT YOUR SERVICE</div>
     <h3>What kind of number do you need?</h3>
     <p class="srv-note" style="margin:-4px 0 12px">Choose the number service that fits what you need.</p>
@@ -588,7 +588,7 @@ if (typeof window.kslConfirm !== 'function') {
       <div class="step-label">Step 1 — Select a server</div>
       <div class="select-tile" style="margin-bottom:12px">
         <div class="st-icon">🖥️</div><div class="st-body"><div class="st-label">Server</div><div class="st-value">Choose the server that offers your service</div></div>
-        <select id="numNovaServerSelect" onchange="onNovaServerChange()"><option value="">Loading servers…</option></select>
+        <select id="numNovaServerSelect" onchange="onNovaServerChange()"><option value="">Select a server…</option></select>
       </div>
       <div id="numCountryStep">
       <div class="step-label">Step 2 — Search &amp; pick the country</div>
@@ -2122,12 +2122,15 @@ function dismissAnnouncement() {
 }
 
 (async function initBuyNumberPage() {
+  selectServer('server2'); // go straight into Buy Number 1 — the old chooser page is never painted
+  window.scrollTo(0, 0);
   loadBalance();
   loadG2Services(); // Buy Number 1 services start loading immediately, in parallel
   await loadNumOptions(); // countries must be loaded first — renderActiveNumbers looks up flags from numCountries
   await loadNumServers(); // load provider status
-  selectServer('server2'); // Buy Number 1 is Buy Number 1
-  if (activeNumberServer === 'server2') document.getElementById('numServerCard').style.display='none';
+  const _s2 = numServersInfo.find(x => x.id === 'server2');
+  if (_s2 && !_s2.enabled) { backToServers(); } // Buy Number 1 switched off: show the chooser instead of a blank page
+  else if (activeNumberServer === 'server2') { document.getElementById('numServerCard').style.display='none'; try { applyG2ProviderMode(); } catch (_) {} } // re-apply once the real server settings are known
 
 
   // If there's already a pending order (e.g. the page was refreshed mid-purchase), jump straight
