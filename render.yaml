@@ -120,13 +120,13 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
-      - key: LUCYLYNX_API_KEY
+      - key: SUJAN_API_KEY
         sync: false
-      - key: LUCYLYNX_BASE_URL
+      - key: SUJAN_BASE_URL
         sync: false
-      - key: LUCYLYNX_DEFAULT_MARKUP_NGN
+      - key: SUJAN_DEFAULT_MARKUP_NGN
         sync: false
-      - key: LUCYLYNX_LOW_BALANCE_NGN
+      - key: SUJAN_LOW_BALANCE_NGN
         sync: false
       - key: MAIL_ALERT_BOUNCE_RATE
         sync: false

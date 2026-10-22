@@ -9,7 +9,7 @@ This build keeps provider calls on the Node/Express server. Do not place API key
 - Buy Number 3: NovaSolution.
 - Boosting 1: Really Simple Social.
 - Boosting 2: NovaSolution.
-- Marketplace 1: admin-managed inventory; Marketplace 2: RakibSocials; Marketplace 3: Lucylynxsocials. Marketplace 4 has no provider integration mounted in the reviewed `server.js`.
+- Marketplace 1: admin-managed inventory; Marketplace 2: RakibSocials; Marketplace 3: Sujan Department. Marketplace 4 has no provider integration mounted in the reviewed `server.js`.
 
 OTP Suite has **not** been removed: it remains the active Buy Number 2 provider. NovaSolution is separately active for Buy Number 3 and Boosting 2. This provider map matches `README.md`.
 
@@ -17,7 +17,7 @@ OTP Suite has **not** been removed: it remains the active Buy Number 2 provider.
 
 - Fixed the Marketplace 1 status endpoint used by the storefront (`GET /api/market/status`). The Marketplace 1 on/off switch now persists in MongoDB through the existing Marketplace settings screen (`PUT /api/admin/market2/config`).
 - Added an owner/admin-only provider readiness endpoint (`GET /api/admin/providers/status`) and a **Provider connections health** button on the admin dashboard. It reports ready/disabled/missing-key status without returning any secret values.
-- Preserved and wired the existing provider modules and admin settings for OTP Suite, RakibSocials, Lucylynxsocials and Really Simple Social.
+- Preserved and wired the existing provider modules and admin settings for OTP Suite, RakibSocials, Sujan Department and Really Simple Social.
 - Preserved the existing Grizzly SMS number purchase/status/cancellation flow and manual receipt approval / deposit reconciliation routes.
 - The existing CSS and JavaScript assets are included in this ZIP; they are not empty placeholders. The only zero-byte files are `.gitkeep` directory markers used to keep upload folders in source control.
 
@@ -51,14 +51,14 @@ Environment fallback:
 - `RAKIB_BASE_URL=https://rakibsocials.com/api/v1`
 - `RAKIB_API_KEY=...`
 
-### 4. Lucylynxsocials — Marketplace 3
+### 4. Sujan Department — Marketplace 3
 
-Open Admin → Marketplace 3 (Lucylynxsocials). Enter `https://lucylynxsocials.com/api/v1`, paste the Bearer API key, save, sync products, then set a customer price and enable products. The key is encrypted in the database. Products with no selling price remain hidden.
+Open Admin → Marketplace 3 (Sujan Department). Enter `https://api.sujandepartment.com/reseller/v1`, paste the Bearer API key, save, sync products, then set a customer price and enable products. The key is encrypted in the database. Products with no selling price remain hidden.
 
 Environment fallback:
 
-- `LUCYLYNX_BASE_URL=https://lucylynxsocials.com/api/v1`
-- `LUCYLYNX_API_KEY=...`
+- `SUJAN_BASE_URL=https://api.sujandepartment.com/reseller/v1`
+- `SUJAN_API_KEY=...`
 
 ### 5. Really Simple Social — Boosting 1
 

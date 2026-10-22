@@ -20,7 +20,7 @@ King Social Hub is a Node.js, Express, and MongoDB application. This guide descr
 | Buy Number 3 | NovaSolution | Active number-provider integration in `server.js`; uses `NOVA_API_KEY` and `NOVA_BASE_URL`. |
 | Marketplace 1 | Admin-managed inventory | The core application manages the manual marketplace inventory. |
 | Marketplace 2 | RakibSocials | Active integration mounted from `lib/market2.js`; uses `RAKIB_API_KEY` and `RAKIB_BASE_URL`, with admin configuration support. |
-| Marketplace 3 | Lucylynxsocials | Active integration mounted from `lib/market3.js`; uses `LUCYLYNX_API_KEY` and `LUCYLYNX_BASE_URL`, with admin configuration support. |
+| Marketplace 3 | Sujan Department | Active integration mounted from `lib/market3.js`; uses `SUJAN_API_KEY` and `SUJAN_BASE_URL`, with admin configuration support. |
 | Marketplace 4 | No provider integration mounted | The `marketplace4` page route exists, but the reviewed `server.js` does not mount a Marketplace 4 provider API. Do not treat it as a working provider integration until one is added. |
 | Boosting 1 | Really Simple Social | Active integration mounted from `lib/boost.js`; uses `BOOST_API_KEY` and `BOOST_API_URL`, with admin-managed settings. |
 | Boosting 2 | NovaSolution | Active integration mounted from `lib/boost2.js`; uses the same `NOVA_API_KEY` and `NOVA_BASE_URL` as Buy Number 3. |

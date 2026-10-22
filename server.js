@@ -475,7 +475,7 @@ const userSchema = new mongoose.Schema({
  deliverableFile: String,
  deliverableFileName: String,
  pricePaid: Number,
- source: { type: String, default: 'market1' }, // 'market1' manual logs · 'market2' RakibSocials API · 'market3' Lucylynxsocials API
+ source: { type: String, default: 'market1' }, // 'market1' manual logs · 'market2' RakibSocials API · 'market3' Sujan Department API
  purchasedAt: { type: Date, default: Date.now }
  }],
  createdAt: { type: Date, default: Date.now }
@@ -1589,7 +1589,7 @@ const { brandLogoFor } = require('./lib/brand-logos').register({
 });
 // Marketplace 2 (RakibSocials API) + marketplace on/off switches — see lib/market2.js
 require('./lib/market2').register(app, { mongoose, User, Transaction, auth, anyAdminAuth, sendAdminEmail, brandLogoFor });
-// Marketplace 3 (Lucylynxsocials API) - see lib/market3.js
+// Marketplace 3 (Sujan Department reseller API) - see lib/market3.js
 require('./lib/market3').register(app, { mongoose, User, Transaction, auth, anyAdminAuth, sendAdminEmail, brandLogoFor });
 require('./lib/otp-suite')(app, { mongoose, User, Transaction, auth, anyAdminAuth });
 
@@ -1613,7 +1613,7 @@ app.get('/api/admin/providers/status', anyAdminAuth, async (req, res) => {
       { id: 'grizzly', name: 'Grizzly SMS — Buy Number 1', configured: !!String(process.env.GRIZZLY_API_KEY || '').trim(), enabled: numberCfg?.server2Enabled !== false, credentialSource: 'Render environment: GRIZZLY_API_KEY' },
       { id: 'otpSuite', name: 'OTP Suite — Buy Number 2', configured: !!(otpCfg?.apiKeyCipher || process.env.OTP_SUITE_API_KEY), enabled: otpCfg?.enabled !== false, credentialSource: 'Admin provider settings or Render environment' },
       { id: 'rakib', name: 'RakibSocials — Marketplace 2', configured: !!(market2Cfg?.apiKeyCipher || process.env.RAKIB_API_KEY), enabled: market2Cfg?.market2Enabled !== false, credentialSource: 'Admin Marketplace 2 settings or Render environment' },
-      { id: 'lucylynx', name: 'Lucylynxsocials — Marketplace 3', configured: !!(market3Cfg?.apiKeyCipher || process.env.LUCYLYNX_API_KEY), enabled: market3Cfg?.market3Enabled !== false, credentialSource: 'Admin Marketplace 3 settings or Render environment' },
+      { id: 'sujan', name: 'Sujan Department — Marketplace 3', configured: !!(market3Cfg?.sujanKeyCipher || process.env.SUJAN_API_KEY), enabled: market3Cfg?.market3Enabled !== false, credentialSource: 'Admin Marketplace 3 settings or Render environment' },
       { id: 'reallySimpleSocial', name: 'Really Simple Social — Boosting 1', configured: !!(boostCfg?.apiKey || process.env.BOOST_API_KEY), enabled: !!boostCfg?.enabled, credentialSource: 'Admin Boosting settings or Render environment' },
       { id: 'nova', name: 'NovaSolution — Buy Number 3 / Boosting 2', configured: !!String(process.env.NOVA_API_KEY || '').trim(), enabled: !!String(process.env.NOVA_API_KEY || '').trim(), credentialSource: 'Render environment: NOVA_API_KEY' }
     ].map(x => ({ ...x, ready: !!x.configured && !!x.enabled, state: !x.configured ? 'missing_credentials' : (!x.enabled ? 'disabled' : 'ready') }));
