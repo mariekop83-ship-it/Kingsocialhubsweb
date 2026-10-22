@@ -1506,15 +1506,16 @@ tr:hover td{background:rgba(255,255,255,.035)}
         <div class="sec-title"><svg class="icon i-search" aria-hidden="true"><use href="#i-search"/></svg> Buy Number 3 Services &amp; Customer Pricing</div>
         <div class="info-box">Syncing updates the saved provider catalogue without replacing these manual settings. Leave a selling price blank to use the NGN profit ladder above; set ₦0 to hide that service. The Buy Number 3 switch above must also be enabled.</div>
         <div class="form-row">
-          <div class="fg"><label>Catalogue</label><select id="novaNumberScope" onchange="updateNovaNumberScope();loadNovaNumberServices(false)"><option value="usa">USA services</option><option value="global">Global services</option></select></div>
-          <div class="fg"><label>Country</label><select id="novaNumberCountry" onchange="loadNovaNumberServices(false)"><option value="">Loading countries…</option></select></div>
-          <div class="fg"><label>Search services</label><input id="novaNumberSearch" type="search" placeholder="Service, category, or ID" oninput="renderNovaNumberServices()"/></div>
+          <div class="fg" style="display:none"><label>Catalogue</label><select id="novaNumberScope" onchange="updateNovaNumberScope();loadNovaNumberServices(false)"><option value="usa">USA services</option><option value="global">Global services</option></select></div>
+          <div class="fg"><label>Country</label><select id="novaNumberCountry" onchange="updateNovaNumberScope();loadNovaNumberServices(false)"><option value="">Loading countries…</option></select></div>
+          <div class="fg"><label>Service</label><select id="novaNumberServiceName" onchange="renderNovaNumberServices()"><option value="">All services</option></select></div>
+          <div class="fg"><label>Search (optional)</label><input id="novaNumberSearch" type="search" placeholder="Service, category, or ID" oninput="renderNovaNumberServices()"/></div>
           <div class="fg"><label>&nbsp;</label><button class="btn-secondary" type="button" onclick="loadNovaNumberServices(true)">Load / refresh services</button></div>
         </div>
         <div id="novaNumberServiceStatus" class="form-feedback"></div>
         <div style="overflow-x:auto"><table style="width:100%;min-width:760px;font-size:13px;border-collapse:collapse">
-          <thead><tr><th align="left">Service</th><th align="left">Provider cost</th><th align="left">Default price</th><th align="left">Selling price (₦)</th><th>Enabled</th><th>Visible</th><th></th></tr></thead>
-          <tbody id="novaNumberServiceRows"><tr><td colspan="7">Load services to manage pricing and visibility.</td></tr></tbody>
+          <thead><tr><th align="left">Service / pool</th><th align="left">Provider cost</th><th align="left">Default price</th><th align="left">Selling price (₦)</th><th>Enabled</th><th>Visible</th><th></th></tr></thead>
+          <tbody id="novaNumberServiceRows"><tr><td colspan="7">Choose a country, then a service, to see its available pools.</td></tr></tbody>
         </table></div>
       </div>
       <div class="sec">
@@ -4785,26 +4786,38 @@ async function loadNovaNumberCountries() {
   updateNovaNumberScope();
 }
 function updateNovaNumberScope() {
-  const scope = document.getElementById('novaNumberScope')?.value;
+  // The country decides the catalogue: United States -> USA catalogue, every other country -> global.
   const country = document.getElementById('novaNumberCountry');
-  if (!country) return;
-  country.disabled = scope === 'usa';
-  if (scope === 'usa') {
-    const us = novaNumberCountries?.find(item => /^us$/i.test(String(item.code)) || /united states/i.test(String(item.name)));
-    if (us) country.value = us.code;
-  }
+  const scope = document.getElementById('novaNumberScope');
+  if (!country || !scope) return;
+  const c = (novaNumberCountries || []).find(item => String(item.code) === country.value);
+  const isUs = /^(us|usa)$/i.test(String(country.value)) || /united states/i.test(String(c && c.name || ''));
+  scope.value = isUs ? 'usa' : 'global';
+  country.disabled = false;
+}
+function fillNovaNumberServiceNames() {
+  const sel = document.getElementById('novaNumberServiceName');
+  if (!sel) return;
+  const keep = sel.value;
+  const counts = new Map();
+  for (const x of novaNumberServiceList) counts.set(x.name, (counts.get(x.name) || 0) + 1);
+  const names = [...counts.keys()].sort((a, b) => a.localeCompare(b));
+  sel.innerHTML = '<option value="">All services (' + names.length + ')</option>' + names.map(n => `<option value="${esc(n)}">${esc(n)} — ${counts.get(n)} pool${counts.get(n) === 1 ? '' : 's'}</option>`).join('');
+  sel.value = names.includes(keep) ? keep : '';
 }
 function renderNovaNumberServices() {
   const body = document.getElementById('novaNumberServiceRows');
   if (!body) return;
   const query = (document.getElementById('novaNumberSearch')?.value || '').trim().toLowerCase();
+  const picked = document.getElementById('novaNumberServiceName')?.value || '';
   const rows = novaNumberServiceList.filter(service =>
-    !query || `${service.name} ${service.category} ${service.serviceId} ${service.serverId}`.toLowerCase().includes(query)
-  );
+    (!picked || service.name === picked) &&
+    (!query || `${service.name} ${service.category} ${service.serviceId} ${service.serverId} ${service.serverName || ''}`.toLowerCase().includes(query))
+  ).sort((a, b) => a.name.localeCompare(b.name) || (a.costNgn - b.costNgn));
   body.innerHTML = rows.length ? rows.map(service => {
     const suffix = `${service.serverId}_${service.serviceId}`;
     return `<tr style="border-top:1px solid var(--border2,rgba(255,255,255,.12))">
-      <td>${esc(service.name)}<br><small>${esc(service.category)} · Service ${service.serviceId} · Server ${service.serverId}</small></td>
+      <td>${esc(service.name)}<br><small>Pool: ${esc(service.serverName || ('Server ' + service.serverId))}${service.stock != null ? ' · ' + Number(service.stock).toLocaleString() + ' available' : ''}${service.health ? ' · ' + esc(String(service.health).replace(/_/g, ' ')) : ''} · ID ${service.serviceId}/${service.serverId}</small></td>
       <td>₦${Number(service.costNgn || 0).toLocaleString('en-NG',{maximumFractionDigits:2})}</td>
       <td>₦${Number(service.automaticPrice || 0).toLocaleString('en-NG',{maximumFractionDigits:2})}</td>
       <td><input id="novaNumberPrice${suffix}" type="number" min="0" step="0.01" value="${service.priceNgn == null ? '' : esc(service.priceNgn)}" placeholder="Use default" aria-label="Selling price for ${esc(service.name)}" style="width:125px"></td>
@@ -4825,6 +4838,7 @@ async function loadNovaNumberServices(refresh) {
     const country = document.getElementById('novaNumberCountry').value;
     const data = await aFetch(`/api/admin/numbers/nova-services?scope=${encodeURIComponent(scope)}&country=${encodeURIComponent(country)}${refresh ? '&refresh=1' : ''}`);
     novaNumberServiceList = Array.isArray(data.services) ? data.services : [];
+    fillNovaNumberServiceNames();
     status.textContent = `${novaNumberServiceList.length} services${data.stale ? ' · provider unavailable; showing the saved catalogue' : ''}${data.syncedAt ? ' · saved ' + new Date(data.syncedAt).toLocaleString() : ''}.`;
     renderNovaNumberServices();
   } catch (e) {
