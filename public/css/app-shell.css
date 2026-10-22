@@ -664,3 +664,8 @@ body.app-shell .nav-guest .btn-nav-reg { display:none; }
 
 /* ksh-one-back */
 .app-backbar { display: none !important; }
+
+/* Bottom tab bar removed everywhere */
+.app-tabbar{display:none!important}
+:root{--app-nav-h:0px!important}
+body.app-shell{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 14px)!important}
