@@ -143,7 +143,7 @@ async function m4LoadBalance(){
 }
 async function m4LoadProducts(refresh){
   const el=document.getElementById('m4Products'); el.textContent='Loading…';
-  try { m4List = await aFetch('/api/admin/market4/products'+(refresh?'?refresh=1':'')); m4Render(); }
+  try { try { m4List = await aFetch('/api/admin/market4/products'+(refresh?'?refresh=1':'')); } catch(e1){ if(!refresh) throw e1; m4List = await aFetch('/api/admin/market4/products'); setTimeout(function(){ alert('Could not refresh from the provider: '+e1.message+'\nShowing the last saved list.'); },50); } m4Render(); }
   catch(e){ el.innerHTML=`<span style="color:var(--red)">${esc(e.message)}</span>`; }
 }
 function m4Render(){
