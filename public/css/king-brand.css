@@ -328,3 +328,8 @@ body::after{content:"";position:fixed;inset:0;background:#000;z-index:2147483646
 #page-login a,#page-register a,.auth-switch a,.auth-brand{color:#22c55e!important}
 #page-login .auth-brand,#page-register .auth-brand{color:#22c55e!important}
 #page-login p,#page-register p,#page-login small,#page-register small{color:#b8c0bd}
+
+
+/* KSH-LOADER-FIX-CSS: loader shows only the round logo; any image inside it must fit the circle */
+#kb-loader .kb-crown,#kb-loader .kb-name,#kb-loader .kb-sub{display:none!important}
+#kb-loader .kb-logo img,.dbfl-crown-svg img{width:100%;height:100%;object-fit:cover;border-radius:50%;font-size:0;color:transparent}

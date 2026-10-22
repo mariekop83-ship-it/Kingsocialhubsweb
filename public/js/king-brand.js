@@ -11,6 +11,14 @@ try{if(location.pathname==='/'&&localStorage.getItem('ksl_token'))location.repla
   }
   function applyLogo(url){
     if(!url)return;
+    /* KSH-LOADER-FIX: preload first; a missing/expired logo must never replace the built-in one */
+    var probe=new Image();
+    probe.onload=function(){ applyLogoNow(url); };
+    probe.onerror=function(){};
+    probe.src=url;
+  }
+  function applyLogoNow(url){
+    if(!url)return;
     document.querySelectorAll('.kb-logo').forEach(function(el){
       el.style.backgroundImage='none';
       var img=document.createElement('img');img.src=url;img.alt='King Social Hub';img.decoding='async';
@@ -148,7 +156,7 @@ try{if(location.pathname==='/'&&localStorage.getItem('ksl_token'))location.repla
   function make(){
     if(el||!document.body) return el;
     el=document.createElement('div'); el.id='kb-loader'; el.setAttribute('aria-hidden','true');
-    el.innerHTML='<div class="kb-crown">\uD83D\uDC51</div><div class="kb-logo"></div><div class="kb-name">King Social Hub</div><div class="kb-sub">Loading\u2026</div>';
+    el.innerHTML='<div class="kb-logo"></div>';
     document.body.appendChild(el); return el;
   }
   function show(){ var e=make(); if(e) e.classList.remove('kb-hide'); }
@@ -331,3 +339,10 @@ document.addEventListener('click',function(ev){
     rows();new MutationObserver(function(){rows();}).observe(document.body,{childList:true,subtree:true});
   });
 })();
+
+
+/* KSH-BROKEN-IMG-GUARD: a broken logo image must never show (broken icon + "King Social Hub" alt text) */
+document.addEventListener('error',function(e){
+  var t=e.target;
+  if(t&&t.tagName==='IMG'&&t.closest&&t.closest('#kb-loader,.dbfl-overlay,.kb-logo,.dbfl-crown-svg')){ try{ t.remove(); }catch(_){ t.style.display='none'; } }
+},true);

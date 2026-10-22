@@ -182,13 +182,14 @@
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="icon" type="image/png" href="/favicon.png">
-  <link rel="stylesheet" href="/css/king-brand.css?v=1">
-  <script defer src="/js/king-brand.js?v=1"></script>
+  <link rel="stylesheet" href="/css/king-brand.css?v=20261022">
+  <script defer src="/js/king-brand.js?v=20261022"></script>
   <link rel="stylesheet" href="/css/king-mobile-polish.css?v=1">
   <link rel="stylesheet" href="/css/king-glass-ui.css?v=1">
   <link rel="stylesheet" href="/css/page-transitions.css?v=1">
 
 <link rel="stylesheet" href="/css/responsive-device-fit.css?v=1">
+<link rel="stylesheet" href="/css/king-wallet-card.css?v=20261022">
 </head>
 <body>
 <!-- SVG SPRITES -->
@@ -273,38 +274,35 @@
     </div>
   </header>
 
-  <!-- BALANCE CARD -->
-  <section class="dsh-balance-card">
-    <div class="dsh-bal-top">
-      <span class="dsh-bal-label">
-        <svg><use href="#i-shield"/></svg> Available Balance
-      </span>
-      <a class="dsh-bal-txn" href="/transactions">
-        Transaction History <svg><use href="#i-arrow-right"/></svg>
-      </a>
+  <!-- BALANCE CARD (wallet) -->
+  <section class="kw-wallet" aria-label="Wallet balance">
+    <div class="kw-card">
+      <div class="kw-top">
+        <span class="kw-brand"><svg><use href="#i-wallet"/></svg> King Wallet</span>
+        <svg class="kw-nfc" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 8.5a5 5 0 010 7"/><path d="M12 6a8.5 8.5 0 010 12"/><path d="M15.5 3.5a12 12 0 010 17"/></svg>
+      </div>
+      <div class="kw-mid">
+        <div class="kw-chip" aria-hidden="true"></div>
+        <div class="kw-amt-wrap">
+          <div class="kw-label">Available Balance</div>
+          <div class="kw-amount"><span class="kw-cur">₦</span><span id="dshBal">0.00</span></div>
+        </div>
+      </div>
+      <div class="kw-foot">
+        <span class="kw-sub" id="dshBalSub">Wallet ready</span>
+        <button class="kw-eye" id="dshEyeBtn" type="button" aria-label="Toggle balance visibility">
+          <svg id="dshEyeIcon"><use href="#i-eye"/></svg> Balance
+        </button>
+      </div>
     </div>
-    <div class="dsh-bal-amount">
-      <span>₦</span><span id="dshBal">0.00</span>
-      <button class="dsh-eye-btn" id="dshEyeBtn" type="button" aria-label="Toggle balance visibility">
-        <svg id="dshEyeIcon"><use href="#i-eye"/></svg>
-      </button>
+    <div class="kw-dock">
+      <a class="kw-primary" href="/deposit"><span class="kw-plus">+</span><span>Add Money</span></a>
+      <a href="/transactions"><svg><use href="#i-history"/></svg><span>History</span></a>
+      <a href="/referrals"><svg><use href="#i-link"/></svg><span>Referrals</span><b id="dshRef">₦0.00</b></a>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <a class="dsh-add-money" href="/deposit">
-        + Add Money
-      </a>
-      <div style="color:rgba(255,255,255,.75);font-size:12px;font-weight:600" id="dshBalSub">Wallet ready</div>
-    </div>
-    <a class="dsh-ref-strip" href="/referrals">
-      <svg><use href="#i-link"/></svg>
-      <span style="flex:1">Referral earnings</span>
-      <b id="dshRef">₦0.00</b>
-      <svg><use href="#i-arrow-right"/></svg>
-    </a>
   </section>
 
-
-  <!-- FEATURES: 4-column grid right after the balance card -->
+<!-- FEATURES: 4-column grid right after the balance card -->
   <div class="dsh-card dsh-features-card">
     <div class="dsh-features-grid">
       <a class="dsh-svc-item" href="/buy-number">
