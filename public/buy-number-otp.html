@@ -5,7 +5,40 @@
 <link rel="stylesheet" href="/css/ksh-header-clean.css?v=20261022b">
 <script src="/js/ksh-menu-guard.js?v=20261022b" defer></script>
 <link rel="stylesheet" href="/css/ksh-ui-fixes.css?v=20261022c">
-</head><body><main class="wrap"><a href="/buy-number">← All number services</a><h1>Buy Number 2</h1><p class="muted">Choose a country and service, then purchase using your NGN wallet.</p><div class="panel"><div class="row"><div><label for="country">Country</label><select id="country"><option value="">Choose country</option></select></div><div><label for="service">Service</label><select id="service" disabled><option value="">Select a country first</option></select></div></div><div id="price" class="muted" style="margin:12px 0"></div><button id="buy" disabled>Buy Number</button><div id="notice" role="status" class="msg" style="display:none"></div></div><div class="panel"><h2>My Number Orders</h2><p class="muted">SMS updates refresh automatically while an order is waiting.</p><div id="orders">Loading orders…</div></div></main><script>
+<style id="bn-redesign">
+/* Buy Number 2 & 3 — same black & green design as Buy Number 1. Layout order is unchanged. */
+html,body{background:#000!important}
+body{color:#eafff1!important}
+.wrap{max-width:640px!important;margin:0 auto!important;padding:6px 0 44px!important}
+.wrap>a:first-child{display:inline-block;padding:8px 14px;border:1px solid rgba(34,197,94,.35);border-radius:999px;color:#4ade80!important;background:rgba(34,197,94,.08);font-weight:800;font-size:13px;text-decoration:none}
+.wrap h1{color:#eafff1;font-size:26px;font-weight:900;margin:16px 0 6px}
+.wrap h2{color:#eafff1;font-size:17px;font-weight:800;margin-top:0}
+.muted{color:#86a894!important;opacity:1!important}
+.panel{background:linear-gradient(180deg,#0e1511,#070a08)!important;border:1px solid rgba(34,197,94,.24)!important;border-radius:20px!important;padding:18px!important;margin:0 0 14px!important;box-shadow:0 12px 32px rgba(0,0,0,.55)}
+label{display:block;color:#22c55e!important;font-size:11.5px!important;letter-spacing:.09em;text-transform:uppercase;font-weight:900!important;margin:16px 0 6px!important}
+select,input{background:#0a0f0c!important;border:1px solid rgba(34,197,94,.3)!important;border-radius:14px!important;color:#eafff1!important;padding:14px!important}
+select:focus,input:focus{border-color:#22c55e!important;outline:none;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+button{background:linear-gradient(135deg,#22c55e,#16a34a)!important;color:#03140a!important;font-weight:900!important;border:0!important;border-radius:14px!important;padding:14px 16px;box-shadow:0 8px 22px rgba(34,197,94,.22)}
+button[disabled]{opacity:.4;box-shadow:none}
+button.danger,.danger{background:#5c1a22!important;color:#fff!important;border:1px solid rgba(255,98,108,.4)!important;box-shadow:none!important}
+.notice,.msg{background:rgba(34,197,94,.08)!important;border:1px solid rgba(34,197,94,.25)!important;border-radius:12px!important;color:#cfe9da!important}
+.price{color:#4ade80!important;font-weight:900}
+.open-link{background:linear-gradient(135deg,#22c55e,#16a34a)!important;color:#03140a!important;border-radius:12px!important;font-weight:900!important}
+.active-card,.order.active-order{background:linear-gradient(145deg,#0d3a20,#070a08 65%)!important;border:1px solid rgba(34,197,94,.45)!important;border-radius:20px!important;box-shadow:0 14px 36px rgba(0,0,0,.6)!important}
+.order{border-top:1px solid rgba(34,197,94,.15)!important}
+.code{color:#4ade80}
+.panel a:not(.open-link){color:#4ade80}
+@media(max-width:480px){body{padding:12px!important}.panel{padding:15px!important}}
+
+.sub-label{color:#22c55e;font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:900;margin:16px 0 8px}
+.guide-list{margin:0;padding-left:20px;font-size:13.5px;line-height:1.75;color:#cfe9da}
+.guide-list li::marker{color:#22c55e}
+.how-sum{cursor:pointer;color:#4ade80;font-weight:900;font-size:14px;list-style:none;display:flex;align-items:center;justify-content:space-between}
+.how-sum::-webkit-details-marker{display:none}
+.how-sum::after{content:'+';font-size:20px;line-height:1;color:#22c55e}
+details[open]>.how-sum::after{content:'–'}
+</style>
+</head><body><main class="wrap"><a href="/buy-number">← All number services</a><h1>Buy Number 2</h1><p class="muted">Choose a country and service, then purchase using your NGN wallet.</p><div class="panel"><div class="row"><div><label for="country">Step 1 — Pick the country</label><select id="country"><option value="">Choose country</option></select></div><div><label for="service">Step 2 — Pick the service</label><select id="service" disabled><option value="">Select a country first</option></select></div></div><div id="price" class="muted" style="margin:12px 0"></div><button id="buy" disabled>Buy Number</button><div id="notice" role="status" class="msg" style="display:none"></div></div><div class="panel"><h2>My Number Orders</h2><p class="muted">SMS updates refresh automatically while an order is waiting.</p><div id="orders">Loading orders…</div></div><details class="panel" id="howBuying"><summary class="how-sum">How buying works &amp; notifications</summary><div class="notice" style="margin-top:10px">Stock and prices change every few seconds, and the price is checked again right before your wallet is charged.</div><div class="sub-label">How buying works</div><ol class="guide-list"><li>Install and open the app you want to verify <i>before</i> buying.</li><li>Pick the <b>country</b>.</li><li>Pick the <b>service</b> — each one shows its price.</li><li>Tap <b>Buy Number</b> — your wallet is charged and the number is reserved for you.</li><li>Your code appears automatically on your <b>Active Number</b> page and in your orders below — no refresh needed.</li><li>No code in time? You are refunded automatically, or tap <b>Cancel &amp; Refund</b> when it is offered.</li></ol><div class="sub-label">Notifications you will get</div><ul class="guide-list"><li>Live countdown showing how long is left on your number</li><li>Instant on-page alert the moment your OTP code arrives</li><li>Automatic refund notice if no code arrives before time runs out</li><li>Wallet balance updates immediately after every charge or refund</li></ul></details><div class="panel" id="refundRules"><h2>How It Works &amp; Refund Rules</h2><ul class="guide-list"><li>Your wallet is charged the moment you buy — this reserves a real, working number for you</li><li>You have about 20 minutes to receive your SMS/OTP code on that number</li><li>If a code arrives in time, the sale is final — you keep the code</li><li>If no code arrives before time runs out, you're refunded automatically — no action needed</li><li>Want your money back sooner? Tap "Cancel &amp; Refund" on your order when it is offered, before a code arrives</li><li>Once a code has been delivered, that number can no longer be cancelled or refunded</li></ul></div></main><script>
 const token=()=>localStorage.getItem('ksl_token')||localStorage.getItem('token')||'';
 const $=id=>document.getElementById(id);let countries=[],services=[],orders=[],timer=null,countdownTimer=null;
 function money(n){return '₦'+Number(n||0).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2})}
