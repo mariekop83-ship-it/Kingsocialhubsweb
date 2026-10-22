@@ -119,6 +119,9 @@
     return p.length > 1 ? p.replace(/\/$/, '') : '/';
   }
   function renderTabs() {
+    /* Bottom tab bar (Home / Logs / Boost / Numbers / Me) removed on every page. */
+    Array.prototype.forEach.call(document.querySelectorAll('.app-tabbar'), function (n) { n.remove(); });
+    return;
     if (!TOKEN()) return;
     if (document.querySelector('.app-tabbar')) return;
     var here = currentPath();
