@@ -6278,7 +6278,7 @@ async function expireStaleNumberOrder(listing) {
 // cancel call failed, so we are not left paying for a number the customer no longer holds.
 let _novaCancelRetryRunning = false;
 async function retryFailedNovaCancellations() {
-  if (_novaCancelRetryRunning || !process.env.NOVA_API_KEY || mongoose.connection.readyState !== 1) return;
+  if (_novaCancelRetryRunning || !novaKey() || mongoose.connection.readyState !== 1) return;
   _novaCancelRetryRunning = true;
   try {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -6352,15 +6352,21 @@ async function novaGate() {
   _novaGateNext = at + 1200;
   if (at > now) await new Promise(r => setTimeout(r, at - now));
 }
+// One NovaSolution key for Buy Number 3, Boosting 2 and Marketplace 4: Render's NOVA_API_KEY wins, otherwise the key
+// saved in Admin → Marketplace 4 (when that points at NovaSolution). Cleaned of quotes/spaces/"Bearer ".
+function novaKey() {
+  const clean = v => String(v || '').replace(/[\r\n\t]/g, '').trim().replace(/^["'`]+|["'`]+$/g, '').replace(/^bearer\s+/i, '').trim();
+  return clean(process.env.NOVA_API_KEY) || clean(app.locals && typeof app.locals.market4NovaKey === 'function' ? app.locals.market4NovaKey() : '');
+}
 async function novaRequest(method, path, options = {}) {
-  if (!process.env.NOVA_API_KEY) {
+  if (!novaKey()) {
     const e = new Error('This service is not available right now. Please contact the administrator.');
     e.status = 503;
     throw e;
   }
   try {
     await novaGate();
-    const response = await novaAxios.request({ method, url: path, ...options });
+    const response = await novaAxios.request({ method, url: path, ...options, headers: { ...(options.headers || {}), Authorization: `Bearer ${novaKey()}` } });
     return response.data;
   } catch (err) {
     const status = err.response?.status || err.status || 502;

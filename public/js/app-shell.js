@@ -102,7 +102,7 @@
     backdrop.addEventListener('click',closeMenu); drawer.querySelector('.ksh-drawer-close').addEventListener('click',closeMenu);
     drawer.querySelectorAll('.ksh-menu-toggle').forEach(function(btn){ btn.addEventListener('click',function(){ var sub=document.getElementById(btn.getAttribute('aria-controls')); var isOpen=btn.getAttribute('aria-expanded')==='true'; btn.setAttribute('aria-expanded',String(!isOpen)); if(sub) sub.classList.toggle('open',!isOpen); }); });
     drawer.querySelectorAll('a').forEach(function(a){ a.addEventListener('click',closeMenu); });
-    var logout=document.getElementById('kshLogout'); if(logout) logout.addEventListener('click',function(){ closeMenu(); if(typeof window.logout==='function') window.logout(); else { try { localStorage.removeItem('ksl_token'); localStorage.removeItem('ksl_user'); } catch(e){} location.href='/login'; } });
+    var logout=document.getElementById('kshLogout'); if(logout) logout.addEventListener('click',function(){ closeMenu(); if(typeof window.logout==='function') window.logout(); else { var t=''; try { t=localStorage.getItem('ksl_token')||''; } catch(e){} try { if(t) fetch('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+t},keepalive:true}).catch(function(){}); } catch(e){} try { localStorage.removeItem('ksl_token'); localStorage.removeItem('ksl_user'); } catch(e){} location.href='/login'; } });
     document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeMenu(); });
   }
 

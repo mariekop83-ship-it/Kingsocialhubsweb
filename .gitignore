@@ -9,3 +9,4 @@ public/files/*
 !public/receipts/.gitkeep
 !public/files/.gitkeep
 _upgrade_backup/
+.nova-fix-backup/

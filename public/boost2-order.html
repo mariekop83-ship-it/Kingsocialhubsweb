@@ -58,14 +58,15 @@ function draw(){
     const ok=await KingUI.confirm('Order '+q.toLocaleString()+' × '+s.name+'\nTotal: '+money(t)+'\nThis amount will be taken from your wallet.',{title:'Confirm your order',okText:'Pay '+money(t)});
     if(!ok)return;busy=true;check();KingUI.loading(true,'Placing your order…');
     try{
-      const d=await api('/api/boost2/orders',{method:'POST',body:JSON.stringify({serviceId:s.id,quantity:q,link:$('link').value.trim()})});
+      const d=await api('/api/boost2/orders',{method:'POST',body:JSON.stringify({serviceKey:s.serviceKey,quantity:q,link:$('link').value.trim()})});
       KingUI.flash(d.pending?(d.message||'Your order is being verified.'):'Order placed successfully. Paid '+money(d.amountPaid||t)+'.',d.pending?'info':'success');
       location.href='/boost2';
     }catch(e){busy=false;KingUI.loading(false);KingUI.banner(e.message||'Order failed.','err');check()}
   };
 }
 (async()=>{
-  try{await (window.KingUI&&KingUI.logos());const d=await api('/api/boost2/services');s=(d.services||[]).find(x=>Number(x.id)===id);
+  try{await (window.KingUI&&KingUI.logos());try{s=JSON.parse(sessionStorage.getItem('b2svc')||'null')}catch(e){s=null}
+    if(!s||!s.serviceKey){location.replace('/boost2');return}
     if(!s){$('card').innerHTML='<div class="muted">This service is no longer available.</div>';return}
     s.price=Number(s.price)||0;draw()}
   catch(e){$('card').innerHTML='<div class="muted">'+esc(e.message||'Could not load this service.')+'</div>'}

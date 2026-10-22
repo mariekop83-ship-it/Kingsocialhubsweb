@@ -54,15 +54,16 @@ function render(){
   }else{
     $('ttl').textContent=cat;$('sub').textContent='Choose a service.';$('backLink').href='#';
     let rows=all.filter(s=>catOf(s)===cat&&(!q||s.name.toLowerCase().includes(q))).sort((a,b)=>a.price-b.price);
-    v.innerHTML=rows.length?rows.map(s=>'<a class="svc" href="/boost2/order?id='+s.id+'">'+logoHtml(logoOf(s),s.name,'big')+'<div><b>'+esc(s.name)+'</b><span class="m">Min '+s.min.toLocaleString()+' · Max '+s.max.toLocaleString()+'</span></div><div class="p">'+money(s.price)+'<div class="m">per 1,000</div></div></a>').join(''):'<div class="panel muted">No services match your search.</div>';
+    v.innerHTML=rows.length?rows.map(s=>'<a class="svc" href="/boost2/order" data-k="'+esc(s.serviceKey)+'" onclick="pickSvc(this)">'+logoHtml(logoOf(s),s.name,'big')+'<div><b>'+esc(s.name)+'</b><span class="m">Min '+s.min.toLocaleString()+' · Max '+s.max.toLocaleString()+'</span></div><div class="p">'+money(s.price)+'<div class="m">per 1,000</div></div></a>').join(''):'<div class="panel muted">No services match your search.</div>';
   }
 }
 $('backLink').addEventListener('click',e=>{if(route()){e.preventDefault();location.hash=''}});
 $('search').addEventListener('input',render);window.addEventListener('hashchange',()=>{$('search').value='';render()});
 async function load(){
-  try{await (window.KingUI&&KingUI.logos());const d=await api('/api/boost2/services');all=(d.services||[]).map(s=>({...s,price:Number(s.price)||0}));loaded=true;render();if(d.enabled===false){$('view').className='panel muted';$('view').textContent=d.message||'Not available yet.'}}
+  try{await (window.KingUI&&KingUI.logos());const d=await api('/api/boost2/services');all=(d.services||[]).map(s=>({...s,price:Number(s.price)||0}));window.__b2rows=all;loaded=true;render();if(d.enabled===false){$('view').className='panel muted';$('view').textContent=d.message||'Not available yet.'}}
   catch(e){loaded=true;$('view').className='panel muted';$('view').textContent=e.message||'Could not load services.';KingUI.banner(e.message||'Could not load services.','err')}
 }
+function pickSvc(a){try{const k=a.getAttribute('data-k');const r=(window.__b2rows||[]).find(x=>x.serviceKey===k);if(r)sessionStorage.setItem('b2svc',JSON.stringify(r));}catch(e){}}
 async function loadOrders(){try{const rows=await api('/api/boost2/orders');if(!rows.length)return;$('ordersBox').style.display='block';$('orders').innerHTML=rows.map(o=>'<div class="ord"><b>'+esc(o.service)+'</b><br><span class="muted">'+Number(o.quantity).toLocaleString()+' · '+money(o.total)+' · '+esc(o.status)+' · '+new Date(o.createdAt).toLocaleString()+'</span></div>').join('')}catch(e){}}
 load();loadOrders();
 </script>

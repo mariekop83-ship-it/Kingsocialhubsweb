@@ -1,168 +1,72 @@
 <!doctype html><html lang="en"><head>
-  <link rel="icon" type="image/png" href="/favicon.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SMM Boosting 2 | King Social Hub</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/brand.css"><link rel="stylesheet" href="/css/king-brand.css?v=1"><script defer src="/js/king-brand.js?v=1"></script><style>body{background:#0b0d11;color:#f3f5f8;padding:18px}.wrap{max-width:980px;margin:24px auto}.panel,.item{background:#171a20;border:1px solid #282e38;border-radius:16px;padding:16px;margin:12px 0}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}input,select{width:100%;padding:13px;border-radius:10px;background:#101319;color:white;border:1px solid #343c49;margin:7px 0;box-sizing:border-box}button,.btn{border:0;border-radius:10px;background:#68a9d5;color:#07121c;font-weight:800;padding:12px 16px;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}.price{color:#7db8e0;font-weight:800}.muted{color:#a2aab6}.notice{padding:10px;border-radius:8px;background:#202833;margin:10px 0;white-space:pre-wrap}.step{display:inline-block;background:#68a9d5;color:#07121c;border-radius:50%;width:24px;height:24px;line-height:24px;text-align:center;font-weight:800;margin-right:8px}.hidden{display:none}.summary{background:#101319;border:1px solid #343c49;border-radius:12px;padding:12px;margin:10px 0}.summary p{margin:4px 0}.cats{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.cats button{background:#202833;color:#f3f5f8;border:1px solid #343c49}.cats button.on{background:#68a9d5;color:#07121c}.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(7,18,28,.3);border-top-color:#07121c;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}@keyframes sp{to{transform:rotate(360deg)}}@media(max-width:600px){.row{grid-template-columns:1fr}}</style><link rel="stylesheet" href="/css/promo-notifications.css?v=1"><link rel="stylesheet" href="/css/announce.css?v=3"><script src="/js/kls-ui.js?v=2"></script>  <link rel="stylesheet" href="/css/page-transitions.css?v=1">
-
-<link rel="stylesheet" href="/css/responsive-device-fit.css?v=1">
-</head><body><main class="wrap">
-<a href="/dashboard">← Dashboard</a>
-<h1>SMM Boosting 2</h1>
-<p class="muted">Social media services · prices in Nigerian Naira (₦)</p>
-
-<div class="panel">
-  <div id="notice" class="notice">Loading services…</div>
-  <h2><span class="step">1</span>Choose a category</h2>
-  <div id="cats" class="cats"></div>
-  <button id="refresh" type="button">Refresh services</button>
-</div>
-
-<div class="panel hidden" id="svcPanel">
-  <h2><span class="step">2</span>Choose a service</h2>
-  <input id="search" placeholder="Search within this category…">
-  <select id="svc" size="1"></select>
-  <p id="svcInfo" class="muted"></p>
-</div>
-
-<form class="panel hidden" id="orderForm" autocomplete="off">
-  <h2><span class="step">3</span>Order details</h2>
-  <div id="selected" class="price"></div>
-  <label for="link">Public post / profile / video link</label>
-  <input id="link" type="url" placeholder="https://…" required>
-  <div class="row">
-    <div><label for="qty">Quantity</label><input id="qty" type="number" step="1" inputmode="numeric" required><small id="qtyHint" class="muted"></small></div>
-    <div><label>Total</label><p id="total" class="price">₦0</p></div>
-  </div>
-  <button id="buy" type="submit" disabled>Review &amp; place order</button>
-  <p id="after" class="muted hidden"><a href="/boost-history">View my order history →</a></p>
-</form>
+<link rel="icon" type="image/png" href="/favicon.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Boost 2 | King Social Hub</title>
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/brand.css">
+<script src="/js/king-ui.js?v=1"></script>
+<script>(function(){try{if(!localStorage.getItem('ksl_token')&&!localStorage.getItem('token'))location.replace('/login')}catch(e){}})();</script>
+<style>
+body{background:#0b0d11;color:#f3f5f8;padding:18px}.wrap{max-width:900px;margin:20px auto}.muted{color:#a2aab6}.back{color:#9fb4c8;text-decoration:none;font-weight:700}
+.panel{background:#171a20;border:1px solid #282e38;border-radius:16px;padding:16px;margin:14px 0}
+input{width:100%;padding:13px;border-radius:10px;background:#101319;color:#fff;border:1px solid #343c49;margin:6px 0;box-sizing:border-box;font-size:16px}
+label{display:block;margin-top:10px;color:#b7c0cd;font-size:14px}
+.btn{border:0;border-radius:10px;background:#68a9d5;color:#07121c;font-weight:800;padding:13px 16px;cursor:pointer;width:100%;font-size:16px;margin-top:12px}.btn:disabled{opacity:.5}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;background:#171a20;border:1px solid #282e38;border-radius:14px;padding:16px 10px;cursor:pointer;color:inherit;text-decoration:none;font-weight:800}
+.tile:hover{border-color:#68a9d5}.tile small{color:#a2aab6;font-weight:600}
+.big{width:52px;height:52px;border-radius:14px;object-fit:contain;background:#fff;padding:5px}.ph{width:52px;height:52px;border-radius:14px;background:#252c38;display:grid;place-items:center;font-size:24px;font-weight:900;color:#9fb4c8}
+.svc{display:flex;gap:12px;align-items:center;background:#171a20;border:1px solid #282e38;border-radius:14px;padding:12px;margin:8px 0;cursor:pointer;color:inherit;text-decoration:none}
+.svc:hover{border-color:#68a9d5}.svc .big,.svc .ph{width:42px;height:42px;flex:0 0 42px;font-size:19px;border-radius:11px;padding:4px}
+.svc b{display:block;line-height:1.3}.svc .m{font-size:12px;color:#a2aab6}.svc .p{margin-left:auto;text-align:right;color:#7db8e0;font-weight:800;white-space:nowrap}
+.price{color:#7db8e0;font-weight:800;font-size:20px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ord{padding:10px 0;border-top:1px solid #282e38;font-size:14px}.ord:first-child{border-top:0}
+@media(max-width:560px){.row{grid-template-columns:1fr}}
+</style>
+<link rel="stylesheet" href="/css/page-transitions.css?v=1"><link rel="stylesheet" href="/css/responsive-device-fit.css?v=1">
+<link rel="stylesheet" href="/css/ksh-header-clean.css?v=20261022b">
+<script src="/js/ksh-menu-guard.js?v=20261022b" defer></script>
+</head><body>
+<main class="wrap"><a class="back" href="/boost" id="backLink">← Back</a>
+<h1 id="ttl">Boost 2</h1><p class="muted" id="sub">Choose a category.</p>
+<input id="search" placeholder="Search…" autocomplete="off">
+<div id="view" class="panel muted">Loading services…</div>
+<div class="panel" id="ordersBox" style="display:none"><h3 style="margin:0 0 6px">Recent orders</h3><div id="orders"></div></div>
 </main>
 <script>
-const $ = id => document.getElementById(id);
-let all = [], cat = '', chosen = null, busy = false, confirming = false, lockUntil = 0;
-let orderRef = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `b2-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-const newOrderRef = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `b2-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-const money = n => '₦' + Number(n || 0).toLocaleString('en-NG', { maximumFractionDigits: 2 });
-const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-const say = (msg, type, opt) => { if (window.KLS) KLS.banner(msg, type || 'info', opt || {}); else alert(msg); };
-const rateUnit = s => Number.isSafeInteger(Number(s.rateUnit)) && Number(s.rateUnit) > 0 ? Number(s.rateUnit) : 1000;
-const totalFor = (s, q) => Math.round((s.price * q / rateUnit(s)) * 100) / 100;
+const $=id=>document.getElementById(id);
+const money=n=>'₦'+Number(n||0).toLocaleString('en-NG',{maximumFractionDigits:2});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(url,opt={}){const t=localStorage.getItem('ksl_token')||localStorage.getItem('token')||'';const r=await fetch(url,{...opt,headers:{'Content-Type':'application/json',...(t?{Authorization:'Bearer '+t}:{}),...(opt.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(d.error||d.message||'Request failed');e.status=r.status;e.data=d;throw e}return d}
+function logoOf(s){return s.logo||(window.KingUI&&KingUI.logoFor((s.name||'')+' '+(s.category||'')))||''}
+function logoHtml(url,text,cls){return url?'<img class="'+(cls||'big')+'" src="'+esc(url)+'" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=ph>'+esc((text||'?').trim().charAt(0).toUpperCase())+'</div>\'">':'<div class="ph">'+esc((text||'?').trim().charAt(0).toUpperCase())+'</div>'}
 
-async function api(url, opt = {}, timeoutMs = 45000) {
-  const token = localStorage.getItem('ksl_token') || localStorage.getItem('token') || '';
-  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), timeoutMs);
-  try {
-    const r = await fetch(url, { ...opt, signal: ctl.signal, headers: { 'Content-Type':'application/json', ...(token ? { Authorization:'Bearer ' + token } : {}), ...(opt.headers || {}) } });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) { const e = new Error(data.error || data.message || 'Request failed'); e.status = r.status; throw e; }
-    data._status = r.status; return data;
-  } catch (e) { if (e.name === 'AbortError') { const x = new Error('timeout'); x.timeout = true; throw x; } throw e; }
-  finally { clearTimeout(t); }
-}
-
-function categories() { return [...new Set(all.map(s => s.category || 'Other'))].sort((a, b) => a.localeCompare(b)); }
-function renderCats() {
-  const list = categories();
-  $('cats').innerHTML = list.map(c => `<button type="button" data-c="${esc(c)}" class="${c === cat ? 'on' : ''}">${esc(c)}</button>`).join('') || '<span class="muted">No categories yet.</span>';
-}
-$('cats').onclick = e => { const b = e.target.closest('button[data-c]'); if (!b) return; cat = b.dataset.c; $('search').value = ''; chosen = null; orderRef = newOrderRef(); renderCats(); renderServices(); showForm(); };
-
-function renderServices() {
-  $('svcPanel').classList.toggle('hidden', !cat);
-  if (!cat) return;
-  const q = $('search').value.toLowerCase();
-  const rows = all.filter(s => (s.category || 'Other') === cat && s.name.toLowerCase().includes(q));
-  $('svc').size = 1;
-  $('svc').innerHTML = '<option value="">— Select a service —</option>' + rows.map(s => `<option value="${esc(s.serviceKey)}"${chosen && chosen.serviceKey === s.serviceKey ? ' selected' : ''}>${esc(s.name)} — ${money(s.price)} / ${rateUnit(s).toLocaleString()} units</option>`).join('');
-  $('svcInfo').textContent = rows.length ? `${rows.length} service(s) in ${cat}.` : 'No matching services in this category.';
-}
-$('search').oninput = renderServices;
-$('svc').onchange = () => { chosen = all.find(s => s.serviceKey === $('svc').value) || null; orderRef = newOrderRef(); if (chosen) { $('qty').value = chosen.min; $('svcInfo').textContent = chosen.description || `${chosen.name} · ${chosen.min.toLocaleString()}–${chosen.max.toLocaleString()} units`; } showForm(); };
-
-function showForm() {
-  $('orderForm').classList.toggle('hidden', !chosen);
-  if (!chosen) return;
-  $('selected').textContent = `${chosen.name} · ${money(chosen.price)} per ${rateUnit(chosen).toLocaleString()} units`;
-  $('selected').title = chosen.description || '';
-  $('qty').min = chosen.min; $('qty').max = chosen.max;
-  $('qtyHint').textContent = `Min ${chosen.min.toLocaleString()} · Max ${chosen.max.toLocaleString()}`;
-  calc();
-}
-function calc() {
-  const q = Number($('qty').value || 0);
-  $('total').textContent = chosen && q > 0 ? money(totalFor(chosen, q)) : money(0);
-  $('buy').disabled = !chosen || busy || confirming || Date.now() < lockUntil;
-}
-$('qty').oninput = () => { if (!busy && !confirming) orderRef = newOrderRef(); calc(); };
-$('link').oninput = () => { if (!busy && !confirming) orderRef = newOrderRef(); };
-
-async function load(refresh = false) {
-  $('notice').textContent = 'Loading services…'; $('refresh').disabled = true;
-  try {
-    const data = await api('/api/boost2/services' + (refresh ? '?refresh=1' : ''));
-    all = (data.services || []).map(s => ({ ...s, serviceKey: String(s.serviceKey || ''), min: Number(s.min) || 1, max: Number(s.max) || 100000, rateUnit: rateUnit(s), price: Number(s.price) || 0, description: String(s.description || '') })).filter(s => s.serviceKey);
-    $('notice').textContent = all.length ? `${all.length} services available${data.stale ? ' (cached list)' : ''}.` : (data.message || 'No services are available yet. Please check back soon.');
-    if (cat && !categories().includes(cat)) { cat = ''; chosen = null; }
-    if (chosen) chosen = all.find(s => s.serviceKey === chosen.serviceKey) || null;
-    renderCats(); renderServices(); showForm();
-  } catch (e) { $('notice').textContent = e.timeout ? 'Loading is taking too long. Please try again.' : (e.message || 'Could not load services.'); say($('notice').textContent, 'error'); }
-  finally { $('refresh').disabled = false; }
-}
-$('refresh').onclick = () => load(true);
-function lockOrderInputs(locked) {
-  ['search','svc','qty','link','refresh'].forEach(id => { $(id).disabled = locked; });
-  $('cats').querySelectorAll('button').forEach(button => { button.disabled = locked; });
-}
-
-$('orderForm').onsubmit = async ev => {
-  ev.preventDefault();
-  if (busy || Date.now() < lockUntil || !chosen) return;
-  const quantity = Number($('qty').value), link = $('link').value.trim();
-  if (!/^https?:\/\//i.test(link)) return say('Enter a valid public http(s) link.', 'error');
-  if (!Number.isInteger(quantity) || quantity < chosen.min || quantity > chosen.max) return say(`Quantity must be a whole number from ${chosen.min} to ${chosen.max}.`, 'error');
-  const total = totalFor(chosen, quantity);
-  const text = `Service: ${chosen.name}\nLink: ${link}\nQuantity: ${quantity.toLocaleString()}\nTotal: ${money(total)}`;
-  const service = chosen, clientRef = orderRef;
-  let ok = false;
-  confirming = true; lockOrderInputs(true); calc();
-  try {
-    ok = window.kslConfirm
-      ? await window.kslConfirm(text, { title:'Confirm your order', okText:'Place order', cancelText:'Review details' })
-      : window.confirm(text);
-  } catch (e) {
-    say('Could not open order confirmation. Please try again.', 'error');
-  } finally {
-    confirming = false;
-    calc();
+let all=[],loaded=false;
+const catOf=s=>s.category||'Other';
+function route(){const h=decodeURIComponent((location.hash||'').replace(/^#/,''));return h.startsWith('cat=')?h.slice(4):''}
+function render(){
+  const q=$('search').value.trim().toLowerCase(),cat=route(),v=$('view');
+  if(!loaded)return;
+  if(!all.length){v.className='panel muted';v.textContent='No services are available right now. Please check back soon.';return}
+  v.className='';
+  if(!cat){
+    $('ttl').textContent='Boost 2';$('sub').textContent='Choose a category.';$('backLink').href='/boost';
+    const m=new Map();all.forEach(s=>{const c=catOf(s);if(!m.has(c))m.set(c,{n:0,s});m.get(c).n++});
+    let rows=[...m.entries()].filter(([c])=>!q||c.toLowerCase().includes(q)).sort((a,b)=>a[0].localeCompare(b[0]));
+    v.innerHTML=rows.length?'<div class="grid">'+rows.map(([c,x])=>'<a class="tile" href="#cat='+encodeURIComponent(c)+'">'+logoHtml(logoOf({name:c,category:c,logo:x.s.logo}),c)+'<span>'+esc(c)+'</span><small>'+x.n+' service'+(x.n>1?'s':'')+'</small></a>').join('')+'</div>':'<div class="panel muted">No categories match your search.</div>';
+  }else{
+    $('ttl').textContent=cat;$('sub').textContent='Choose a service.';$('backLink').href='#';
+    let rows=all.filter(s=>catOf(s)===cat&&(!q||s.name.toLowerCase().includes(q))).sort((a,b)=>a.price-b.price);
+    v.innerHTML=rows.length?rows.map(s=>'<a class="svc" href="/boost2/order" data-k="'+esc(s.serviceKey)+'" onclick="pickSvc(this)">'+logoHtml(logoOf(s),s.name,'big')+'<div><b>'+esc(s.name)+'</b><span class="m">Min '+s.min.toLocaleString()+' · Max '+s.max.toLocaleString()+'</span></div><div class="p">'+money(s.price)+'<div class="m">per 1,000</div></div></a>').join(''):'<div class="panel muted">No services match your search.</div>';
   }
-  if (!ok || busy) { lockOrderInputs(false); return; }
-  if (chosen?.serviceKey !== service.serviceKey || Number($('qty').value) !== quantity || $('link').value.trim() !== link) {
-    lockOrderInputs(false);
-    return say('Your order details changed. Please review and confirm again.', 'warn');
-  }
-  busy = true; $('buy').disabled = true; $('buy').innerHTML = '<span class="spin"></span>Submitting…';
-  try {
-    const data = await api('/api/boost2/orders', { method:'POST', body:JSON.stringify({ serviceKey:service.serviceKey, quantity, link, clientRef }) });
-    if (data.pending) {
-      lockUntil = Date.now() + 120000; // do not allow a second paid order while this one is being checked
-      say(data.message || 'Your order is being verified. Please do not order again yet.', 'warn', { title:'Checking your order', ms:10000 });
-    } else {
-      const status = String(data.status || 'processing');
-      const done = /^(success|completed|complete)$/i.test(status), failed = /^(failed|error|rejected)$/i.test(status);
-      say(done ? `Order completed. Paid ${money(data.amountPaid)}.` : failed ? 'The order reported a problem. Check your order history before ordering again.' : `Order received and processing. Paid ${money(data.amountPaid)}.`, done ? 'success' : failed ? 'error' : 'info', { title: done ? 'Order complete' : failed ? 'Order needs attention' : 'Order submitted', ms:7000 });
-      $('link').value = '';
-      orderRef = newOrderRef();
-    }
-    $('after').classList.remove('hidden');
-  } catch (e) {
-    if (e.timeout || e.status >= 500) {
-      lockUntil = Date.now() + 120000;
-      say('We could not confirm the result yet. Your order may still be processing. Please check your order history before trying again.', 'warn', { title:'Checking your order', ms:10000 });
-      $('after').classList.remove('hidden');
-    } else { orderRef = newOrderRef(); say(e.message || 'Order failed.', 'error', { title:'Order not placed', ms:7000 }); }
-  } finally { busy = false; lockOrderInputs(false); $('buy').textContent = 'Review & place order'; calc(); setTimeout(calc, 121000); }
-};
-load();
+}
+$('backLink').addEventListener('click',e=>{if(route()){e.preventDefault();location.hash=''}});
+$('search').addEventListener('input',render);window.addEventListener('hashchange',()=>{$('search').value='';render()});
+async function load(){
+  try{await (window.KingUI&&KingUI.logos());const d=await api('/api/boost2/services');all=(d.services||[]).map(s=>({...s,price:Number(s.price)||0}));window.__b2rows=all;loaded=true;render();if(d.enabled===false){$('view').className='panel muted';$('view').textContent=d.message||'Not available yet.'}}
+  catch(e){loaded=true;$('view').className='panel muted';$('view').textContent=e.message||'Could not load services.';KingUI.banner(e.message||'Could not load services.','err')}
+}
+function pickSvc(a){try{const k=a.getAttribute('data-k');const r=(window.__b2rows||[]).find(x=>x.serviceKey===k);if(r)sessionStorage.setItem('b2svc',JSON.stringify(r));}catch(e){}}
+async function loadOrders(){try{const rows=await api('/api/boost2/orders');if(!rows.length)return;$('ordersBox').style.display='block';$('orders').innerHTML=rows.map(o=>'<div class="ord"><b>'+esc(o.service)+'</b><br><span class="muted">'+Number(o.quantity).toLocaleString()+' · '+money(o.total)+' · '+esc(o.status)+' · '+new Date(o.createdAt).toLocaleString()+'</span></div>').join('')}catch(e){}}
+load();loadOrders();
 </script>
-<script src="/js/announcements.js?v=3"></script><script src="/js/app-shell.js?v=3" defer></script>
-<script src="/js/section-tabs.js?v=1" defer></script>
-  <script src="/js/page-transitions.js?v=1" defer></script>
-<script src="/js/loader-failsafe.js?v=1" defer></script>
+<script src="/js/app-shell.js?v=3" defer></script><script src="/js/section-tabs.js?v=1" defer></script>
+<script src="/js/page-transitions.js?v=1" defer></script><script src="/js/loader-failsafe.js?v=1" defer></script>
 </body></html>

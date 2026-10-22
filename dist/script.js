@@ -1325,7 +1325,11 @@ function logout() {
   // Settings → Devices. Fire-and-forget: a failure here must never block signing out.
   try { req('/api/auth/logout','POST',null,true,false,true).catch(()=>{}); } catch {}
   localStorage.removeItem('ksl_token'); localStorage.removeItem('ksl_user');
-  token=null; currentUser=null; updateNav(); showPage('welcome'); showToast('Logged out');
+  token=null; currentUser=null;
+  // Standalone pages (marketplace, boost, etc.) have no #page-welcome, so showPage('welcome') did nothing and
+  // the page just sat on the "Logging you out…" spinner. Go to the login page instead.
+  if (!document.getElementById('page-welcome')) { location.replace('/login'); return; }
+  try { updateNav(); showPage('welcome'); showToast('Logged out'); } catch (e) { location.replace('/login'); }
 }
 function saveSession(data) {
   token=data.token; currentUser=data.user;
