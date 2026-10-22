@@ -352,7 +352,7 @@ function renderAdForCurrentPage() {
   banner.style.display = 'block';
   banner.innerHTML = `<div class="kls-promo-glow" aria-hidden="true"></div>
     <a class="ad-banner-inner kls-promo-inner" href="${adEsc(safeAdLink(ad.link))}" target="${/^https?:\/\//i.test(safeAdLink(ad.link)) ? '_blank' : '_self'}" rel="noopener">
-      ${imageUrl ? `<img src="${adEsc(imageUrl)}" alt="${adEsc(title)}" loading="lazy"/>` : '<span class="kls-promo-crown" aria-hidden="true">♛</span>'}
+      ${imageUrl ? `<img src="${adEsc(imageUrl)}" alt="${adEsc(title)}" loading="lazy"/>` : '<span class="kls-promo-crown" aria-hidden="true">📢</span>'}
       <span class="kls-promo-copy"><span class="kls-promo-eyebrow">KING SOCIAL HUB · FEATURED</span><span class="ad-banner-title">${adEsc(title)}</span><span class="kls-promo-message">${adEsc(message)}</span><span class="kls-promo-cta">Explore update <span aria-hidden="true">↗</span></span></span>
     </a>
     ${visibleAds.length > 1 ? `<div class="kls-promo-controls"><span class="kls-promo-count">${adIndex + 1} / ${visibleAds.length}</span><button type="button" data-ad-action="prev" aria-label="Previous featured banner">‹</button><button type="button" data-ad-action="next" aria-label="Next featured banner">›</button></div>` : ''}
@@ -1997,7 +1997,7 @@ function renderFolderModal(item, body) {
     <div class="m-desc">${esc(item.description)}</div>
     <div class="m-price-badge-row">
       <div class="m-price-badge">${priceLabel}</div>
-      <div class="m-admin-badge"><svg class="icon i-crown" aria-hidden="true"><use href="#i-crown"/></svg> Admin <span class="m-verified"><svg class="icon i-check" aria-hidden="true"><use href="#i-check"/></svg></span></div>
+      <div class="m-admin-badge">Admin <span class="m-verified"><svg class="icon i-check" aria-hidden="true"><use href="#i-check"/></svg></span></div>
     </div>
     <div class="m-divider"></div>
     <div class="m-meta-row"><div class="m-sold">${item.soldOut?'<svg class="icon i-x-circle" aria-hidden="true"><use href="#i-x-circle"/></svg> Sold Out':`<svg class="icon i-check-circle" aria-hidden="true"><use href="#i-check-circle"/></svg> Available: ${item.availableCount}`}</div></div>
@@ -2392,7 +2392,7 @@ function drawTxnReceipt(t) {
   // Brand header
   ctx.textAlign = 'center';
   ctx.fillStyle = textMuted; ctx.font = '700 12px "Plus Jakarta Sans", sans-serif';
- ctx.fillText(' King Social Hub · KingBadBoi Log Sale', W / 2, 30);
+ ctx.fillText(' King Social Hub', W / 2, 30);
   // Status icon circle (check / clock / cross, OPay-style)
   const iconCy = 80;
   ctx.beginPath(); ctx.arc(W / 2, iconCy, 30, 0, Math.PI * 2);

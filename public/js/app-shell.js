@@ -81,7 +81,7 @@
 
     var backdrop = document.createElement('div'); backdrop.className = 'ksh-menu-backdrop'; backdrop.id = 'kshMenuBackdrop';
     var drawer = document.createElement('aside'); drawer.className = 'ksh-drawer'; drawer.id = 'kshDrawer'; drawer.setAttribute('aria-label','King Social Hub navigation');
-    drawer.innerHTML = '<div class="ksh-drawer-head"><div class="ksh-drawer-brand">👑 King Social Hub</div><button class="ksh-drawer-close" type="button" aria-label="Close menu">×</button></div>' +
+    drawer.innerHTML = '<div class="ksh-drawer-head"><div class="ksh-drawer-brand">King Social Hub</div><button class="ksh-drawer-close" type="button" aria-label="Close menu">×</button></div>' +
       '<a class="ksh-drawer-link" href="/dashboard">🏠 <span>Home</span></a>' +
       '<button class="ksh-menu-toggle" type="button" aria-expanded="false" aria-controls="kshMarketplaceSub">🛍️ <span>Marketplace</span><span class="ksh-chevron">⌄</span></button>' +
       '<div class="ksh-submenu" id="kshMarketplaceSub"><a class="ksh-sub-link" href="/marketplace">Marketplace 1</a><a class="ksh-sub-link" href="/marketplace2">Marketplace 2</a><a class="ksh-sub-link" href="/marketplace3">Marketplace 3</a><a class="ksh-sub-link" href="/marketplace4">Marketplace 4</a></div>' +
