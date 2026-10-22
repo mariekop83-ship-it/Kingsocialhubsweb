@@ -272,7 +272,49 @@ if (typeof window.kslConfirm !== 'function') {
 <link rel="stylesheet" href="/css/ksh-header-clean.css?v=20261022b">
 <script src="/js/ksh-menu-guard.js?v=20261022b" defer></script>
 <link rel="stylesheet" href="/css/ksh-ui-fixes.css?v=20261022c">
-<script src="/js/ksh-loading-dots.js?v=20261022d" defer></script>
+
+<style id="b1-redesign">
+/* Buy Number 1 redesign — black & green. Layout is re-ordered with CSS only, every feature is kept. */
+html,body{background:#000!important}
+body{color:#eafff1}
+.wrap{display:flex!important;flex-direction:column;max-width:640px!important;margin:0 auto!important;padding:14px 14px 48px!important}
+.wrap>*{order:20}
+.wrap>#numTopBar{order:1}.wrap>#numHero{order:2}.wrap>.bal-card{order:3}
+.wrap>#numWaitStep{order:4}.wrap>#numPickStep2{order:5}.wrap>#numPickStep{order:5}
+.wrap>#activeNumbersCard{order:6}.wrap>#numOrdersCard{order:7}
+.wrap>#numServerIntro{order:8}.wrap>#numRulesCard{order:9}.wrap>#numHowToCard{order:10}.wrap>#numServerCard{order:11}
+.wrap .card,.wrap .how-card{background:linear-gradient(180deg,#0e1511,#070a08)!important;border:1px solid rgba(34,197,94,.24)!important;border-radius:20px!important;padding:18px!important;margin:0 0 14px!important;box-shadow:0 12px 32px rgba(0,0,0,.55)}
+.wrap .card h3{color:#eafff1;font-size:16px;font-weight:800;letter-spacing:.01em}
+.srv-topbar{position:sticky;top:0;z-index:30;background:rgba(0,0,0,.88)!important;backdrop-filter:blur(14px);border:1px solid rgba(34,197,94,.28)!important;border-radius:16px!important;padding:8px 10px!important;margin:0 0 12px!important}
+.srv-topbar .tb-title{color:#4ade80;font-weight:900}
+.srv-topbar .tb-back,.srv-topbar .tb-link{color:#4ade80!important;font-weight:800}
+.bal-card{background:linear-gradient(135deg,#0d3a20,#050a07 72%)!important;border:1px solid rgba(34,197,94,.5)!important;border-radius:20px!important;padding:16px 18px!important;margin:0 0 14px!important}
+.bal-card .lbl{color:#86efac;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:800}
+.bal-card .amt{color:#4ade80;font-size:28px;font-weight:900}
+.bal-refresh{background:rgba(34,197,94,.12)!important;border:1px solid rgba(34,197,94,.4)!important;color:#4ade80!important;border-radius:12px!important;font-weight:800}
+.step-label{color:#22c55e!important;font-size:11.5px!important;letter-spacing:.09em;text-transform:uppercase;font-weight:900!important;margin:18px 0 8px!important}
+.select-tile{background:#0a0f0c!important;border:1px solid rgba(34,197,94,.28)!important;border-radius:16px!important}
+.select-tile:hover,.select-tile:focus-within{border-color:#22c55e!important;box-shadow:0 0 0 3px rgba(34,197,94,.14)}
+.srv-search{background:#0a0f0c!important;border:1px solid rgba(34,197,94,.28)!important;border-radius:14px!important;color:#eafff1!important}
+.srv-search:focus{border-color:#22c55e!important;outline:none;box-shadow:0 0 0 3px rgba(34,197,94,.14)}
+.chip-btn,.quick-chips button{background:rgba(34,197,94,.1)!important;border:1px solid rgba(34,197,94,.35)!important;color:#86efac!important;border-radius:999px!important}
+.price-box{background:rgba(34,197,94,.08)!important;border:1px solid rgba(34,197,94,.35)!important;border-radius:16px!important}
+.price-box b{color:#4ade80}
+.stock-chip,.an-count-chip{background:rgba(34,197,94,.14)!important;color:#4ade80!important;border:1px solid rgba(34,197,94,.35)!important}
+.wrap .btn{background:linear-gradient(135deg,#22c55e,#16a34a)!important;color:#03140a!important;font-weight:900!important;border-radius:14px!important;padding:15px!important;box-shadow:0 8px 22px rgba(34,197,94,.25)}
+.wrap .btn[disabled]{opacity:.4;box-shadow:none}
+.wrap .btn.btn-outline{background:transparent!important;color:#4ade80!important;border:1px solid rgba(34,197,94,.45)!important;box-shadow:none}
+.how-sum{cursor:pointer;color:#4ade80;font-weight:900;font-size:14px;list-style:none;display:flex;align-items:center;justify-content:space-between}
+.how-sum::-webkit-details-marker{display:none}
+.how-sum::after{content:'+';font-size:20px;line-height:1;color:#22c55e}
+details[open]>.how-sum::after{content:'–'}
+details[open]>.how-sum{margin-bottom:6px}
+.an-table th{color:#86efac!important}
+.an-table td{border-top:1px solid rgba(34,197,94,.14)!important}
+.an-code{color:#4ade80!important;font-weight:900}
+#numRulesCard .rules li{color:#cfe9da}
+@media(max-width:480px){.wrap{padding:10px 10px 44px!important}.wrap .card{padding:15px!important}}
+</style>
 </head>
 <body>
 <!-- Shared UI icon sprite (replaces emoji site-wide) — referenced via <svg class="icon i-NAME"><use href="#i-NAME"/></svg> -->
@@ -387,7 +429,7 @@ if (typeof window.kslConfirm !== 'function') {
 <div class="wrap">
   <!-- Full-page server view header: always offers the way back to the number servers -->
   <div class="srv-topbar" id="numTopBar" style="display:none">
-    <button type="button" class="tb-back" onclick="backToServers()">
+    <button type="button" class="tb-back" onclick="window.location.href='/buy-number'">
       <svg class="icon i-arrow-left" aria-hidden="true"><use href="#i-arrow-left"/></svg> Back to numbers
     </button>
     <span class="tb-title" id="numTopBarTitle">Unavailable option</span>
@@ -557,17 +599,14 @@ if (typeof window.kslConfirm !== 'function') {
   </div>
 
   <!-- Everything below only appears once a server is picked -->
-  <div class="card" id="numServerIntro" style="display:none">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-      <h3 style="margin:0" id="numServerIntroTitle">Unavailable option</h3>
-      <button type="button" class="bal-refresh" onclick="backToServers()">← Change server</button>
-    </div>
+  <details class="card" id="numServerIntro" style="display:none">
+    <summary class="how-sum">How buying works &amp; notifications<span id="numServerIntroTitle" hidden></span></summary>
     <div id="numServerNotice" class="wa-note" style="margin-top:10px"></div>
     <div class="step-label" style="margin-bottom:6px">How buying works on this server</div>
     <ol style="margin:0;padding-left:20px;font-size:13.5px;line-height:1.7" id="numServerSteps"></ol>
     <div class="step-label" style="margin:14px 0 6px">Notifications you will get</div>
     <ul class="rules" id="numServerNotifs"></ul>
-  </div>
+  </details>
 
 
   <!-- STEP 2A: Unavailable option — pick a number -->
@@ -1912,8 +1951,8 @@ async function onG2ServiceChange() {
     renderG2Countries(sortedG2Countries());
     countrySearch.disabled = false;
   } else {
-    countrySel.innerHTML = '<option value="">Loading…</option>'; countrySel.disabled = true;
-    countryText.textContent = 'Loading…'; countrySearch.disabled = true;
+    countrySel.innerHTML = '<option value="">Select a country</option>'; countrySel.disabled = true;
+    countryText.textContent = 'Select a country'; countrySearch.disabled = true;
   }
   try {
     const fresh = await req(`/api/numbers/server2/countries?service=${encodeURIComponent(service)}`, 'GET', null, false);
