@@ -6584,14 +6584,26 @@ app.get('/api/numbers/nova-servers', optionalAuth, async (req, res) => {
 });
 app.get('/api/numbers/live-countries', optionalAuth, async (req, res) => {
  try {
-   const usa = await novaGetCatalog({ scope: 'usa' });
-   const global = await novaGetCatalog({ scope: 'global' });
-   const rows = [...novaCountryRows(usa), ...novaCountryRows(global)];
+   // With ?serverKey= only that server's countries are returned: USA servers sell United States
+   // numbers only; all-countries servers list the global countries (US counted once).
+   let only = null;
+   if (req.query.serverKey) { const ref = openNovaPublicRef('server', String(req.query.serverKey)); only = ref && ref.scope === 'usa' ? 'usa' : 'global'; }
+   const isUsaRow = c => novaIsUsa(c.iso || c.iso2 || c.code || c.country_code || c.id) || novaIsUsa(c.name || c.country_name || c.label);
+   let rows = [];
+   if (only === 'usa') {
+     const usaRow = novaCountryRows(await novaGetCatalog({ scope: 'usa' })).find(isUsaRow);
+     rows = [usaRow || { code: 'US', name: 'United States' }];
+   } else {
+     if (only !== 'global') rows.push(...novaCountryRows(await novaGetCatalog({ scope: 'usa' })));
+     rows.push(...novaCountryRows(await novaGetCatalog({ scope: 'global' })));
+   }
    const unique = new Map();
    for (const c of rows) {
      const code = String(c.iso || c.code || c.country_code || c.iso2 || c.id || '').trim();
      const name = String(c.name || c.country_name || c.label || code).trim();
-     if (code && name && !unique.has(code.toLowerCase())) unique.set(code.toLowerCase(), { code, name, flag: countryFlag(name), pinned: /^(us|usa|united states|ca|canada)$/i.test(code) || /united states|canada/i.test(name) });
+     if (!code || !name) continue;
+     const key = isUsaRow(c) ? 'us' : code.toLowerCase();
+     if (!unique.has(key)) unique.set(key, { code, name: key === 'us' ? 'United States' : name, flag: countryFlag(name), pinned: key === 'us' || /^(ca|canada)$/i.test(code) || /canada/i.test(name) });
    }
    res.set('Cache-Control', 'no-store'); res.json([...unique.values()].sort((a,b)=>(b.pinned-a.pinned)||a.name.localeCompare(b.name)));
  } catch (e) { novaErrorResponse(res, e); }
