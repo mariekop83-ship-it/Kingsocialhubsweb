@@ -646,6 +646,8 @@ tr:hover td{background:rgba(255,255,255,.035)}
           <div class="fg"><label>&nbsp;</label><button class="btn-gold" type="button" onclick="m3SaveConfig()" style="width:100%">Save</button></div>
         </div>
         <div class="info-box" id="m3Balance">Loading supplier balance…</div>
+        <div class="form-row"><div class="fg"><button class="btn-gold" type="button" style="width:100%" onclick="m3Debug()">Show raw supplier data (for troubleshooting)</button></div></div>
+        <textarea id="m3DebugOut" readonly rows="12" style="display:none;width:100%;font-family:monospace;font-size:12px"></textarea>
       </div>
       <div class="sec" id="m3AttentionSec" style="display:none;border-color:var(--red)">
         <div class="sec-title" style="color:var(--red)"><svg class="icon i-alert-triangle" aria-hidden="true"><use href="#i-alert-triangle"/></svg> Needs attention</div>
@@ -6811,6 +6813,7 @@ function m3Btn(){
   b.textContent = m3Cfg.market3Enabled ? 'Marketplace 3 is ON — tap to disable' : 'Marketplace 3 is OFF (maintenance) — tap to enable';
   b.style.background = m3Cfg.market3Enabled ? '' : 'var(--red)';
 }
+async function m3Debug(){ const el=document.getElementById('m3DebugOut'); el.style.display='block'; el.value='Loading…'; try { const d=await aFetch('/api/admin/market3/debug'); el.value=JSON.stringify(d,null,2); } catch(e){ el.value='Error: '+e.message; } }
 async function m3LoadConfig(){
   try { m3Cfg = await aFetch('/api/admin/market3/config'); m3Btn();
     document.getElementById('m3Msg').value=m3Cfg.maintenanceMessage||'';
