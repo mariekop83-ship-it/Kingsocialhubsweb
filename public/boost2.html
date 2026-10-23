@@ -2,6 +2,7 @@
 <link rel="icon" type="image/png" href="/favicon.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Boost 2 | King Social Hub</title>
 <link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/brand.css">
 <script src="/js/king-ui.js?v=1"></script>
+<script src="/js/boost-loader.js?v=1"></script>
 <script>(function(){try{if(!localStorage.getItem('ksl_token')&&!localStorage.getItem('token'))location.replace('/login')}catch(e){}})();</script>
 <style>
 body{background:#0b0d11;color:#f3f5f8;padding:18px}.wrap{max-width:900px;margin:20px auto}.muted{color:#a2aab6}.back{color:#9fb4c8;text-decoration:none;font-weight:700}
@@ -12,6 +13,7 @@ label{display:block;margin-top:10px;color:#b7c0cd;font-size:14px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .tile{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;background:#171a20;border:1px solid #282e38;border-radius:14px;padding:16px 10px;cursor:pointer;color:inherit;text-decoration:none;font-weight:800}
 .tile:hover{border-color:#68a9d5}.tile small{color:#a2aab6;font-weight:600}
+.ico{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:var(--c,#252c38)}.ico img{width:28px;height:28px}
 .big{width:52px;height:52px;border-radius:14px;object-fit:contain;background:#fff;padding:5px}.ph{width:52px;height:52px;border-radius:14px;background:#252c38;display:grid;place-items:center;font-size:24px;font-weight:900;color:#9fb4c8}
 .svc{display:flex;gap:12px;align-items:center;background:#171a20;border:1px solid #282e38;border-radius:14px;padding:12px;margin:8px 0;cursor:pointer;color:inherit;text-decoration:none}
 .svc:hover{border-color:#68a9d5}.svc .big,.svc .ph{width:42px;height:42px;flex:0 0 42px;font-size:19px;border-radius:11px;padding:4px}
@@ -28,7 +30,7 @@ label{display:block;margin-top:10px;color:#b7c0cd;font-size:14px}
 <main class="wrap"><a class="back" href="/boost" id="backLink">← Back</a>
 <h1 id="ttl">Boost 2</h1><p class="muted" id="sub">Choose a category.</p>
 <input id="search" placeholder="Search…" autocomplete="off">
-<div id="view" class="panel muted">Loading services…</div>
+<div id="view" class="panel muted" style="display:none"></div>
 <div class="panel" id="ordersBox" style="display:none"><h3 style="margin:0 0 6px">Recent orders</h3><div id="orders"></div></div>
 </main>
 <script>
@@ -40,29 +42,41 @@ function logoOf(s){return s.logo||(window.KingUI&&KingUI.logoFor((s.name||'')+' 
 function logoHtml(url,text,cls){return url?'<img class="'+(cls||'big')+'" src="'+esc(url)+'" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=ph>'+esc((text||'?').trim().charAt(0).toUpperCase())+'</div>\'">':'<div class="ph">'+esc((text||'?').trim().charAt(0).toUpperCase())+'</div>'}
 
 let all=[],loaded=false;
-const catOf=s=>s.category||'Other';
+const PLATS=[['Instagram','instagram','#E4405F'],['TikTok','tiktok','#000000'],['YouTube','youtube','#FF0000'],['Facebook','facebook','#1877F2'],['Telegram','telegram','#26A5E4'],['Twitter','x','#000000'],['WhatsApp','whatsapp','#25D366'],['Snapchat','snapchat','#FFFC00'],['Spotify','spotify','#1DB954'],['Threads','threads','#000000'],['LinkedIn','linkedin','#0A66C2'],['Twitch','twitch','#9146FF'],['Discord','discord','#5865F2'],['Pinterest','pinterest','#BD081C'],['SoundCloud','soundcloud','#FF5500']];
+function matchPlat(s,n){const t=(String(s.platform||'')+' '+String(s.category||'')+' '+String(s.name||'')).toLowerCase(),k=n.toLowerCase();
+  if(k==='twitter')return /twitter|\bx\b|tweet/.test(t);
+  if(k==='other')return !PLATS.some(p=>matchPlat(s,p[0]));
+  return t.indexOf(k)!==-1}
+function platIcon(p){return p[1]?'<span class="ico" style="--c:'+p[2]+'"><img src="https://cdn.simpleicons.org/'+p[1]+'/ffffff" alt="" loading="lazy" onerror="this.remove()"></span>':'<span class="ico">✨</span>'}
 function route(){const h=decodeURIComponent((location.hash||'').replace(/^#/,''));return h.startsWith('cat=')?h.slice(4):''}
 function render(){
   const q=$('search').value.trim().toLowerCase(),cat=route(),v=$('view');
   if(!loaded)return;
+  v.style.display='';
   if(!all.length){v.className='panel muted';v.textContent='No services are available right now. Please check back soon.';return}
   v.className='';
   if(!cat){
     $('ttl').textContent='Boost 2';$('sub').textContent='Choose a category.';$('backLink').href='/boost';
-    const m=new Map();all.forEach(s=>{const c=catOf(s);if(!m.has(c))m.set(c,{n:0,s});m.get(c).n++});
-    let rows=[...m.entries()].filter(([c])=>!q||c.toLowerCase().includes(q)).sort((a,b)=>a[0].localeCompare(b[0]));
-    v.innerHTML=rows.length?'<div class="grid">'+rows.map(([c,x])=>'<a class="tile" href="#cat='+encodeURIComponent(c)+'">'+logoHtml(logoOf({name:c,category:c,logo:x.s.logo}),c)+'<span>'+esc(c)+'</span><small>'+x.n+' service'+(x.n>1?'s':'')+'</small></a>').join('')+'</div>':'<div class="panel muted">No categories match your search.</div>';
+    const list=PLATS.concat([['Other','','#64748b']]).map(p=>({p,n:all.filter(s=>matchPlat(s,p[0])).length})).filter(x=>x.n>0&&(!q||x.p[0].toLowerCase().includes(q)));
+    v.innerHTML=list.length?'<div class="grid">'+list.map(x=>'<a class="tile" href="#cat='+encodeURIComponent(x.p[0])+'">'+platIcon(x.p)+'<span>'+esc(x.p[0])+'</span><small>'+x.n.toLocaleString()+' service'+(x.n>1?'s':'')+'</small></a>').join('')+'</div>':'<div class="panel muted">No categories match your search.</div>';
   }else{
     $('ttl').textContent=cat;$('sub').textContent='Choose a service.';$('backLink').href='#';
-    let rows=all.filter(s=>catOf(s)===cat&&(!q||s.name.toLowerCase().includes(q))).sort((a,b)=>a.price-b.price);
-    v.innerHTML=rows.length?rows.map(s=>'<a class="svc" href="/boost2/order" data-k="'+esc(s.serviceKey)+'" onclick="pickSvc(this)">'+logoHtml(logoOf(s),s.name,'big')+'<div><b>'+esc(s.name)+'</b><span class="m">Min '+s.min.toLocaleString()+' · Max '+s.max.toLocaleString()+'</span></div><div class="p">'+money(s.price)+'<div class="m">per 1,000</div></div></a>').join(''):'<div class="panel muted">No services match your search.</div>';
+    const rows=all.filter(s=>matchPlat(s,cat)&&(!q||(s.name||'').toLowerCase().includes(q)||(s.category||'').toLowerCase().includes(q))).sort((a,b)=>a.price-b.price);
+    v.innerHTML=rows.length?rows.map(s=>'<a class="svc" href="/boost2/order" data-k="'+esc(s.serviceKey)+'" onclick="pickSvc(this)">'+logoHtml(logoOf(s),s.name,'big')+'<div><b>'+esc(s.name)+'</b><span class="m">'+esc(s.category||'')+' · Min '+Number(s.min||0).toLocaleString()+' · Max '+Number(s.max||0).toLocaleString()+'</span></div><div class="p">'+money(s.price)+'<div class="m">per 1,000</div></div></a>').join(''):'<div class="panel muted">No services match your search.</div>';
   }
 }
+/* full-screen dots stay up until the new screen is really on the page */
+function renderWithLoader(){
+  try{KshBoostLoader.show()}catch(e){}
+  setTimeout(()=>{try{render()}finally{requestAnimationFrame(()=>requestAnimationFrame(()=>{try{KshBoostLoader.hide()}catch(e){}}))}},220);
+}
 $('backLink').addEventListener('click',e=>{if(route()){e.preventDefault();location.hash=''}});
-$('search').addEventListener('input',render);window.addEventListener('hashchange',()=>{$('search').value='';render()});
+$('search').addEventListener('input',render);
+window.addEventListener('hashchange',()=>{$('search').value='';window.scrollTo(0,0);renderWithLoader()});
 async function load(){
-  try{await (window.KingUI&&KingUI.logos());const d=await api('/api/boost2/services');all=(d.services||[]).map(s=>({...s,price:Number(s.price)||0}));window.__b2rows=all;loaded=true;render();if(d.enabled===false){$('view').className='panel muted';$('view').textContent=d.message||'Not available yet.'}}
-  catch(e){loaded=true;$('view').className='panel muted';$('view').textContent=e.message||'Could not load services.';KingUI.banner(e.message||'Could not load services.','err')}
+  try{await (window.KingUI&&KingUI.logos());const d=await api('/api/boost2/services');all=(d.services||[]).map(s=>({...s,price:Number(s.price)||0}));window.__b2rows=all;loaded=true;render();if(d.enabled===false){$('view').style.display='';$('view').className='panel muted';$('view').textContent=d.message||'Not available yet.'}}
+  catch(e){loaded=true;$('view').style.display='';$('view').className='panel muted';$('view').textContent=e.message||'Could not load services.';try{KingUI.banner(e.message||'Could not load services.','err')}catch(_){}}
+  finally{requestAnimationFrame(()=>requestAnimationFrame(()=>{try{KshBoostLoader.hide()}catch(e){}}))}
 }
 function pickSvc(a){try{const k=a.getAttribute('data-k');const r=(window.__b2rows||[]).find(x=>x.serviceKey===k);if(r)sessionStorage.setItem('b2svc',JSON.stringify(r));}catch(e){}}
 async function loadOrders(){try{const rows=await api('/api/boost2/orders');if(!rows.length)return;$('ordersBox').style.display='block';$('orders').innerHTML=rows.map(o=>'<div class="ord"><b>'+esc(o.service)+'</b><br><span class="muted">'+Number(o.quantity).toLocaleString()+' · '+money(o.total)+' · '+esc(o.status)+' · '+new Date(o.createdAt).toLocaleString()+'</span></div>').join('')}catch(e){}}
