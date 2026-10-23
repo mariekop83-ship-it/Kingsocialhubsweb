@@ -48,21 +48,32 @@ function matchPlat(s,n){const t=(String(s.platform||'')+' '+String(s.category||'
   if(k==='other')return !PLATS.some(p=>matchPlat(s,p[0]));
   return t.indexOf(k)!==-1}
 function platIcon(p){return p[1]?'<span class="ico" style="--c:'+p[2]+'"><img src="https://cdn.simpleicons.org/'+p[1]+'/ffffff" alt="" loading="lazy" onerror="this.remove()"></span>':'<span class="ico">✨</span>'}
-function route(){const h=decodeURIComponent((location.hash||'').replace(/^#/,''));return h.startsWith('cat=')?h.slice(4):''}
+const TYPES=['Followers','Likes','Views','Comments','Subscribers','Members','Shares','Reactions','Live','Story','Saves','Plays','Votes','Reels'];
+function typeOf(s){const t=(String(s.category||'')+' '+String(s.name||'')).toLowerCase();for(const k of TYPES)if(t.indexOf(k.toLowerCase().replace(/s$/,''))!==-1)return k;return 'Other'}
+const per1000=s=>s.price*1000/(Number(s.rateUnit)>0?Number(s.rateUnit):1000);
+function route(){const h=decodeURIComponent((location.hash||'').replace(/^#/,''));const o={p:'',t:''};h.split('&').forEach(x=>{if(x.startsWith('p='))o.p=x.slice(2);else if(x.startsWith('t='))o.t=x.slice(2)});return o}
+const hashFor=(p,t)=>'#'+(p?'p='+encodeURIComponent(p):'')+(t?'&t='+encodeURIComponent(t):'');
 function render(){
-  const q=$('search').value.trim().toLowerCase(),cat=route(),v=$('view');
+  const q=$('search').value.trim().toLowerCase(),r=route(),v=$('view');
   if(!loaded)return;
   v.style.display='';
   if(!all.length){v.className='panel muted';v.textContent='No services are available right now. Please check back soon.';return}
   v.className='';
-  if(!cat){
-    $('ttl').textContent='Boost 2';$('sub').textContent='Choose a category.';$('backLink').href='/boost';
+  if(!r.p){ /* step 1 — platform */
+    $('ttl').textContent='Boost 2';$('sub').textContent='Step 1 — Choose a category.';$('backLink').href='/boost';
     const list=PLATS.concat([['Other','','#64748b']]).map(p=>({p,n:all.filter(s=>matchPlat(s,p[0])).length})).filter(x=>x.n>0&&(!q||x.p[0].toLowerCase().includes(q)));
-    v.innerHTML=list.length?'<div class="grid">'+list.map(x=>'<a class="tile" href="#cat='+encodeURIComponent(x.p[0])+'">'+platIcon(x.p)+'<span>'+esc(x.p[0])+'</span><small>'+x.n.toLocaleString()+' service'+(x.n>1?'s':'')+'</small></a>').join('')+'</div>':'<div class="panel muted">No categories match your search.</div>';
-  }else{
-    $('ttl').textContent=cat;$('sub').textContent='Choose a service.';$('backLink').href='#';
-    const rows=all.filter(s=>matchPlat(s,cat)&&(!q||(s.name||'').toLowerCase().includes(q)||(s.category||'').toLowerCase().includes(q))).sort((a,b)=>a.price-b.price);
-    v.innerHTML=rows.length?rows.map(s=>'<a class="svc" href="/boost2/order" data-k="'+esc(s.serviceKey)+'" onclick="pickSvc(this)">'+logoHtml(logoOf(s),s.name,'big')+'<div><b>'+esc(s.name)+'</b><span class="m">'+esc(s.category||'')+' · Min '+Number(s.min||0).toLocaleString()+' · Max '+Number(s.max||0).toLocaleString()+'</span></div><div class="p">'+money(s.price)+'<div class="m">per 1,000</div></div></a>').join(''):'<div class="panel muted">No services match your search.</div>';
+    v.innerHTML=list.length?'<div class="grid">'+list.map(x=>'<a class="tile" href="'+hashFor(x.p[0])+'">'+platIcon(x.p)+'<span>'+esc(x.p[0])+'</span><small>'+x.n.toLocaleString()+' service'+(x.n>1?'s':'')+'</small></a>').join('')+'</div>':'<div class="panel muted">No categories match your search.</div>';
+  }else if(!r.t){ /* step 2 — type (followers, views, likes…) */
+    const pool=all.filter(s=>matchPlat(s,r.p));
+    $('ttl').textContent=r.p;$('sub').textContent='Step 2 — What do you need?';$('backLink').href='#';
+    const counts={};pool.forEach(s=>{const t=typeOf(s);counts[t]=(counts[t]||0)+1});
+    let keys=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]).filter(k=>!q||k.toLowerCase().includes(q));
+    const tiles=(!q||'all services'.includes(q)?['*']:[]).concat(keys);
+    v.innerHTML=tiles.length?'<div class="grid">'+tiles.map(k=>k==='*'?'<a class="tile" href="'+hashFor(r.p,'*')+'"><span class="ico">✨</span><span>All services</span><small>'+pool.length.toLocaleString()+' services</small></a>':'<a class="tile" href="'+hashFor(r.p,k)+'"><span class="ico">'+esc(k.charAt(0))+'</span><span>'+esc(k)+'</span><small>'+counts[k].toLocaleString()+' service'+(counts[k]>1?'s':'')+'</small></a>').join('')+'</div>':'<div class="panel muted">Nothing matches your search.</div>';
+  }else{ /* step 3 — services */
+    $('ttl').textContent=r.p+(r.t==='*'?'':' · '+r.t);$('sub').textContent='Step 3 — Choose a service.';$('backLink').href='#';
+    const rows=all.filter(s=>matchPlat(s,r.p)&&(r.t==='*'||typeOf(s)===r.t)&&(!q||(s.name||'').toLowerCase().includes(q))).sort((a,b)=>per1000(a)-per1000(b));
+    v.innerHTML=rows.length?rows.map(s=>'<a class="svc" href="/boost2/order" data-k="'+esc(s.serviceKey)+'" onclick="pickSvc(this)">'+logoHtml(logoOf(s),s.name,'big')+'<div><b>'+esc(s.name)+'</b><span class="m">Min '+Number(s.min||0).toLocaleString()+' · Max '+Number(s.max||0).toLocaleString()+'</span></div><div class="p">'+money(per1000(s))+'<div class="m">per 1,000</div></div></a>').join(''):'<div class="panel muted">No services here yet — go back and try another type.</div>';
   }
 }
 /* full-screen dots stay up until the new screen is really on the page */
@@ -70,7 +81,7 @@ function renderWithLoader(){
   try{KshBoostLoader.show()}catch(e){}
   setTimeout(()=>{try{render()}finally{requestAnimationFrame(()=>requestAnimationFrame(()=>{try{KshBoostLoader.hide()}catch(e){}}))}},220);
 }
-$('backLink').addEventListener('click',e=>{if(route()){e.preventDefault();location.hash=''}});
+$('backLink').addEventListener('click',e=>{const r=route();if(r.t){e.preventDefault();location.hash=hashFor(r.p)}else if(r.p){e.preventDefault();location.hash=''}});
 $('search').addEventListener('input',render);
 window.addEventListener('hashchange',()=>{$('search').value='';window.scrollTo(0,0);renderWithLoader()});
 async function load(){

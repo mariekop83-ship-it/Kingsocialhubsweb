@@ -38,7 +38,8 @@ function logoHtml(url,text,cls){return url?'<img class="'+(cls||'big')+'" src="'
 
 let s=null,busy=false;
 const id=Number(new URLSearchParams(location.search).get('id'));
-function total(){const q=Number($('qty').value);return Number.isFinite(q)&&q>0?Math.round(s.price*q/1000*100)/100:0}
+const unit=()=>Number(s.rateUnit)>0?Number(s.rateUnit):1000;
+function total(){const q=Number($('qty').value);return Number.isFinite(q)&&q>0?Math.round(s.price*q/unit()*100)/100:0}
 function check(){
   const q=Number($('qty').value),link=$('link').value.trim();
   const okQ=Number.isInteger(q)&&q>=s.min&&q<=s.max,okL=/^https?:\/\/\S+\.\S+/i.test(link);
@@ -48,7 +49,7 @@ function check(){
 }
 function draw(){
   $('card').innerHTML='<div style="display:flex;gap:12px;align-items:center">'+logoHtml(logoOf(s),s.name,'big')+'<div><h2 style="margin:0;font-size:18px">'+esc(s.name)+'</h2><span class="muted">'+esc(s.category||'')+'</span></div></div>'
-   +'<p class="muted" style="margin:12px 0 0">'+money(s.price)+' per 1,000 · Min '+s.min.toLocaleString()+' · Max '+s.max.toLocaleString()+'</p>'
+   +'<p class="muted" style="margin:12px 0 0">'+money(s.price*1000/unit())+' per 1,000 · Min '+s.min.toLocaleString()+' · Max '+s.max.toLocaleString()+'</p>'
    +'<label for="link">Link</label><input id="link" type="url" inputmode="url" placeholder="https://…" autocomplete="off">'
    +'<div class="row"><div><label for="qty">Quantity</label><input id="qty" type="number" min="'+s.min+'" max="'+s.max+'" value="'+s.min+'"><small id="qerr" style="color:#f87171"></small></div>'
    +'<div><label>Total to pay</label><div class="price" id="total" style="padding:10px 0">'+money(0)+'</div></div></div>'
