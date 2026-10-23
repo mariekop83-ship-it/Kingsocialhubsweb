@@ -3058,7 +3058,10 @@ async function bAdmLoadOrders(){
       + '<td>'+bEsc(o.customer ? (o.customer.name || o.customer.email) : '\u2014')+'</td>'
       + '<td>'+bEsc(o.service)+'<div class="muted" style="font-size:11px">'+bEsc(o.link)+'</div></td>'
       + '<td>'+Number(o.quantity).toLocaleString()+'</td><td>'+bMoney(o.price)+'</td><td>'+bMoney(o.profitNgn)+'</td>'
-      + '<td>'+bEsc(o.status)+(o.refunded?' (refunded)':'')+'</td></tr>').join('')
+      + '<td>'+bEsc(o.status)+(o.refunded?' (refunded)':'')
+      + '<div class="muted" style="font-size:11px">Provider #'+bEsc(o.providerOrderId||'\u2014')+' \u00b7 '+bEsc(o.providerStatus||'no reply yet')
+      + (o.providerCharge!=null?' \u00b7 charged you '+bEsc(String(o.providerCharge))+' '+bEsc(o.providerCurrency||''):' \u00b7 charge unknown')+'</div>'
+      + (o.note?'<div class="muted" style="font-size:11px">'+bEsc(o.note)+'</div>':'')+'</td></tr>').join('')
       || '<tr><td colspan="7" class="muted">No boost orders yet.</td></tr>';
   }catch(e){ body.innerHTML = '<tr><td colspan="7">'+bEsc(e.message)+'</td></tr>'; }
 }
