@@ -1077,6 +1077,78 @@ tr:hover td{background:rgba(255,255,255,.035)}
     <!-- ══════════════ BUYNUMBER 2 (Server 2 · GrizzlySMS) ══════════════ -->
     
 <!-- KSH-ADMIN-TABS -->
+<div id="tab-markups" class="tab-panel"><!-- KSH-MARKUP-CONTROLS -->
+  <div class="sec">
+    <div class="sec-title">Buy Number markups</div>
+    <div class="info-box">Extra naira added to the price of every number on that server, on top of the normal profit ladder. Use 0 for no extra markup.</div>
+    <div class="form-row">
+      <div class="fg"><label>Buy Number 1 &mdash; extra markup (&#8358;)</label><input type="number" id="mkBn1" min="0" step="1" placeholder="0"/></div>
+      <div class="fg"><label>&nbsp;</label><button class="btn-primary" type="button" onclick="kshMkSave('bn1')" style="width:100%">Save</button></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Buy Number 2 &mdash; markup (&#8358;)</label><input type="number" id="mkBn2" min="0" step="1" placeholder="300"/></div>
+      <div class="fg"><label>&nbsp;</label><button class="btn-primary" type="button" onclick="kshMkSave('bn2')" style="width:100%">Save</button></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Buy Number 3 &mdash; extra markup (&#8358;)</label><input type="number" id="mkBn3" min="0" step="1" placeholder="0"/></div>
+      <div class="fg"><label>&nbsp;</label><button class="btn-primary" type="button" onclick="kshMkSave('bn3')" style="width:100%">Save</button></div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">Marketplace default markups</div>
+    <div class="info-box">Naira added to the supplier cost of every product whose price you have <b>not</b> set yourself. Products with a custom price keep that price. Leave a box empty to use the built-in default (&#8358;300).</div>
+    <div class="form-row">
+      <div class="fg"><label>Marketplace 2 &mdash; default markup (&#8358;)</label><input type="number" id="mkM2" min="0" step="1" placeholder="300"/></div>
+      <div class="fg"><label>&nbsp;</label><button class="btn-primary" type="button" onclick="kshMkSave('m2')" style="width:100%">Save</button></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Marketplace 3 &mdash; default markup (&#8358;)</label><input type="number" id="mkM3" min="0" step="1" placeholder="300"/></div>
+      <div class="fg"><label>&nbsp;</label><button class="btn-primary" type="button" onclick="kshMkSave('m3')" style="width:100%">Save</button></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Marketplace 4 &mdash; default markup (&#8358;)</label><input type="number" id="mkM4" min="0" step="1" placeholder="300"/></div>
+      <div class="fg"><label>&nbsp;</label><button class="btn-primary" type="button" onclick="kshMkSave('m4')" style="width:100%">Save</button></div>
+    </div>
+    <div id="mkMsg" class="muted" style="margin-top:8px"></div>
+  </div>
+</div>
+<script>
+(function(){
+  function el(id){return document.getElementById(id);}
+  function setVal(id,v){var e=el(id);if(e)e.value=(v===null||v===undefined)?'':v;}
+  function say(t){var m=el('mkMsg');if(m)m.textContent=t;}
+  window.kshMkLoad=async function(){
+    say('');
+    try{var n=await aFetch('/api/admin/numbers/server-config');setVal('mkBn1',n.server2ExtraMarkupNgn||0);setVal('mkBn3',n.server1ExtraMarkupNgn||0);}catch(e){say('Could not load Buy Number markups: '+e.message);}
+    try{var o=await aFetch('/api/admin/otp-suite/status');setVal('mkBn2',o.markupNgn);}catch(e){}
+    for(var i=2;i<=4;i++){
+      try{var c=await aFetch('/api/admin/market'+i+'/config');setVal('mkM'+i,c.defaultMarkupNgn);}catch(e){}
+    }
+  };
+  window.kshMkSave=async function(which){
+    var map={
+      bn1:['mkBn1','/api/admin/numbers/server-config','server2ExtraMarkupNgn','Buy Number 1'],
+      bn2:['mkBn2','/api/admin/otp-suite/config','markupNgn','Buy Number 2'],
+      bn3:['mkBn3','/api/admin/numbers/server-config','server1ExtraMarkupNgn','Buy Number 3'],
+      m2:['mkM2','/api/admin/market2/config','defaultMarkupNgn','Marketplace 2'],
+      m3:['mkM3','/api/admin/market3/config','defaultMarkupNgn','Marketplace 3'],
+      m4:['mkM4','/api/admin/market4/config','defaultMarkupNgn','Marketplace 4']
+    }[which];
+    if(!map)return;
+    var raw=el(map[0]).value.trim();
+    var isMarket=which.charAt(0)==='m';
+    var val;
+    if(raw===''){ if(isMarket){val=null;} else {val=0;} }
+    else{val=Number(raw);if(!Number.isFinite(val)||val<0){say('Enter a number that is 0 or more.');return;}}
+    var body={};body[map[2]]=val;
+    try{
+      await aFetch(map[1],'PUT',body);
+      say(map[3]+' markup saved.');
+      kshMkLoad();
+    }catch(e){say('Could not save '+map[3]+': '+e.message);}
+  };
+})();
+</script>
 <div id="tab-otp2" class="tab-panel">
   <div class="sec-title">Buy Number 2 (OTP Suite)</div>
   <div id="kshOtpStatus" style="margin:8px 0">Loading...</div>
@@ -2390,6 +2462,7 @@ const ADMIN_NAV = [
     { tab:'selfcheck', icon:'i-check-circle', label:'Deployment self-check', run:'runBoostSelfCheck' },
   ]},
   { group:'Marketplace settings', owner:true, items:[
+    { tab:'markups', icon:'i-banknote', label:'Markups (numbers & marketplaces)', owner:true, keywords:'markup profit price buy number 1 2 3 marketplace 2 3 4 default extra' },
     { tab:'logs2', icon:'i-plug', label:'Logs 2 (Marketplace 2)', owner:true, keywords:'nova novasolution marketplace manual switch prices stock' },
     { tab:'logs3', icon:'i-plug', label:'Logs 3 (Marketplace 3)', owner:true, keywords:'rakib rakibsocials marketplace three switch prices stock orders' },
     { tab:'logs4', icon:'i-plug', label:'Logs 4 (Marketplace 4)', owner:true, keywords:'marketplace four 4 sync switch prices stock orders' },
@@ -2529,6 +2602,7 @@ function switchTab(name,el) {
   if(name==='logs3')        { m3LoadConfig(); m3LoadProducts(false); m3LoadBalance(); m3LoadOrders(); }
   if(name==='logs4')        { m4LoadConfig(); m4LoadProducts(false); m4LoadBalance(); m4LoadOrders(); }
   if(name==='n3adm')        { n3Load(); }
+  if(name==='markups'&&window.kshMkLoad) kshMkLoad();
   if(name==='kinglogos')    { kLogosLoad(); }
   if(name==='welcomepopup') { wpLoad(); }
   if(name==='users')        { loadUsers(); loadActiveUsersAdmin(); }

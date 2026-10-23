@@ -821,6 +821,9 @@ const numberServerConfigSchema = new mongoose.Schema({
   },
   // Developer-API buyers keep this % of the normal profit (e.g. 75 = API price is a little cheaper).
   apiProfitPercent: { type: Number, default: 75 },
+  // KSH-MARKUP-CONTROLS: extra flat NGN markup the admin adds on top of the profit ladder.
+  server1ExtraMarkupNgn: { type: Number, default: 0 },   // Buy Number 3 (Nova)
+  server2ExtraMarkupNgn: { type: Number, default: 0 },   // Buy Number 1 (Grizzly)
   server2Enabled: { type: Boolean, default: true },   // GrizzlySMS — all services/countries
   usdToNgn: { type: Number, default: 1650 },          // rate used to convert Grizzly USD cost to ₦
   // Flat-naira profit ladder. Each tier: cost in ₦ from `upTo` downwards gets `profit` ₦ added.
@@ -1107,7 +1110,7 @@ function applyNumberMarkup(costNgn, cfg) {
     if (costNgn <= t.upTo) { profit = t.profit; break; }
   }
   if (profit === null) profit = Math.round(costNgn * (Number(cfg.highCostMarkupPercent) || 0) / 100);
-  const raw = costNgn + profit;
+  const raw = costNgn + profit + Math.max(0, Number(cfg.server2ExtraMarkupNgn) || 0);
   const step = Number(cfg.roundTo) || 1;
   return Math.ceil(raw / step) * step;
 }
@@ -6517,6 +6520,7 @@ function novaServicePriceNgn(service, cfg, opts) {
   const tier = sorted.find(t => cost <= Number(t.upTo));
   const fallback = sorted.length ? Number(sorted[sorted.length - 1].profit || 0) : 0;
   let markup = tier ? Number(tier.profit || 0) : Math.max(fallback, Math.round(cost * (Number(cfg?.highCostMarkupPercent) || 20) / 100));
+  markup += Math.max(0, Number(cfg?.server1ExtraMarkupNgn) || 0);
   // Developer-API buyers keep apiProfitPercent % of the normal profit (cheaper than the site price).
   if (opts && opts.api) { const pct = Number(cfg?.apiProfitPercent); markup = Math.round(Math.max(0, markup) * (Number.isFinite(pct) ? pct : 75) / 100); }
   return Math.ceil(cost + Math.max(0, markup));
@@ -7678,7 +7682,7 @@ app.get('/api/admin/numbers/server-config', anyAdminAuth, async (req, res) => {
  const cfg = await getNumberServerConfig();
  res.json({
  server1Enabled: cfg.server1Enabled, server2Enabled: cfg.server2Enabled,
- usdToNgn: cfg.usdToNgn, markupTiers: cfg.markupTiers, server1MarkupTiers: cfg.server1MarkupTiers, apiProfitPercent: cfg.apiProfitPercent, highCostMarkupPercent: cfg.highCostMarkupPercent, roundTo: cfg.roundTo,
+ usdToNgn: cfg.usdToNgn, markupTiers: cfg.markupTiers, server1MarkupTiers: cfg.server1MarkupTiers, apiProfitPercent: cfg.apiProfitPercent, server1ExtraMarkupNgn: cfg.server1ExtraMarkupNgn || 0, server2ExtraMarkupNgn: cfg.server2ExtraMarkupNgn || 0, highCostMarkupPercent: cfg.highCostMarkupPercent, roundTo: cfg.roundTo,
  server2ProviderMode: cfg.server2ProviderMode || 'pools', server2DefaultOperator: cfg.server2DefaultOperator || 'any',
  server2HideLowPools: !!cfg.server2HideLowPools,
  autoRateEnabled: cfg.autoRateEnabled, autoRateMarginPercent: cfg.autoRateMarginPercent,
@@ -7703,6 +7707,12 @@ app.put('/api/admin/numbers/server-config', anyAdminAuth, async (req, res) => {
  if (rows.length) cfg.server1MarkupTiers = rows;
  }
  if (Number(b.apiProfitPercent) >= 0 && Number(b.apiProfitPercent) <= 100) cfg.apiProfitPercent = Number(b.apiProfitPercent);
+ for (const k of ['server1ExtraMarkupNgn', 'server2ExtraMarkupNgn']) {
+   if (b[k] === undefined) continue;
+   const n = Number(b[k]);
+   if (!Number.isFinite(n) || n < 0 || n > 1000000) return res.status(400).json({ error: 'Markup must be a number from 0 up (in naira).' });
+   cfg[k] = Math.round(n);
+ }
  if (Number(b.usdToNgn) > 0) cfg.usdToNgn = Number(b.usdToNgn);
  if (Array.isArray(b.markupTiers)) {
  // Validate the ladder before it can ever price a sale: every row must be a real number,
