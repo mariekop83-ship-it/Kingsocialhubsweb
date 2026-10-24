@@ -1102,11 +1102,112 @@ tr:hover td{background:rgba(255,255,255,.035)}
   <div id="kshB2ReviewMsg" style="margin:6px 0"></div>
   <div id="kshB2ReviewList" style="overflow:auto">Loading...</div>
 </div>
+<div id="tab-tutlib" class="tab-panel">
+  <div class="sec">
+    <div class="sec-title"><svg class="icon i-video" aria-hidden="true"><use href="#i-video"/></svg> Tutorial library</div>
+    <div class="info-box"><svg class="icon i-pin" aria-hidden="true"><use href="#i-pin"/></svg> Tutorials added here appear on the customer <b>Tutorials</b> page. Customers can watch them for free, without buying anything.</div>
+    <input type="hidden" id="tlEditId"/>
+    <div class="fg"><label>Title</label><input type="text" id="tlTitle" placeholder="e.g. How to log in to Facebook"/></div>
+    <div class="fg"><label>Category (used as a filter for customers)</label><input type="text" id="tlCategory" list="tlCatList" placeholder="e.g. Facebook, TikTok, Instagram, General"/><datalist id="tlCatList"></datalist></div>
+    <div class="fg"><label>Description / steps</label><textarea id="tlDesc" rows="4" placeholder="Explain the steps in simple words…"></textarea></div>
+    <div class="fg"><label>Video (mp4/mov/webm, optional)</label><input type="file" id="tlVideo" accept="video/*"/></div>
+    <div class="fg"><label>Pictures (up to 10 at a time, optional)</label><input type="file" id="tlImages" accept="image/*" multiple/></div>
+    <div class="fg"><label>Link (optional, e.g. a YouTube link)</label><input type="text" id="tlLink" placeholder="https://…"/></div>
+    <div class="fg"><label>Order (small number shows first, optional)</label><input type="number" id="tlOrder" placeholder="0"/></div>
+    <div class="fg"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="tlPublished" checked/> Visible to customers</label></div>
+    <div id="tlEditNote" style="display:none;font-size:.8rem;color:var(--t2);margin:0 0 8px"></div>
+    <button class="btn-primary" type="button" id="tlSaveBtn" onclick="tlSave()"><svg class="icon i-save" aria-hidden="true"><use href="#i-save"/></svg> Save tutorial</button>
+    <button class="btn-secondary" type="button" id="tlCancelBtn" onclick="tlReset()" style="margin-left:8px;display:none">Cancel edit</button>
+    <div id="tlFeedback" class="form-feedback"></div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">Your tutorials</div>
+    <div id="tlList">Loading...</div>
+  </div>
+</div>
+<script>
+(function(){
+  var items=[];
+  function E(id){return document.getElementById(id);}
+  function h(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  window.tlReset=function(){
+    ['tlEditId','tlTitle','tlCategory','tlDesc','tlLink','tlOrder'].forEach(function(i){E(i).value='';});
+    E('tlVideo').value='';E('tlImages').value='';E('tlPublished').checked=true;
+    E('tlEditNote').style.display='none';E('tlCancelBtn').style.display='none';
+    E('tlSaveBtn').lastChild.textContent=' Save tutorial';
+  };
+  window.tlLoad=async function(){
+    var box=E('tlList');
+    try{
+      items=await aFetch('/api/admin/tutorials');
+      var cats={};items.forEach(function(t){if(t.category)cats[t.category]=1;});
+      E('tlCatList').innerHTML=Object.keys(cats).map(function(c){return '<option value="'+h(c)+'">';}).join('');
+      if(!items.length){box.innerHTML='<p style="color:var(--t2);font-size:13px">No tutorials yet. Add your first one above.</p>';return;}
+      box.innerHTML=items.map(function(t){
+        var media=(t.videoUrl?'Video':'')+(t.videoUrl&&t.imageUrls.length?' + ':'')+(t.imageUrls.length?t.imageUrls.length+' picture(s)':'')+(t.linkUrl?((t.videoUrl||t.imageUrls.length)?' + ':'')+'Link':'');
+        return '<div style="border:1px solid var(--bd,#252535);border-radius:12px;padding:12px;margin-bottom:10px">'
+          +'<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>'+h(t.title)+'</b><span style="font-size:.78rem;opacity:.75">'+h(t.category)+(t.published?'':' · HIDDEN')+'</span></div>'
+          +(t.description?'<div style="font-size:.82rem;opacity:.8;margin:6px 0;white-space:pre-wrap">'+h(t.description.length>160?t.description.slice(0,160)+'…':t.description)+'</div>':'')
+          +'<div style="font-size:.76rem;opacity:.7;margin-bottom:8px">'+h(media||'Text only')+'</div>'
+          +'<button class="btn-secondary" type="button" onclick="tlEdit(\''+t.id+'\')">Edit</button> '
+          +'<button class="btn-secondary" type="button" onclick="tlToggle(\''+t.id+'\')">'+(t.published?'Hide':'Show')+'</button> '
+          +'<button class="btn-secondary" type="button" onclick="tlDelete(\''+t.id+'\')">Delete</button></div>';
+      }).join('');
+    }catch(e){box.innerHTML='<p style="color:#ef4444;font-size:13px">'+h(e.message)+'</p>';}
+  };
+  window.tlEdit=function(id){
+    var t=items.filter(function(x){return x.id===id;})[0];if(!t)return;
+    E('tlEditId').value=t.id;E('tlTitle').value=t.title;E('tlCategory').value=t.category||'';
+    E('tlDesc').value=t.description||'';E('tlLink').value=t.linkUrl||'';E('tlOrder').value=t.sortOrder||'';
+    E('tlPublished').checked=!!t.published;E('tlVideo').value='';E('tlImages').value='';
+    var n=E('tlEditNote');n.style.display='block';
+    n.textContent='Editing "'+t.title+'". Choose a new video to replace the current one; new pictures are added to the existing ones.';
+    E('tlCancelBtn').style.display='inline-block';E('tlSaveBtn').lastChild.textContent=' Update tutorial';
+    try{E('tab-tutlib').scrollIntoView({behavior:'smooth'});}catch(e){}
+  };
+  window.tlToggle=async function(id){
+    var t=items.filter(function(x){return x.id===id;})[0];if(!t)return;
+    var fd=new FormData();fd.append('published',t.published?'false':'true');
+    try{await aFetch('/api/admin/tutorials/'+id,'PUT',fd);tlLoad();}catch(e){alert('Error: '+e.message);}
+  };
+  window.tlDelete=async function(id){
+    if(!confirm('Delete this tutorial? Customers will no longer see it.'))return;
+    try{await aFetch('/api/admin/tutorials/'+id,'DELETE');if(E('tlEditId').value===id)tlReset();tlLoad();}catch(e){alert('Error: '+e.message);}
+  };
+  window.tlSave=async function(){
+    var fb=E('tlFeedback'),pbar=progressBarFor(fb),btn=E('tlSaveBtn');
+    var title=E('tlTitle').value.trim();
+    if(!title){setFb(fb,'Please enter a title','err');return;}
+    var video=E('tlVideo').files[0]||null,images=E('tlImages').files,editId=E('tlEditId').value;
+    btn.disabled=true;setFb(fb,'Uploading... 0%','');pbar.show();
+    try{
+      var videoUrl=null;
+      if(video){
+        try{
+          videoUrl=await uploadDirectToCloudinary(video,'video',function(p){pbar.set(p);setFb(fb,p<100?'Uploading video... '+p+'%':'Finishing...','');});
+        }catch(de){if(de.message!=='DIRECT_UPLOAD_NOT_CONFIGURED')throw de;videoUrl=null;}
+      }
+      var fd=new FormData();
+      fd.append('title',title);fd.append('category',E('tlCategory').value.trim()||'General');
+      fd.append('description',E('tlDesc').value);fd.append('linkUrl',E('tlLink').value.trim());
+      fd.append('sortOrder',E('tlOrder').value);fd.append('published',E('tlPublished').checked?'true':'false');
+      if(video&&!videoUrl)fd.append('video',video);
+      if(videoUrl)fd.append('videoUrl',videoUrl);
+      for(var i=0;i<images.length&&i<10;i++)fd.append('images',images[i]);
+      await aFetchUpload(editId?'/api/admin/tutorials/'+editId:'/api/admin/tutorials',editId?'PUT':'POST',fd,function(p){pbar.set(p);setFb(fb,p<100?'Saving... '+p+'%':'Processing...','');});
+      pbar.hide();setFb(fb,editId?'Tutorial updated.':'Tutorial saved — customers can now see it on the Tutorials page.','ok');
+      tlReset();tlLoad();
+    }catch(e){pbar.hide();setFb(fb,e.message,'err');}
+    btn.disabled=false;
+  };
+})();
+</script>
 <div id="tab-tutorialsadm" class="tab-panel">
   <div class="sec-title">Tutorials</div>
   <p style="opacity:.8;font-size:14px;line-height:1.5">Product tutorials (images, video or link) are added inside each product. Open Logs, edit a product and use its Tutorial section. Deposit tutorials have their own page.</p>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
     <button class="btn-primary" type="button" onclick="switchTab('logs')">Product tutorials (Logs)</button>
+    <button class="btn-primary" type="button" onclick="switchTab('tutlib')">Tutorial library (videos for customers)</button>
     <button class="btn-primary" type="button" onclick="switchTab('deptutorials')">Deposit tutorials</button>
   </div>
   <div id="kshTutList" style="margin-top:14px"></div>
@@ -2398,6 +2499,7 @@ const ADMIN_NAV = [
     { tab:'numbers2', icon:'i-smartphone', label:'Server 2 — low SMS rate pools', owner:true },
     { tab:'otp2', icon:'i-smartphone', label:'Buy Number 2 (OTP Suite)', owner:true, keywords:'otp suite buy number 2 markup orders balance' },
     { tab:'boost2adm', icon:'i-rocket', label:'Boost 2 services', owner:true, keywords:'boost 2 nova services sync' },
+    { tab:'tutlib', icon:'i-video', label:'Tutorial library', owner:true, keywords:'tutorial tutorials video images login how to facebook tiktok customers watch' },
     { tab:'tutorialsadm', icon:'i-video', label:'Tutorials', owner:true, keywords:'tutorial tutorials video images login how to' },
   ]},
   { group:'Boost', items:[
@@ -2524,7 +2626,7 @@ function switchTab(name,el) {
   if(name==='campaigns')    cmpLoad();
   if(name==='logs')         { loadLogs(); loadCategories(); loadCategoriesIntoSelects(); loadRestockDemand(); }
   if(name==='tools')        loadTools();
-  if(name==='otp2'&&window.kshOtpLoad)kshOtpLoad(); if(name==='boost2adm'&&window.kshB2Load)kshB2Load(); if(name==='tutorialsadm'&&window.kshTutLoad)kshTutLoad();
+  if(name==='otp2'&&window.kshOtpLoad)kshOtpLoad(); if(name==='boost2adm'&&window.kshB2Load)kshB2Load(); if(name==='tutorialsadm'&&window.kshTutLoad)kshTutLoad(); if(name==='tutlib'&&window.tlLoad)tlLoad();
   if(name==='logs2') { m2LoadConfig(); m2LoadProducts(false); m2LoadBalance(); m2LoadOrders(); }
   if(name==='logs3')        { m3LoadConfig(); m3LoadProducts(false); m3LoadBalance(); m3LoadOrders(); }
   if(name==='logs4')        { m4LoadConfig(); m4LoadProducts(false); m4LoadBalance(); m4LoadOrders(); }
