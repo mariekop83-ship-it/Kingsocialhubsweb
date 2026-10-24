@@ -721,10 +721,13 @@ tr:hover td{background:rgba(255,255,255,.035)}
 <div id="tab-kinglogos" class="tab-panel">
   <div class="sec">
     <div class="sec-title">Product logos</div>
-    <div class="info-box">Upload a logo once (for example Facebook). Every product whose name or category contains one of its keywords — from any provider, in numbers, marketplaces and boosting — will show this logo to customers.</div>
+    <div class="info-box">Upload a logo once (for example Facebook). A product's <b>own name</b> is checked first; its category is only used when the name matches nothing. Choose below whether the logo applies to <b>all</b> products containing the keywords, or <b>only one exact product</b>.</div>
     <div class="form-row">
       <div class="fg"><label>Name</label><input type="text" id="kLogoName" placeholder="Facebook"></div>
-      <div class="fg" style="flex:2"><label>Keywords (comma separated)</label><input type="text" id="kLogoKw" placeholder="facebook, fb"></div>
+      <div class="fg" style="flex:2"><label>Keywords, or the exact product name (comma separated)</label><input type="text" id="kLogoKw" placeholder="facebook, fb"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Apply this logo to</label><select id="kLogoScope"><option value="all">All products containing these keywords</option><option value="exact">Only the product with exactly this name</option></select></div>
     </div>
     <div class="form-row">
       <div class="fg"><label>Logo image</label><input type="file" id="kLogoFile" accept="image/*" onchange="kLogoPick(this)"></div>
@@ -732,6 +735,16 @@ tr:hover td{background:rgba(255,255,255,.035)}
       <div class="fg"><label>&nbsp;</label><button class="btn-gold" type="button" onclick="kLogoSave()" style="width:100%">Save logo</button></div>
     </div>
     <div id="kLogoMsg" style="margin:6px 0"></div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">Check a product</div>
+    <div class="info-box">Type a product name exactly as customers see it, and its category if it has one. This shows which logo it gets and why.</div>
+    <div class="form-row">
+      <div class="fg" style="flex:2"><input type="text" id="kTestName" placeholder="Product name" onkeydown="if(event.key==='Enter')kLogoTest()"></div>
+      <div class="fg"><input type="text" id="kTestCat" placeholder="Category (optional)" onkeydown="if(event.key==='Enter')kLogoTest()"></div>
+      <div class="fg"><button class="btn-sm" type="button" onclick="kLogoTest()">Check</button></div>
+    </div>
+    <div id="kTestOut" style="margin:6px 0;font-size:.85rem"></div>
   </div>
   <div class="sec"><div class="sec-title">Uploaded logos</div><div id="kLogoList">Loading…</div></div>
 </div>
@@ -7121,6 +7134,6 @@ async function refundOtpSuiteOrder(){const id=prompt('Paste the OTP Suite order 
   closeNow(); /* start with the menu closed */
 })();
 </script>
-<script src="/js/admin-king.js?v=1"></script>
+<script src="/js/admin-king.js?v=2"></script>
 </body>
 </html>

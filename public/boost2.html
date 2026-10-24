@@ -38,7 +38,7 @@ const $=id=>document.getElementById(id);
 const money=n=>'₦'+Number(n||0).toLocaleString('en-NG',{maximumFractionDigits:2});
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(url,opt={}){const t=localStorage.getItem('ksl_token')||localStorage.getItem('token')||'';const r=await fetch(url,{...opt,headers:{'Content-Type':'application/json',...(t?{Authorization:'Bearer '+t}:{}),...(opt.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(d.error||d.message||'Request failed');e.status=r.status;e.data=d;throw e}return d}
-function logoOf(s){return s.logo||(window.KingUI&&KingUI.logoFor((s.name||'')+' '+(s.category||'')))||''}
+function logoOf(s){return s.logo||(window.KingUI&&KingUI.logoFor(s.name||'',s.category||''))||''}
 function logoHtml(url,text,cls){return url?'<img class="'+(cls||'big')+'" src="'+esc(url)+'" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=ph>'+esc((text||'?').trim().charAt(0).toUpperCase())+'</div>\'">':'<div class="ph">'+esc((text||'?').trim().charAt(0).toUpperCase())+'</div>'}
 
 let all=[],loaded=false;
