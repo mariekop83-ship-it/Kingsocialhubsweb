@@ -73,6 +73,21 @@ app.get('/', (req, res) => { res.set('Cache-Control', 'no-store, must-revalidate
 app.use(cors({ origin: '*', methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'], allowedHeaders: ['Content-Type','Authorization','x-admin-passcode','x-subadmin-token'] }));
 app.options('*', cors()); // handle pre-flight OPTIONS requests
 app.set('trust proxy', 1);
+
+// Per-browser device id (cookie). Used by the sign-up limit so people who share
+// one IP (mobile networks, offices) are not blocked because of each other.
+app.use((req, res, next) => {
+  try {
+    const m = /(?:^|;\s*)ksh_did=([a-f0-9]{32})/.exec(req.headers.cookie || '');
+    let id = m ? m[1] : '';
+    if (!id) {
+      id = require('crypto').randomBytes(16).toString('hex');
+      res.append('Set-Cookie', 'ksh_did=' + id + '; Max-Age=63072000; Path=/; HttpOnly; SameSite=Lax' + (req.secure ? '; Secure' : ''));
+    }
+    req.deviceId = id;
+  } catch (e) {}
+  next();
+});
 app.use((req, res, next) => {
  // Keep search engines out of the API, admin and account areas, but allow the
  // public marketing/shop pages to be indexed (Google was seeing a site-wide
@@ -1603,6 +1618,8 @@ require('./lib/market2').register(app, { mongoose, User, Transaction, auth, anyA
 // Marketplace 3 (Sujan Department reseller API) - see lib/market3.js
 require('./lib/market3').register(app, { mongoose, User, Transaction, auth, anyAdminAuth, sendAdminEmail, brandLogoFor });
 require('./lib/otp-suite')(app, { mongoose, User, Transaction, auth, anyAdminAuth });
+// Tutorial library (admin adds videos/pictures/descriptions, customers watch free) - see lib/tutorials.js
+require('./lib/tutorials').register(app, { mongoose, anyAdminAuth, uploadMw: depositTutorialUpload, fileUrl });
 
 // Owner-only integration diagnostics. This reports readiness without ever
 // returning provider credentials, so the admin can distinguish a disabled
@@ -1920,18 +1937,21 @@ const MAX_ACCOUNTS_PER_PERSON = Math.max(1, Number(process.env.MAX_ACCOUNTS_PER_
 function deviceFingerprint(req) {
   const ua = String(req.headers['user-agent'] || '');
   const lang = String(req.headers['accept-language'] || '');
-  const ip = (req.ip || req.socket?.remoteAddress || '').toString();
-  return crypto.createHash('sha256').update(ip + '|' + ua + '|' + lang).digest('hex').slice(0, 32);
+  const did = String(req.deviceId || '');
+  return crypto.createHash('sha256').update(did + '|' + ua + '|' + lang).digest('hex').slice(0, 32);
 }
+// Limit is per device (browser cookie). IP alone gets a much higher ceiling
+// because many real customers share one IP on mobile networks.
+const MAX_ACCOUNTS_PER_IP = Math.max(1, Number(process.env.MAX_ACCOUNTS_PER_IP || 50));
 async function accountLimitReached(req) {
   const ip = (req.ip || req.socket?.remoteAddress || '').toString();
   const fp = deviceFingerprint(req);
-  const or = [];
-  if (ip) or.push({ signupIp: ip });
-  or.push({ signupFingerprint: fp });
-  const count = await User.countDocuments({ $or: or });
-  if (count >= MAX_ACCOUNTS_PER_PERSON) {
-    return `You have reached the limit of ${MAX_ACCOUNTS_PER_PERSON} accounts allowed per person on this website. Please log in to one of your existing accounts, or contact support if you believe this is a mistake.`;
+  const [byDevice, byIp] = await Promise.all([
+    User.countDocuments({ signupFingerprint: fp }),
+    ip ? User.countDocuments({ signupIp: ip }) : 0
+  ]);
+  if (byDevice >= MAX_ACCOUNTS_PER_PERSON || byIp >= MAX_ACCOUNTS_PER_IP) {
+    return `You have reached the limit of accounts allowed per person on this website. Please log in to one of your existing accounts, or contact support if you believe this is a mistake.`;
   }
   return null;
 }
