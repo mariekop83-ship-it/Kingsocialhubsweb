@@ -708,6 +708,10 @@ const siteLinksSchema = new mongoose.Schema({
  whatsappChatLink: { type: String, default: '' },
  supportHours: { type: String, default: '' },
  logoUrl: { type: String, default: '' },
+ // Customer-side contact switches (Admin → Site Links → Contact buttons shown to customers).
+ // WhatsApp stays ON unless the admin turns it off; Telegram stays OFF until the admin turns it on.
+ whatsappEnabled: { type: Boolean, default: true },
+ telegramEnabled: { type: Boolean, default: false },
  updatedAt: { type: Date, default: Date.now }
 });
 const SiteLinks = mongoose.model('SiteLinks', siteLinksSchema);
@@ -5614,7 +5618,9 @@ app.post('/api/support/ai-chat', auth, async (req, res) => {
  if (!message || !String(message).trim()) return res.status(400).json({ error: 'Message is required' });
  const faqReply = matchSupportFaq(message);
  if (faqReply) return res.json({ reply: faqReply, source: 'faq' });
- res.json({ reply: "I'm not sure about that one — please reach out on WhatsApp support and the team will help you directly.", source: 'fallback' });
+ const _sl = await getSiteLinks().catch(() => null);
+ const _names = [(!_sl || _sl.whatsappEnabled !== false) ? 'WhatsApp' : null, (_sl && _sl.telegramEnabled === true) ? 'Telegram' : null].filter(Boolean).join(' or ');
+ res.json({ reply: "I'm not sure about that one — please reach out on " + (_names || 'live') + " support and the team will help you directly.", source: 'fallback' });
  } catch (e) { res.status(500).json({ error: 'Failed to get a reply — please try again.' }); }
 });
 app.post('/api/admin/verify', (req, res) => {
@@ -8240,7 +8246,7 @@ app.get('/api/public/site-links', async (req, res) => {
  const links = await getSiteLinks();
  const tgUser = String(links.telegramUsername || '').replace(/^@/, '');
    const tgLink = links.telegramLink || ('https://t.me/' + tgUser);
-   res.json({ whatsappNumber: links.whatsappNumber, adminPhone: links.adminPhone || links.whatsappNumber, whatsappGroupLink: links.whatsappGroupLink, whatsappChannelLink: links.whatsappChannelLink, telegramUsername: tgUser, telegramLink: tgLink, telegramChannelLink: links.telegramChannelLink || '', telegramCommunityLink: links.telegramCommunityLink || '', whatsappChatLink: links.whatsappChatLink || ('https://wa.me/' + links.whatsappNumber), supportHours: links.supportHours || '', logoUrl: links.logoUrl || '' });
+   res.json({ whatsappNumber: links.whatsappNumber, adminPhone: links.adminPhone || links.whatsappNumber, whatsappGroupLink: links.whatsappGroupLink, whatsappChannelLink: links.whatsappChannelLink, telegramUsername: tgUser, telegramLink: tgLink, telegramChannelLink: links.telegramChannelLink || '', telegramCommunityLink: links.telegramCommunityLink || '', whatsappChatLink: links.whatsappChatLink || ('https://wa.me/' + links.whatsappNumber), supportHours: links.supportHours || '', whatsappEnabled: links.whatsappEnabled !== false, telegramEnabled: links.telegramEnabled === true, logoUrl: links.logoUrl || '' });
  } catch (e) { res.status(500).json({ error: 'Failed to load site links' }); }
 });
 app.get('/api/admin/site-links', anyAdminAuth, async (req, res) => {
@@ -8248,7 +8254,7 @@ app.get('/api/admin/site-links', anyAdminAuth, async (req, res) => {
 });
 app.post('/api/admin/site-links', anyAdminAuth, async (req, res) => {
  try {
- const { whatsappNumber, adminPhone, whatsappGroupLink, whatsappChannelLink , telegramUsername, telegramLink, telegramChannelLink, telegramCommunityLink, whatsappChatLink, supportHours } = req.body;
+ const { whatsappNumber, adminPhone, whatsappGroupLink, whatsappChannelLink , telegramUsername, telegramLink, telegramChannelLink, telegramCommunityLink, whatsappChatLink, supportHours, whatsappEnabled, telegramEnabled } = req.body;
  const update = { updatedAt: new Date() };
  if (whatsappNumber !== undefined) {
  const cleaned = String(whatsappNumber).replace(/[^\d]/g, '');
@@ -8294,9 +8300,18 @@ app.post('/api/admin/site-links', anyAdminAuth, async (req, res) => {
    update.whatsappChatLink = link;
   }
   if (supportHours !== undefined) update.supportHours = String(supportHours).trim().slice(0, 120);
+  if (typeof whatsappEnabled === 'boolean') update.whatsappEnabled = whatsappEnabled;
+  if (typeof telegramEnabled === 'boolean') {
+   if (telegramEnabled) {
+    const cur = await getSiteLinks();
+    const tgL = update.telegramLink || cur.telegramLink || '';
+    if (!/^https:\/\//.test(tgL)) return res.status(400).json({ error: 'Save a Telegram username first, then turn Telegram on.' });
+   }
+   update.telegramEnabled = telegramEnabled;
+  }
  const doc = await SiteLinks.findByIdAndUpdate('main', { $set: update }, { upsert: true, new: true });
  console.log(`[admin] site-links updated:`, JSON.stringify(update));
- res.json({ ok: true, whatsappNumber: doc.whatsappNumber, adminPhone: doc.adminPhone || doc.whatsappNumber, whatsappGroupLink: doc.whatsappGroupLink, whatsappChannelLink: doc.whatsappChannelLink, telegramUsername: doc.telegramUsername, telegramLink: doc.telegramLink, telegramChannelLink: doc.telegramChannelLink || '', telegramCommunityLink: doc.telegramCommunityLink || '', whatsappChatLink: doc.whatsappChatLink, supportHours: doc.supportHours });
+ res.json({ ok: true, whatsappNumber: doc.whatsappNumber, adminPhone: doc.adminPhone || doc.whatsappNumber, whatsappGroupLink: doc.whatsappGroupLink, whatsappChannelLink: doc.whatsappChannelLink, telegramUsername: doc.telegramUsername, telegramLink: doc.telegramLink, telegramChannelLink: doc.telegramChannelLink || '', telegramCommunityLink: doc.telegramCommunityLink || '', whatsappChatLink: doc.whatsappChatLink, supportHours: doc.supportHours, whatsappEnabled: doc.whatsappEnabled !== false, telegramEnabled: doc.telegramEnabled === true });
  } catch (e) { res.status(500).json({ error: 'Failed to update site links: ' + e.message }); }
 });
 const brandLogoUpload = multer({
