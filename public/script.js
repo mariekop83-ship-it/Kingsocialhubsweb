@@ -46,13 +46,11 @@ async function applySiteLinks() {
   try {
     const links = await req('/api/public/site-links', 'GET', null, false, false, true);
     if (links.whatsappNumber) WA_NUMBER = links.whatsappNumber;
+    WA_ON = links.whatsappEnabled !== false;   // admin switch: show WhatsApp contact to customers
+    TG_ON = links.telegramEnabled === true;    // admin switch: show Telegram contact to customers
     const adminPhone = links.adminPhone || WA_NUMBER;
-    if (links.telegramCommunityLink || links.whatsappGroupLink) document.querySelectorAll('a[data-link="group"]').forEach(a => a.href = links.telegramCommunityLink || links.whatsappGroupLink);
-    if (links.telegramChannelLink || links.whatsappChannelLink) document.querySelectorAll('a[data-link="channel"]').forEach(a => a.href = links.telegramChannelLink || links.whatsappChannelLink);
     document.querySelectorAll('a[data-link="contact"]').forEach(a => { a.href = WA_NUMBER ? `https://wa.me/${WA_NUMBER}` : '#'; });
     document.querySelectorAll('a[data-link="adminphone"]').forEach(a => { a.href = adminPhone ? `https://wa.me/${adminPhone}` : '#'; });
-    const textLink = document.getElementById('termsWaTextLink');
-    if (textLink) { textLink.href = WA_NUMBER ? `https://wa.me/${WA_NUMBER}` : '#'; textLink.textContent = WA_NUMBER ? `wa.me/${WA_NUMBER}` : 'WhatsApp support'; }
     document.querySelectorAll('.ksl-admin-phone-text').forEach(el => el.textContent = adminPhone ? `+${adminPhone}` : '');
     document.querySelectorAll('.ksl-wa-number-text').forEach(el => el.textContent = WA_NUMBER ? `+${WA_NUMBER}` : '');
     // Telegram support is set by the admin in Site Links; no third-party default is hardcoded.
@@ -63,9 +61,113 @@ async function applySiteLinks() {
     document.querySelectorAll('a[data-link="telegram"]').forEach(a => { a.href = TG_LINK; });
     document.querySelectorAll('.ksl-telegram-text').forEach(el => el.textContent = `@${TG_USERNAME}`);
     document.querySelectorAll('.ksl-support-hours').forEach(el => el.textContent = SUPPORT_HOURS);
+    kslApplyContactModes(links);
   } catch (e) { /* No contact link is assumed until the admin configures Site Links. */ }
 }
 let TG_LINK = '#';
+let WA_ON = true;   // WhatsApp contact visible to customers (Admin → Site Links switch)
+let TG_ON = false;  // Telegram contact visible to customers (Admin → Site Links switch)
+const TG_ICON = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>';
+
+// ── Contact modes (WhatsApp / Telegram) ──────────────────────────────────────────────────
+function kslHide(el) { el.style.setProperty('display', 'none', 'important'); }
+// "WhatsApp", "Telegram", "WhatsApp or Telegram" — or a neutral fallback when both are off.
+function kslContactNames(tail) {
+  const n = [];
+  if (WA_ON) n.push('WhatsApp');
+  if (TG_ON) n.push('Telegram');
+  return n.length ? n.join(' or ') + (tail ? ' ' + tail : '') : 'live ' + (tail || 'chat');
+}
+// HTML for JS-rendered contact buttons: one per enabled contact mode (none if both are off).
+function kslContactLinks(o) {
+  o = o || {};
+  const cls = o.cls || '';
+  const st = o.style ? ` style="${o.style}"` : '';
+  const oc = o.onclick ? ` onclick="${o.onclick}"` : '';
+  let out = '';
+  if (WA_ON) out += `<a href="https://wa.me/${WA_NUMBER}${o.text ? '?text=' + o.text : ''}" target="_blank" class="${cls}"${st}${oc}><svg class="icon i-message-circle" aria-hidden="true"><use href="#i-message-circle"/></svg> ${o.wa || ''}</a>`;
+  if (TG_ON) out += `<a href="${TG_LINK}" target="_blank" class="${cls} tg-twin"${st}${oc}>${TG_ICON} ${o.tg || ''}</a>`;
+  return out;
+}
+// Plain-text support lines for the copyable receipt.
+function kslSupportText() {
+  const l = [];
+  if (WA_ON) l.push(`Support: wa.me/${WA_NUMBER}`);
+  if (TG_ON) l.push(`Telegram: ${TG_LINK}`);
+  return l.length ? l.join('\n') : 'Support: open the Support page on the site';
+}
+// Copies a static WhatsApp-style anchor into a Telegram twin (Telegram icon + wording + link).
+function kslMakeTgTwin(a, href, key, suffixIfNoBrand) {
+  const t = a.cloneNode(true);
+  t.removeAttribute('id');
+  t.setAttribute('data-link', key);
+  t.classList.add('tg-twin');
+  t.href = href;
+  t.removeAttribute('hidden');
+  t.style.removeProperty('display');
+  t.querySelectorAll('use').forEach(u => { if ((u.getAttribute('href') || '') === '#wa-logo') u.setAttribute('href', '#tg-logo'); });
+  let changed = false, lastText = null;
+  const w = document.createTreeWalker(t, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = w.nextNode())) {
+    if (/WhatsApp/.test(n.nodeValue)) { n.nodeValue = n.nodeValue.replace(/WhatsApp/g, 'Telegram'); changed = true; }
+    if (n.nodeValue.trim()) lastText = n;
+  }
+  if (!changed && suffixIfNoBrand && lastText) lastText.nodeValue = lastText.nodeValue.replace(/\s*$/, ' (Telegram)');
+  ['title', 'aria-label'].forEach(k => { const v = t.getAttribute(k); if (v) t.setAttribute(k, v.replace(/WhatsApp/g, 'Telegram')); });
+  a.after(t);
+  return t;
+}
+// Applies the admin's WhatsApp / Telegram switches to every static contact element on the page.
+function kslApplyContactModes(links) {
+  if (!document.getElementById('kslTgAssets')) {
+    const box = document.createElement('div');
+    box.id = 'kslTgAssets';
+    box.innerHTML = '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="tg-logo" viewBox="0 0 24 24"><path fill="currentColor" d="' + TG_PATH_D + '"/></symbol></svg>'
+      + '<style>'
+      + '.nav-wa-btn.tg-twin{background:#26A5E4}.nav-wa-btn.tg-twin:hover{background:#1d8fc9}'
+      + '.supp-wa.tg-twin,.supp-btn.tg-twin{background:rgba(38,165,228,.08);border-color:rgba(38,165,228,.3);color:#26A5E4}'
+      + '.supp-btn.tg-twin:hover{background:rgba(38,165,228,.16)}'
+      + '.hero-wa.tg-twin{background:color-mix(in oklab,#26a5e4 16%,transparent);border-color:color-mix(in oklab,#26a5e4 45%,transparent)}'
+      + '.hero-wa.tg-twin:hover{background:color-mix(in oklab,#26a5e4 26%,transparent);border-color:#26a5e4}'
+      + '.hero-actions .tg-twin{grid-column:1/-1}'
+      + '.tg-twin .wa-icon{color:#26A5E4}.nav-wa-btn.tg-twin .wa-icon{color:#fff}'
+      + '.prod-restock-btn.tg-twin{background:#26A5E4}'
+      + '</style>';
+    document.body.appendChild(box);
+  }
+  // Contact / admin-phone buttons: WhatsApp original (hidden when OFF) + Telegram twin (when ON).
+  ['contact', 'adminphone'].forEach(key => {
+    document.querySelectorAll(`a[data-link="${key}"]`).forEach(a => {
+      if (a.id === 'termsWaTextLink') return;
+      // The support dock already has its own Telegram item, so no twin is added inside it.
+      if (TG_ON && !a.classList.contains('sfab-item')) kslMakeTgTwin(a, TG_LINK, 'tg' + key, false);
+      if (!WA_ON) kslHide(a);
+    });
+  });
+  // Join Community / Join Channel: show the WhatsApp link when WhatsApp is ON, Telegram's when ON.
+  [['group', 'whatsappGroupLink', 'telegramCommunityLink'], ['channel', 'whatsappChannelLink', 'telegramChannelLink']].forEach(([key, waKey, tgKey]) => {
+    const waL = links[waKey], tgL = links[tgKey];
+    document.querySelectorAll(`a[data-link="${key}"]`).forEach(a => {
+      if (TG_ON && tgL) kslMakeTgTwin(a, tgL, 'tg' + key, true);
+      if (WA_ON && waL && waL !== '#') a.href = waL; else kslHide(a);
+    });
+  });
+  // Telegram items already built into the support dock.
+  document.querySelectorAll('a[data-link="telegram"]').forEach(a => { a.href = TG_LINK; if (!TG_ON) kslHide(a); });
+  // Terms: "Reach us any time via X at <link>"
+  const tl = document.getElementById('termsWaTextLink');
+  if (tl) {
+    const at = document.getElementById('termsContactAt') || tl;
+    if (WA_ON) { tl.href = WA_NUMBER ? `https://wa.me/${WA_NUMBER}` : '#'; tl.textContent = WA_NUMBER ? `wa.me/${WA_NUMBER}` : 'WhatsApp support'; }
+    else if (TG_ON) { tl.href = TG_LINK; tl.textContent = TG_USERNAME ? `@${TG_USERNAME}` : 'Telegram support'; }
+    else kslHide(at);
+  }
+  // Copy that names the contact channel(s).
+  document.querySelectorAll('.ksl-contact-names').forEach(el => { el.textContent = (WA_ON || TG_ON) ? kslContactNames('').trim() : (el.dataset.none || 'live chat'); });
+  if (!WA_ON) document.querySelectorAll('.ksl-admin-phone-text, .ksl-wa-number-text').forEach(el => { el.textContent = ''; });
+}
+const TG_PATH_D = "M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z";
 let TG_USERNAME = '';
 let WA_CHAT_LINK = '';
 let SUPPORT_HOURS = '9:00 AM \u2013 11:00 PM (WAT), every day';
@@ -1751,7 +1853,7 @@ function renderCard(item) {
   // a small WhatsApp button so the customer can ask admin to restock instead of just bouncing.
   const restockMsg = encodeURIComponent(`Hi! "${item.title}" is showing Sold Out — can you restock it?`);
   const restockBtn = soldOut
-    ? `<a href="https://wa.me/${WA_NUMBER}?text=${restockMsg}" target="_blank" class="prod-restock-btn" onclick="event.stopPropagation()"><svg class="icon i-message-circle" aria-hidden="true"><use href="#i-message-circle"/></svg> Contact Admin to Restock</a>
+    ? `${kslContactLinks({cls:'prod-restock-btn', onclick:'event.stopPropagation()', text:restockMsg, wa:'Contact Admin to Restock', tg:'Contact Admin to Restock'})}
        <button type="button" class="prod-notify-btn" onclick="event.stopPropagation();notifyRestock('${item._id}',this)"><svg class="icon i-bell" aria-hidden="true"><use href="#i-bell"/></svg> Notify Me</button>`
     : '';
   return `<div class="prod-card-wrap">
@@ -1835,7 +1937,7 @@ async function openModal(id) {
     } else if (soldOut) {
       const restockMsg = encodeURIComponent(`Hi! "${item.title}" is showing Sold Out — can you restock it?`);
       actionHtml=`<button class="m-buy-btn" disabled style="opacity:.5;cursor:not-allowed"><svg class="icon i-x-circle" aria-hidden="true"><use href="#i-x-circle"/></svg> Sold Out</button>
-        <a href="https://wa.me/${WA_NUMBER}?text=${restockMsg}" target="_blank" class="prod-restock-btn" style="margin-top:10px"><svg class="icon i-message-circle" aria-hidden="true"><use href="#i-message-circle"/></svg> Contact Admin to Restock</a>
+        ${kslContactLinks({cls:'prod-restock-btn', style:'margin-top:10px', text:restockMsg, wa:'Contact Admin to Restock', tg:'Contact Admin to Restock'})}
         <button type="button" class="prod-notify-btn" style="margin-top:8px;width:100%" onclick="notifyRestock('${id}',this)"><svg class="icon i-bell" aria-hidden="true"><use href="#i-bell"/></svg> Notify Me When Back in Stock</button>`;
     } else {
       actionHtml=`<button class="m-buy-btn" id="mbuyBtn" onclick="buyItem('${id}')">
@@ -1984,7 +2086,7 @@ function renderFolderModal(item, body) {
          </div>
          <button class="m-buy-btn btn-full" id="subBuyBtnBottom" onclick="buySelectedSubAccounts()" disabled style="opacity:.5"><svg class="icon i-cart" aria-hidden="true"><use href="#i-cart"/></svg> Select accounts to buy</button>`
       : `<button class="m-buy-btn btn-full" disabled style="opacity:.5"><svg class="icon i-x-circle" aria-hidden="true"><use href="#i-x-circle"/></svg> All Sold Out</button>
-         <a href="https://wa.me/${WA_NUMBER}?text=${restockMsg}" target="_blank" class="prod-restock-btn" style="margin-top:10px"><svg class="icon i-message-circle" aria-hidden="true"><use href="#i-message-circle"/></svg> Contact Admin to Restock</a>
+         ${kslContactLinks({cls:'prod-restock-btn', style:'margin-top:10px', text:restockMsg, wa:'Contact Admin to Restock', tg:'Contact Admin to Restock'})}
          <button type="button" class="prod-notify-btn" style="margin-top:8px;width:100%" onclick="notifyRestock('${item._id}',this)"><svg class="icon i-bell" aria-hidden="true"><use href="#i-bell"/></svg> Notify Me When Back in Stock</button>`;
   body.innerHTML = `<div class="m-body">
     <div class="m-avatar-title-row">
@@ -2119,7 +2221,7 @@ async function buyItem(id) {
       ${detailBlock}
       ${receiptRow}
       <button class="btn-primary btn-full" onclick="closeModal();showPage('purchases')" style="margin-top:12px"><svg class="icon i-package" aria-hidden="true"><use href="#i-package"/></svg> View All Purchases</button>
-      <a href="https://wa.me/${WA_NUMBER}" target="_blank" class="wa-support-link"><svg class="icon i-message-circle" aria-hidden="true"><use href="#i-message-circle"/></svg> Need help? WhatsApp us</a>
+      ${kslContactLinks({cls:'wa-support-link', wa:'Need help? WhatsApp us', tg:'Need help? Telegram us'})}
     </div></div>`;
  showToast('Purchase successful! ','ok');
   } catch(e) {
@@ -2201,7 +2303,7 @@ function buildPurchaseCard(p,idx) {
     ${detailContent}
     <div class="pc-actions">
       ${copyHistoryBtn}
-      <a href="https://wa.me/${WA_NUMBER}" target="_blank" class="pc-wa-btn"><svg class="icon i-message-circle" aria-hidden="true"><use href="#i-message-circle"/></svg> Support</a>
+      ${kslContactLinks({cls:'pc-wa-btn', wa:'Support', tg:'Support'})}
     </div>
     ${reviewSection}
   </div>`;
@@ -2228,7 +2330,7 @@ Date: ${date.replace(' ','')}
 Details:
 ${details}
 ═══════════════════════════
-Support: wa.me/${WA_NUMBER}`;
+${kslSupportText()}`;
  copyRaw(text,btn,' Copy Full Receipt');
 }
 function setStar(idx,val) {
@@ -2544,7 +2646,7 @@ async function sendAiChatFab() {
     const data = await req('/api/support/ai-chat', 'POST', { message }, true);
     typingBubble.textContent = data.reply;
   } catch (e) {
-    typingBubble.textContent = "Sorry, I couldn't get a reply — please try WhatsApp support instead.";
+    typingBubble.textContent = "Sorry, I couldn't get a reply — please try " + kslContactNames('support') + " instead.";
   }
 }
 // ── SUPPORT ────────────────────────────────────────────────────
@@ -3530,7 +3632,7 @@ function showDepositResultCard(state) {
         <button class="btn-secondary" onclick="manualCheckPending()" style="margin-bottom:8px"><svg class="icon i-refresh" aria-hidden="true"><use href="#i-refresh"/></svg> Check Now</button>
       ` : ''}
       ${state==='success' ? `<button class="btn-primary" onclick="showPage('market')"><svg class="icon i-cart" aria-hidden="true"><use href="#i-cart"/></svg> Shop Marketplace</button>` : ''}
-      ${state==='failed'  ? `<a href="https://wa.me/${WA_NUMBER}" target="_blank" class="btn-secondary" style="display:inline-block;text-decoration:none"><svg class="icon i-message-circle" aria-hidden="true"><use href="#i-message-circle"/></svg> Contact Support</a>` : ''}
+      ${state==='failed'  ? kslContactLinks({cls:'btn-secondary', style:'display:inline-block;text-decoration:none', wa:'Contact Support', tg:'Contact Support'}) : ''}
     </div>`;
 }
 let _pendingPoller = null;
@@ -3642,7 +3744,7 @@ function showPhoneModal() {
         <!-- Rules -->
         <div style="margin-top:14px;padding:12px 14px;background:var(--bg3,#14141f);border-radius:9px;border:1px solid var(--border,#252535)">
           <p style="margin:0;font-size:.76rem;color:var(--t2,#8888a8);line-height:1.7">
-            <svg class="icon i-lock" aria-hidden="true"><use href="#i-lock"/></svg> <b style="color:var(--t1,#eeeef5)">Why we need this:</b> Order confirmations, account security &amp; WhatsApp support.<br>
+            <svg class="icon i-lock" aria-hidden="true"><use href="#i-lock"/></svg> <b style="color:var(--t1,#eeeef5)">Why we need this:</b> Order confirmations, account security &amp; ${kslContactNames('support')}.<br>
             <svg class="icon i-check-circle" aria-hidden="true"><use href="#i-check-circle"/></svg> Stored securely in our database — survives server changes &amp; redeploys.<br>
   You can update it anytime in Settings.
           </p>

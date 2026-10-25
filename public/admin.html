@@ -2014,6 +2014,13 @@ tr:hover td{background:rgba(255,255,255,.035)}
           <div id="slChannelFb" class="fb" style="margin-top:8px"></div>
         </div>
         <div style="background:var(--card2,#1a1a2e);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:16px">
+          <div style="font-weight:700;font-size:.95rem;margin-bottom:4px;color:var(--accent)"><svg class="icon i-message-circle" aria-hidden="true"><use href="#i-message-circle"/></svg> Contact buttons shown to customers</div>
+          <div style="font-size:.82rem;color:var(--t2);margin-bottom:12px">Switch a contact method on or off for customers. When WhatsApp is OFF, no WhatsApp contact shows anywhere (nav icon, Support page, dashboard, restock and receipt buttons). When Telegram is ON, the Telegram icon and buttons show. Each switch saves instantly &mdash; no redeploy needed.</div>
+          <label style="display:flex;align-items:center;gap:10px;margin-bottom:10px;cursor:pointer"><input type="checkbox" id="slWaOn" checked onchange="saveContactToggle('whatsappEnabled', this)" style="width:18px;height:18px;accent-color:var(--accent)"/> <span><b>WhatsApp contact</b> &mdash; show to customers</span></label>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="slTgOn" onchange="saveContactToggle('telegramEnabled', this)" style="width:18px;height:18px;accent-color:var(--accent)"/> <span><b>Telegram contact</b> &mdash; show to customers (save the Telegram username below first)</span></label>
+          <div id="slToggleFb" class="fb" style="margin-top:8px"></div>
+        </div>
+        <div style="background:var(--card2,#1a1a2e);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:16px">
           <div style="font-weight:700;font-size:.95rem;margin-bottom:4px;color:var(--accent)"><svg class="icon i-message-circle" aria-hidden="true"><use href="#i-message-circle"/></svg> Telegram &amp; WhatsApp contact (support dock)</div>
           <div style="font-size:.82rem;color:var(--t2);margin-bottom:12px">These power the floating Telegram + WhatsApp buttons shown on every page and every “Contact admin” link. Change them any time — no redeploy needed.</div>
           <div class="form-row" style="margin-bottom:10px">
@@ -5727,9 +5734,21 @@ async function loadContactLinksAdmin() {
     klsTelegramLinkDirty = false; // freshly loaded from the server — back in sync
     set('slWaChatLink', links.whatsappChatLink || '');
     set('slSupportHours', links.supportHours || '');
+    const waOnEl = document.getElementById('slWaOn'); if (waOnEl) waOnEl.checked = links.whatsappEnabled !== false;
+    const tgOnEl = document.getElementById('slTgOn'); if (tgOnEl) tgOnEl.checked = links.telegramEnabled === true;
     const prev = document.getElementById('slTgPreviewBtn');
     if (prev) prev.href = links.telegramLink || ('https://t.me/' + (links.telegramUsername || ''));
   } catch (e) {}
+}
+async function saveContactToggle(key, el) {
+  const fb = document.getElementById('slToggleFb');
+  const want = el.checked; el.disabled = true;
+  try {
+    await aFetch('/api/admin/site-links', 'POST', { [key]: want });
+    setFb(fb, (key === 'whatsappEnabled' ? 'WhatsApp' : 'Telegram') + ' contact is now ' + (want ? 'ON' : 'OFF') + ' for customers', 'ok');
+    setTimeout(() => setFb(fb, '', ''), 4000);
+  } catch (e) { el.checked = !want; setFb(fb, e.message, 'err'); }
+  el.disabled = false;
 }
 async function saveContactLinks() {
   const fb = document.getElementById('slContactFb');
