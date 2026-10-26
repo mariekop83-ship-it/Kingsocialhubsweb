@@ -33,6 +33,7 @@ require('dotenv').config();
 
 const _crypto = require('crypto');
 const { sealRef, openRef } = require('./lib/opaque-ref');
+const PA = require('./lib/price-adjust'); // admin Price Adjustments (add / subtract / restore) — see lib/price-adjust.js
 // Constant-time string compare (stops timing attacks on passcodes / webhook hashes)
 function safeEqual(a, b) {
   const x = Buffer.from(String(a == null ? '' : a)), y = Buffer.from(String(b == null ? '' : b));
@@ -1144,7 +1145,8 @@ function applyNumberMarkup(costNgn, cfg) {
 
 function grizzlyPriceNgn(costUsd, cfg) {
   const costNgn = Number(costUsd || 0) * (Number(cfg.usdToNgn) || 0);
-  return { costNgn: Math.round(costNgn), price: applyNumberMarkup(Math.round(costNgn), cfg) };
+  const _cost = Math.round(costNgn);
+  return { costNgn: _cost, price: PA.apply('bn1', applyNumberMarkup(_cost, cfg), { floor: _cost }) };
 }
 
 // ── Emoji helpers so the buy page reads like an app, not a database dump ──────
@@ -1617,6 +1619,8 @@ const anyAdminAuth = async (req, res, next) => {
 const { brandLogoFor } = require('./lib/brand-logos').register({
  app, mongoose, adminAuth, cloudinary, cloudinaryConfigured
 });
+// Price Adjustments: owner-only add / subtract / restore-default for every provider's prices
+PA.register(app, { mongoose, anyAdminAuth });
 // Marketplace 2 (RakibSocials API) + marketplace on/off switches — see lib/market2.js
 require('./lib/market2').register(app, { mongoose, User, Transaction, auth, anyAdminAuth, sendAdminEmail, brandLogoFor });
 // Marketplace 3 (Sujan Department reseller API) - see lib/market3.js
@@ -6562,7 +6566,8 @@ function novaServicePriceNgn(service, cfg, opts) {
   let markup = tier ? Number(tier.profit || 0) : Math.max(fallback, Math.round(cost * (Number(cfg?.highCostMarkupPercent) || 20) / 100));
   // Developer-API buyers keep apiProfitPercent % of the normal profit (cheaper than the site price).
   if (opts && opts.api) { const pct = Number(cfg?.apiProfitPercent); markup = Math.round(Math.max(0, markup) * (Number.isFinite(pct) ? pct : 75) / 100); }
-  return Math.ceil(cost + Math.max(0, markup));
+  const _auto = Math.ceil(cost + Math.max(0, markup));
+  return (opts && opts.raw) ? _auto : PA.apply('bn3', _auto, { floor: Math.ceil(cost) });
 }
 
 async function getNovaNumberServiceConfig(serverId, serviceId, country) {
@@ -6806,7 +6811,7 @@ app.get('/api/numbers/live-services', optionalAuth, async (req, res) => {
      return {
       serviceKey: sealNovaPublicRef('service', { serviceId, serverId: sidOf(s) || serverId, country: String(country).toLowerCase() }),
       provider: name,
-      price: config?.priceNgn != null ? Number(config.priceNgn) : automaticPrice,
+      price: config?.priceNgn != null ? PA.apply('bn3', Number(config.priceNgn)) : automaticPrice,
       enabled: config?.enabled !== false, visible: config?.visible !== false,
       emoji: serviceEmoji(s.code || s.slug || name, name), icon: serviceIconUrl(s.code || s.slug || name, name),
      };
@@ -6905,7 +6910,7 @@ async function novaPurchaseNumberInner({ userId, serviceId, serverId, countryCod
     throw novaHttpError(400, 'That service is not currently available. Please choose another service.');
   }
   const sellPrice = pricing !== 'api' && serviceConfig?.priceNgn != null
-    ? Number(serviceConfig.priceNgn)
+    ? PA.apply('bn3', Number(serviceConfig.priceNgn))
     : novaServicePriceNgn(service, cfg, { api: pricing === 'api' });
   if (!Number.isFinite(sellPrice) || sellPrice <= 0) throw novaHttpError(400, 'No valid price is available for this service right now.');
   // Price lock: the caller sends the price the customer confirmed; never charge a different amount silently.
