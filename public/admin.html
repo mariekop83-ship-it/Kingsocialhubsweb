@@ -1090,6 +1090,81 @@ tr:hover td{background:rgba(255,255,255,.035)}
     <!-- ══════════════ BUYNUMBER 2 (Server 2 · GrizzlySMS) ══════════════ -->
     
 <!-- KSH-ADMIN-TABS -->
+<div id="tab-priceadj" class="tab-panel"><!-- KSH-PRICE-ADJUST -->
+  <div class="sec-title">Markup / Price adjustment</div>
+  <div class="info-box" style="margin:8px 0">
+    Tick one or more providers, enter an amount, then press <b>Add</b>, <b>Subtract</b> or <b>Set</b>. It changes <b>every</b> product price of that provider at once &mdash; what customers see and what is taken from their wallet. <b>Restore default</b> returns the provider to its normal pricing.
+    <br>&bull; Buy Number &amp; Marketplace: the amount is added to each item/number.
+    <br>&bull; Boosting: the amount is per <b>1,000</b> units (a 100-unit order changes by one tenth).
+    <br>&bull; Prices never drop below what the supplier charges you.
+  </div>
+  <div class="tbl-wrap" style="margin:10px 0">
+    <table>
+      <thead><tr><th style="width:36px"><input type="checkbox" id="paAll" onchange="kshPaAll(this.checked)"></th><th>Provider</th><th>Applies</th><th>Current adjustment</th></tr></thead>
+      <tbody id="paRows"><tr><td colspan="4">Loading...</td></tr></tbody>
+    </table>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0">
+    <select id="paType" style="padding:9px;border-radius:8px"><option value="amount">Amount (₦)</option><option value="percent">Percent (%)</option></select>
+    <input id="paVal" type="number" step="any" min="0" placeholder="e.g. 1000" style="padding:9px;border-radius:8px;width:140px">
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px">
+    <button type="button" class="btn-sm" style="background:var(--gold);color:#000;border:none" onclick="kshPaDo('add')">+ Add</button>
+    <button type="button" class="btn-sm" onclick="kshPaDo('subtract')">&minus; Subtract</button>
+    <button type="button" class="btn-sm" onclick="kshPaDo('set')">Set to this value</button>
+    <button type="button" class="btn-sm" onclick="kshPaDo('reset')">Restore default</button>
+  </div>
+  <div id="paMsg" style="margin:6px 0;min-height:20px"></div>
+  <div class="sec-title" style="margin-top:18px">Recent changes</div>
+  <div id="paLog" style="overflow:auto">Loading...</div>
+</div>
+<script>
+(function(){
+  var rows=[];
+  function el(i){return document.getElementById(i);}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function naira(n){return '\u20a6'+Math.abs(n).toLocaleString('en-NG',{maximumFractionDigits:2});}
+  function fmt(a){
+    var parts=[];
+    if(a&&a.amountNgn)parts.push((a.amountNgn>0?'+':'\u2212')+naira(a.amountNgn));
+    if(a&&a.percent)parts.push((a.percent>0?'+':'\u2212')+Math.abs(a.percent)+'%');
+    return parts.length?parts.join(' and '):'Default (no change)';
+  }
+  function say(t,bad){var m=el('paMsg');if(m){m.textContent=t;m.style.color=bad?'var(--red)':'';}}
+  window.kshPaAll=function(on){document.querySelectorAll('.paChk').forEach(function(c){c.checked=on;});};
+  window.kshPaLoad=async function(){
+    try{
+      var d=await aFetch('/api/admin/price-adjust');
+      rows=d.providers||[];
+      el('paRows').innerHTML=rows.map(function(p){
+        var on=p.amountNgn||p.percent;
+        return '<tr><td><input type="checkbox" class="paChk" value="'+esc(p.key)+'"></td><td>'+esc(p.label)+'</td><td>'+esc(p.unit)+'</td><td style="font-weight:700;color:'+(on?'var(--gold)':'inherit')+'">'+esc(fmt(p))+'</td></tr>';
+      }).join('');
+      var log=d.log||[];
+      el('paLog').innerHTML=log.length?'<div class="tbl-wrap"><table><thead><tr><th>When</th><th>Provider</th><th>Action</th><th>Result</th></tr></thead><tbody>'+log.map(function(l){
+        var what=l.action==='reset'?'Restored default':(l.action==='add'?'Added ':l.action==='subtract'?'Subtracted ':'Set ')+(l.type==='percent'?l.value+'%':naira(l.value));
+        return '<tr><td>'+esc(new Date(l.at).toLocaleString())+'</td><td>'+esc(l.label)+'</td><td>'+esc(what)+'</td><td>'+esc(fmt(l.after))+'</td></tr>';
+      }).join('')+'</tbody></table></div>':'<div class="muted">No changes yet.</div>';
+    }catch(e){say('Could not load: '+e.message,true);el('paRows').innerHTML='<tr><td colspan="4">'+esc(e.message)+'</td></tr>';}
+  };
+  window.kshPaDo=async function(action){
+    var keys=[].slice.call(document.querySelectorAll('.paChk:checked')).map(function(c){return c.value;});
+    if(!keys.length){say('Tick at least one provider first.',true);return;}
+    var type=el('paType').value, raw=el('paVal').value.trim(), val=Number(raw);
+    if(action!=='reset'&&(raw===''||!isFinite(val))){say('Enter an amount first.',true);return;}
+    var names=rows.filter(function(p){return keys.indexOf(p.key)>-1;}).map(function(p){return p.label;}).join(', ');
+    var what=action==='reset'?'RESTORE DEFAULT pricing':(action==='add'?'ADD ':action==='subtract'?'SUBTRACT ':'SET to ')+(type==='percent'?val+'%':naira(val));
+    if(!confirm(what+' for:\n'+names+'\n\nThis changes every price of these providers immediately. Continue?'))return;
+    say('Saving...');
+    try{
+      await aFetch('/api/admin/price-adjust','POST',{keys:keys,action:action,type:type,value:action==='reset'?0:val});
+      say('Done. New prices are live.');
+      el('paVal').value='';
+      kshPaLoad();
+    }catch(e){say(e.message,true);}
+  };
+})();
+</script>
 <div id="tab-otp2" class="tab-panel">
   <div class="sec-title">Buy Number 2 (OTP Suite)</div>
   <div id="kshOtpStatus" style="margin:8px 0">Loading...</div>
@@ -2511,6 +2586,7 @@ const ADMIN_NAV = [
     { tab:'selfcheck', icon:'i-check-circle', label:'Deployment self-check', run:'runBoostSelfCheck' },
   ]},
   { group:'Marketplace settings', owner:true, items:[
+    { tab:'priceadj', icon:'i-banknote', label:'Markup / Price adjustment', owner:true, keywords:'markup price adjust add subtract restore default buy number boost marketplace increase decrease' },
     { tab:'logs2', icon:'i-plug', label:'Logs 2 (Marketplace 2)', owner:true, keywords:'nova novasolution marketplace manual switch prices stock' },
     { tab:'logs3', icon:'i-plug', label:'Logs 3 (Marketplace 3)', owner:true, keywords:'rakib rakibsocials marketplace three switch prices stock orders' },
     { tab:'logs4', icon:'i-plug', label:'Logs 4 (Marketplace 4)', owner:true, keywords:'marketplace four 4 sync switch prices stock orders' },
@@ -2651,6 +2727,7 @@ function switchTab(name,el) {
   if(name==='logs3')        { m3LoadConfig(); m3LoadProducts(false); m3LoadBalance(); m3LoadOrders(); }
   if(name==='logs4')        { m4LoadConfig(); m4LoadProducts(false); m4LoadBalance(); m4LoadOrders(); }
   if(name==='n3adm')        { n3Load(); }
+  if(name==='priceadj'&&window.kshPaLoad) kshPaLoad();
   if(name==='kinglogos')    { kLogosLoad(); }
   if(name==='welcomepopup') { wpLoad(); }
   if(name==='users')        { loadUsers(); loadActiveUsersAdmin(); }
