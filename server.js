@@ -663,18 +663,19 @@ const PaymentMethodSetting = mongoose.model('PaymentMethodSetting', paymentMetho
 // One row per gateway. No row yet = the built-in default: Flutterwave ON (so existing sites keep
 // working exactly as before) and Paystack OFF until an admin turns it on.
 const gatewaySettingSchema = new mongoose.Schema({
- gateway: { type: String, enum: ['flutterwave', 'paystack'], required: true, unique: true },
+ gateway: { type: String, enum: ['flutterwave', 'paystack', 'korapay'], required: true, unique: true },
  enabled: { type: Boolean, default: true },
  disabledMessage: { type: String, default: '' },
  updatedAt: { type: Date, default: Date.now }
 });
 const GatewaySetting = mongoose.model('GatewaySetting', gatewaySettingSchema);
-const GATEWAY_LIST = ['flutterwave', 'paystack'];
-const GATEWAY_LABELS = { flutterwave: 'Flutterwave', paystack: 'Paystack' };
-const GATEWAY_DEFAULT_ENABLED = { flutterwave: true, paystack: false };
+const GATEWAY_LIST = ['flutterwave', 'paystack', 'korapay'];
+const GATEWAY_LABELS = { flutterwave: 'Flutterwave', paystack: 'Paystack', korapay: 'Korapay' };
+const GATEWAY_DEFAULT_ENABLED = { flutterwave: true, paystack: false, korapay: false };
 function gatewayConfigured(g) {
  if (g === 'flutterwave') return !!process.env.FLW_V3_SECRET_KEY;
  if (g === 'paystack') return !!process.env.PAYSTACK_SECRET_KEY;
+ if (g === 'korapay') return !!process.env.KORAPAY_SECRET_KEY;
  return false;
 }
 // { flutterwave: { enabled, configured, available, disabledMessage }, paystack: {...} }
@@ -1659,6 +1660,7 @@ app.get('/api/admin/providers/status', anyAdminAuth, async (req, res) => {
 });
 // Welcome popup (WhatsApp channel promo) - settings editable in Admin -> Welcome Popup
 require('./lib/welcomepopup').register(app, { mongoose, adminAuth });
+require('./lib/number-notice').register(app, { mongoose, adminAuth });
 // Boosting 2 is active through NovaSolution; see lib/boost2.js.
 function sanitizeUser(u) {
  return {
@@ -3978,7 +3980,7 @@ const paymentLinkDepositSchema = new mongoose.Schema({
  fee: { type: Number, default: 0 },
  status: { type: String, enum: ['pending', 'success', 'failed'], default: 'pending' },
  flwTransactionId: { type: String, default: '' },
- gateway: { type: String, enum: ['flutterwave', 'paystack'], default: 'flutterwave' }, // which provider took this payment (old rows = flutterwave)
+ gateway: { type: String, enum: ['flutterwave', 'paystack', 'korapay'], default: 'flutterwave' }, // which provider took this payment (old rows = flutterwave)
  gatewayTxId: { type: String, default: '' }, // Paystack's own transaction id
  rawPayload: { type: mongoose.Schema.Types.Mixed },
  creditedAt: { type: Date },
@@ -4031,15 +4033,45 @@ function paystackTxOk(tx, deposit) {
   && Number(tx.amount) >= Math.round(Number(deposit.amount) * 100)
   && String(tx.reference || '') === String(deposit.txRef);
 }
+// ═══ KORAPAY HELPERS ════════════════════════════════════════════════════════
+const korapayAxios = axios.create({ baseURL: 'https://api.korapay.com/merchant/api/v1', timeout: 15000 });
+korapayAxios.interceptors.request.use(config => {
+ config.headers = { ...config.headers, Authorization: `Bearer ${process.env.KORAPAY_SECRET_KEY}` };
+ return config;
+});
+// NGN always works. USD only when your Korapay account has it enabled AND KORAPAY_ALLOW_USD=true is set.
+function korapaySupportsCurrency(cur) {
+ const c = String(cur || '').toUpperCase();
+ return c === 'NGN' || (c === 'USD' && String(process.env.KORAPAY_ALLOW_USD || '').toLowerCase() === 'true');
+}
+// Returns Korapay's charge object, or null when the reference does not exist (yet).
+async function korapayVerify(reference) {
+ try {
+  const r = await korapayAxios.get(`/charges/${encodeURIComponent(reference)}`, { timeout: 15000 });
+  return r.data?.data || null;
+ } catch (e) {
+  const msg = String(e.response?.data?.message || '');
+  if (e.response?.status === 404 || /not found/i.test(msg)) return null;
+  throw e;
+ }
+}
+// Korapay amounts are in major units (naira / dollars). Never credit less than was asked for.
+function korapayTxOk(tx, deposit) {
+ if (!tx) return false;
+ return String(tx.status || '').toLowerCase() === 'success'
+  && String(tx.currency || '').toUpperCase() === String(deposit.currency || 'NGN').toUpperCase()
+  && Number(tx.amount) >= Number(deposit.amount) - 0.005
+  && String(tx.reference || '') === String(deposit.txRef);
+}
 app.post('/api/deposit/paymentlink/create', auth, async (req, res) => {
  let gateway = '';
  try {
  const gwStates = await getGatewayStates();
- if (!gwStates.flutterwave.configured && !gwStates.paystack.configured) {
+ if (!gwStates.flutterwave.configured && !gwStates.paystack.configured && !gwStates.korapay.configured) {
   return res.status(503).json({ error: 'Payments are not configured yet — contact support.' });
  }
- if (!gwStates.flutterwave.available && !gwStates.paystack.available) {
-  return res.status(503).json({ error: gwStates.flutterwave.disabledMessage || gwStates.paystack.disabledMessage || 'Deposits are temporarily unavailable — please try again later.' });
+ if (!gwStates.flutterwave.available && !gwStates.paystack.available && !gwStates.korapay.available) {
+  return res.status(503).json({ error: gwStates.flutterwave.disabledMessage || gwStates.paystack.disabledMessage || gwStates.korapay.disabledMessage || 'Deposits are temporarily unavailable — please try again later.' });
  }
  const methodSetting = await PaymentMethodSetting.findOne({ method: 'paymentlink' });
  if (methodSetting && methodSetting.enabled === false) {
@@ -4086,9 +4118,10 @@ app.post('/api/deposit/paymentlink/create', auth, async (req, res) => {
  if (requested && !GATEWAY_LIST.includes(requested)) return res.status(400).json({ error: 'Unknown payment gateway' });
  const gwOk = {
   flutterwave: gwStates.flutterwave.available,
-  paystack: gwStates.paystack.available && paystackSupportsCurrency(chargeCurrency)
+  paystack: gwStates.paystack.available && paystackSupportsCurrency(chargeCurrency),
+  korapay: gwStates.korapay.available && korapaySupportsCurrency(chargeCurrency)
  };
- gateway = requested || (gwOk.flutterwave ? 'flutterwave' : (gwOk.paystack ? 'paystack' : ''));
+ gateway = requested || (gwOk.flutterwave ? 'flutterwave' : (gwOk.paystack ? 'paystack' : (gwOk.korapay ? 'korapay' : '')));
  if (!gateway || !gwOk[gateway]) {
   const which = gateway || 'flutterwave';
   return res.status(503).json({ error: gwStates[which].disabledMessage || `${GATEWAY_LABELS[which]} is currently unavailable for your country or currency — please choose another payment option.` });
@@ -4112,6 +4145,21 @@ app.post('/api/deposit/paymentlink/create', auth, async (req, res) => {
   }, { headers: { 'Content-Type': 'application/json' }, timeout: 15000 });
   link = psRes.data?.data?.authorization_url;
   if (!psRes.data?.status || !link) throw new Error(psRes.data?.message || 'Paystack did not return a payment link');
+ } else if (gateway === 'korapay') {
+  // Korapay references: letters, numbers, - _ only
+  txRef = txRef.replace(/[^A-Za-z0-9_-]/g, '-');
+  const krRes = await korapayAxios.post('/charges/initialize', {
+   reference: txRef,
+   amount: chargeAmount, // major units (naira / dollars)
+   currency: chargeCurrency,
+   redirect_url: `${siteUrl}/api/deposit/korapay/callback`,
+   notification_url: `${siteUrl}/api/webhooks/korapay`,
+   narration: 'Wallet deposit',
+   customer: { email: user.email, name: user.name || 'Customer' },
+   metadata: { userId: String(user._id), purpose: 'wallet_deposit' }
+  }, { headers: { 'Content-Type': 'application/json' }, timeout: 15000 });
+  link = krRes.data?.data?.checkout_url;
+  if (!krRes.data?.status || !link) throw new Error(krRes.data?.message || 'Korapay did not return a payment link');
  } else {
   // Only the rails Flutterwave has actually approved for this market are
   // offered — a customer never sees a method that will fail at checkout.
@@ -4306,10 +4354,79 @@ app.post('/api/webhooks/paystack', async (req, res) => {
   return res.status(500).json({ error: 'Processing error' }); // non-2xx → Paystack retries
  }
 });
+// ── Korapay: browser comes back here after paying ────────────────────────────
+app.get('/api/deposit/korapay/callback', async (req, res) => {
+ const siteUrl = process.env.SITE_URL || '';
+ const failRedirect = `${siteUrl}/deposit?deposit=failed`;
+ const pendingRedirect = (ref) => `${siteUrl}/deposit?deposit=pending&txRef=${encodeURIComponent(ref)}`;
+ try {
+  const reference = String(req.query.reference || '');
+  if (!reference) return res.redirect(failRedirect);
+  const deposit = await PaymentLinkDeposit.findOne({ txRef: reference, gateway: 'korapay' });
+  if (!deposit) return res.redirect(failRedirect);
+  if (deposit.status === 'success') return res.redirect(`${siteUrl}/deposit?deposit=success`);
+  if (!process.env.KORAPAY_SECRET_KEY) return res.redirect(failRedirect);
+  try {
+   const tx = await korapayVerify(reference);
+   if (korapayTxOk(tx, deposit)) {
+    await creditPaymentLinkDeposit(deposit, tx);
+    return res.redirect(`${siteUrl}/deposit?deposit=success`);
+   }
+   const st = String(tx?.status || '').toLowerCase();
+   if (st === 'failed') {
+    await PaymentLinkDeposit.updateOne({ _id: deposit._id, status: 'pending' }, { $set: { status: 'failed', rawPayload: tx } });
+    return res.redirect(failRedirect);
+   }
+   if (st === 'cancelled' || st === 'abandoned') return res.redirect(`${siteUrl}/deposit?deposit=cancelled`);
+   return res.redirect(pendingRedirect(reference));
+  } catch (e) {
+   console.error('Korapay callback verify error:', e.response?.data || e.message);
+   return res.redirect(pendingRedirect(reference));
+  }
+ } catch (e) {
+  console.error('Korapay callback error:', e.message);
+  res.redirect(failRedirect);
+ }
+});
+// ── Korapay webhook (set https://YOUR-SITE/api/webhooks/korapay in the Korapay dashboard) ──
+// Always processed — even when the Korapay switch is OFF — because the customer has already paid.
+app.post('/api/webhooks/korapay', async (req, res) => {
+ const secret = process.env.KORAPAY_SECRET_KEY || '';
+ const received = String(req.headers['x-korapay-signature'] || '');
+ const event = req.body || {};
+ const data = event.data || {};
+ const reference = String(data.reference || '');
+ if (!secret) return res.status(401).json({ error: 'Webhook not configured' });
+ // Korapay signs ONLY the "data" object (HMAC SHA256, secret key).
+ const expected = crypto.createHmac('sha256', secret).update(JSON.stringify(data)).digest('hex');
+ let valid = false;
+ try {
+  const a = Buffer.from(expected, 'utf8'), b = Buffer.from(received, 'utf8');
+  valid = a.length === b.length && crypto.timingSafeEqual(a, b);
+ } catch { valid = false; }
+ if (!valid) {
+  console.error('Korapay webhook REJECTED: bad x-korapay-signature');
+  return res.status(401).json({ error: 'Invalid webhook signature' });
+ }
+ try {
+  const evName = typeof event.event === 'object' ? (event.event?.type || '') : String(event.event || '');
+  if (evName !== 'charge.success') return res.json({ received: true });
+  const deposit = reference ? await PaymentLinkDeposit.findOne({ txRef: reference, gateway: 'korapay' }) : null;
+  if (!deposit || deposit.status === 'success') return res.json({ received: true });
+  // Never trust the webhook body alone — confirm with Korapay's API before crediting.
+  const tx = await korapayVerify(reference);
+  if (!korapayTxOk(tx, deposit)) return res.json({ received: true });
+  await creditPaymentLinkDeposit(deposit, tx);
+  return res.json({ received: true });
+ } catch (e) {
+  console.error('Korapay webhook error:', e.response?.data || e.message);
+  return res.status(500).json({ error: 'Processing error' }); // non-2xx → Korapay retries
+ }
+});
 async function creditPaymentLinkDeposit(deposit, tx) {
   const fresh = await PaymentLinkDeposit.findOneAndUpdate(
     { _id: deposit._id, status: 'pending' },
-    { status: 'success', ...(deposit.gateway === 'paystack' ? { gatewayTxId: String(tx.id || '') } : { flwTransactionId: String(tx.id || '') }), creditedAt: new Date(), rawPayload: tx },
+    { status: 'success', ...((deposit.gateway === 'paystack' || deposit.gateway === 'korapay') ? { gatewayTxId: String(tx.id || tx.reference || '') } : { flwTransactionId: String(tx.id || '') }), creditedAt: new Date(), rawPayload: tx },
     { new: true }
   );
   if (!fresh) return; // Already credited or failed — never double-credit
@@ -4324,7 +4441,7 @@ async function creditPaymentLinkDeposit(deposit, tx) {
   await Transaction.create({
     userId: updated._id, type: 'deposit', amount: creditAmount,
     txRef: deposit.txRef,
-    description: deposit.gateway === 'paystack' ? `Deposit via Paystack (${tx.channel || 'unknown method'})` : `Deposit via Flutterwave payment link (${tx.payment_type || 'unknown method'})`,
+    description: deposit.gateway === 'korapay' ? `Deposit via Korapay (${tx.payment_method || tx.channel || 'unknown method'})` : deposit.gateway === 'paystack' ? `Deposit via Paystack (${tx.channel || 'unknown method'})` : `Deposit via Flutterwave payment link (${tx.payment_type || 'unknown method'})`,
     status: 'success'
   });
   pushBalanceToUser(updated._id, updated.balance, creditAmount);
@@ -4407,6 +4524,24 @@ app.get('/api/deposit/paymentlink/status/:txRef', auth, async (req, res) => {
  }
  } catch (pollErr) {
  console.error('Paystack status poll error:', pollErr.response?.data || pollErr.message);
+ }
+ }
+ return res.json({ status: 'pending' });
+ }
+ if (deposit.gateway === 'korapay') {
+ if (process.env.KORAPAY_SECRET_KEY) {
+ try {
+ const tx = await korapayVerify(deposit.txRef);
+ if (korapayTxOk(tx, deposit)) {
+ await creditPaymentLinkDeposit(deposit, tx);
+ return res.json({ status: 'success', creditAmount: deposit.creditAmount });
+ }
+ if (String(tx?.status || '').toLowerCase() === 'failed') {
+ await PaymentLinkDeposit.updateOne({ _id: deposit._id, status: 'pending' }, { $set: { status: 'failed', rawPayload: tx } });
+ return res.json({ status: 'failed' });
+ }
+ } catch (pollErr) {
+ console.error('Korapay status poll error:', pollErr.response?.data || pollErr.message);
  }
  }
  return res.json({ status: 'pending' });
@@ -8216,9 +8351,10 @@ app.get('/api/deposit/payment-methods', optionalAuth, async (req, res) => {
  const payCur = klsCountries.payCurrencyFor(geo.code);
  byMethod.gateways = {
   flutterwave: { enabled: gw.flutterwave.enabled, available: gw.flutterwave.available, disabledMessage: gw.flutterwave.disabledMessage },
-  paystack: { enabled: gw.paystack.enabled, available: gw.paystack.available && paystackSupportsCurrency(payCur), disabledMessage: gw.paystack.disabledMessage }
+  paystack: { enabled: gw.paystack.enabled, available: gw.paystack.available && paystackSupportsCurrency(payCur), disabledMessage: gw.paystack.disabledMessage },
+  korapay: { enabled: gw.korapay.enabled, available: gw.korapay.available && korapaySupportsCurrency(payCur), disabledMessage: gw.korapay.disabledMessage }
  };
- byMethod.defaultGateway = byMethod.gateways.flutterwave.available ? 'flutterwave' : (byMethod.gateways.paystack.available ? 'paystack' : '');
+ byMethod.defaultGateway = byMethod.gateways.flutterwave.available ? 'flutterwave' : (byMethod.gateways.paystack.available ? 'paystack' : (byMethod.gateways.korapay.available ? 'korapay' : ''));
  // Virtual accounts can be issued by Flutterwave or Paystack — a gateway that is switched off stops issuing them.
  byMethod.vaGateways = { flutterwave: gw.flutterwave.enabled, paystack: gw.paystack.available };
  if (!byMethod.vaGateways.flutterwave && !byMethod.vaGateways.paystack) {
@@ -8382,7 +8518,8 @@ app.get('/api/admin/payment-gateways', anyAdminAuth, async (req, res) => {
   res.json({
    ...states,
    paystackUsdEnabled: String(process.env.PAYSTACK_ALLOW_USD || '').toLowerCase() === 'true',
-   webhookUrls: { flutterwave: `${site}/api/webhooks/flutterwave`, paystack: `${site}/api/webhooks/paystack` }
+   korapayUsdEnabled: String(process.env.KORAPAY_ALLOW_USD || '').toLowerCase() === 'true',
+   webhookUrls: { flutterwave: `${site}/api/webhooks/flutterwave`, paystack: `${site}/api/webhooks/paystack`, korapay: `${site}/api/webhooks/korapay` }
   });
  } catch (e) { res.status(500).json({ error: 'Failed to load payment gateways' }); }
 });
@@ -8394,7 +8531,7 @@ app.post('/api/admin/payment-gateways/:gateway', adminAuth, async (req, res) => 
   const update = { gateway, updatedAt: new Date() };
   if (enabled !== undefined) {
    if (enabled && !gatewayConfigured(gateway)) {
-    const keyName = gateway === 'paystack' ? 'PAYSTACK_SECRET_KEY' : 'FLW_V3_SECRET_KEY';
+    const keyName = gateway === 'paystack' ? 'PAYSTACK_SECRET_KEY' : (gateway === 'korapay' ? 'KORAPAY_SECRET_KEY' : 'FLW_V3_SECRET_KEY');
     return res.status(400).json({ error: `${GATEWAY_LABELS[gateway]} cannot be switched on yet — ${keyName} is not set on the server.` });
    }
    update.enabled = !!enabled;
@@ -8793,6 +8930,32 @@ async function reconcileVADeposits() {
 }
 // Paystack pending deposits: verify each one with Paystack and credit / fail it — independent of
 // Flutterwave's keys, so a Paystack-only setup still self-heals when a webhook is missed.
+let _pendingKrCheckRunning = false;
+async function checkPendingKorapayDeposits() {
+  if (_pendingKrCheckRunning || !process.env.KORAPAY_SECRET_KEY) return;
+  _pendingKrCheckRunning = true;
+  try {
+    const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const pending = await PaymentLinkDeposit.find({ status: 'pending', gateway: 'korapay', createdAt: { $gte: since48h } }).limit(60);
+    for (const dep of pending) {
+      try {
+        const tx = await korapayVerify(dep.txRef);
+        if (korapayTxOk(tx, dep)) {
+          console.log(`[Auto-Reconcile] Pending Korapay deposit ${dep.txRef} succeeded! Crediting user...`);
+          await creditPaymentLinkDeposit(dep, tx);
+        } else if (tx && String(tx.status || '').toLowerCase() === 'failed') {
+          await PaymentLinkDeposit.updateOne({ _id: dep._id, status: 'pending' }, { $set: { status: 'failed', rawPayload: tx } });
+        }
+      } catch (err) {
+        console.warn(`[Auto-Reconcile] Korapay check failed for ${dep.txRef}:`, err.response?.data?.message || err.message);
+      }
+    }
+  } catch (e) {
+    console.error('[Auto-Reconcile] checkPendingKorapayDeposits error:', e.message);
+  } finally {
+    _pendingKrCheckRunning = false;
+  }
+}
 let _pendingPsCheckRunning = false;
 async function checkPendingPaystackDeposits() {
   if (_pendingPsCheckRunning || !process.env.PAYSTACK_SECRET_KEY) return;
@@ -8824,6 +8987,7 @@ async function checkPendingPaystackDeposits() {
 async function checkAllPendingDeposits() {
   await checkAllPendingFlutterwaveDeposits();
   await checkPendingPaystackDeposits();
+  await checkPendingKorapayDeposits();
 }
 setTimeout(() => {
   reconcileVADeposits();
@@ -8912,6 +9076,13 @@ async function retryDepositConfirmation(source, id) {
       await creditPaymentLinkDeposit(dep, psTx);
       const freshPs = await PaymentLinkDeposit.findById(id).lean();
       return { ok: true, credited: freshPs.status === 'success', creditNgn: dep.creditAmount, reference: dep.txRef, message: 'Confirmation re-run against Paystack' };
+    }
+    if (dep.gateway === 'korapay') {
+      const krTx = await korapayVerify(dep.txRef);
+      if (!korapayTxOk(krTx, dep)) return { ok: true, credited: false, reference: dep.txRef, message: `Korapay reports status: ${krTx?.status || 'not found'}` };
+      await creditPaymentLinkDeposit(dep, krTx);
+      const freshKr = await PaymentLinkDeposit.findById(id).lean();
+      return { ok: true, credited: freshKr.status === 'success', creditNgn: dep.creditAmount, reference: dep.txRef, message: 'Confirmation re-run against Korapay' };
     }
     const verify = await flwAxios.get('/transactions/verify_by_reference', { params: { tx_ref: dep.txRef }, timeout: 15000 });
     const tx = verify.data?.data;
@@ -9046,7 +9217,7 @@ try {
   require('./lib/king-upgrade').late(app, { mongoose, anyAdminAuth, getNumberServerConfig, novaCatalogForCountry, novaServiceDisplayName, novaServicePriceNgn, novaSyncState: () => ({ ...novaSync }) });
 } catch (kingErr) { console.error('[king-upgrade] failed to load:', kingErr.message); }
 try {
-  require('./lib/market4').register(app, { mongoose, User, Transaction, auth, anyAdminAuth, sendAdminEmail });
+  require('./lib/market4').register(app, { mongoose, User, Transaction, auth, anyAdminAuth, sendAdminEmail, brandLogoFor });
 } catch (m4Err) { console.error('[market4] failed to load:', m4Err.message); }
 app.get('/boost2/order', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'boost2-order.html'))));
 app.all('/api/*', (req, res) => {
