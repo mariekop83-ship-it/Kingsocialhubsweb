@@ -70,3 +70,17 @@ body.m4-lock{overflow:hidden}
 .m4-add{background:#16a34a !important;color:#fff !important}.m4-add.in{background:#2563eb !important}
 .m4-qty input{outline:0 !important;-webkit-appearance:none !important;appearance:none !important;background-color:transparent !important;background-image:none !important}
 .m4-cartbar button,.m4-copy{background:#16a34a !important;color:#fff !important}
+/* ---- v3: products shown like Marketplace 2/3 — picture cards, 2 per line ---- */
+.m4-prods.cards-grid{display:grid !important;grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:10px}
+@media(min-width:900px){.m4-prods.cards-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr)) !important;gap:14px}}
+.m4-prods .prod-card-wrap{min-width:0}
+.m4-prods .m4-pcard{position:relative;padding:0 0 10px}
+.m4-prods .m4-pcard .prod-img,.m4-prods .m4-pcard .prod-img-ph{aspect-ratio:1/1;width:100%;display:flex;align-items:center;justify-content:center}
+.m4-prods .m4-pcard .prod-img img{width:100%;height:100%;object-fit:cover}
+.m4-prods .m4-pcard .prod-body{padding:8px 10px 0;gap:5px}
+.m4-prods .m4-pcard .prod-title{font-size:13.5px;line-height:1.25;word-break:break-word}
+.m4-prods .m4-pcard .prod-desc{font-size:11.5px;-webkit-line-clamp:2}
+.m4-prods .m4-pcard .prod-price{font-size:15px}
+.m4-prods .m4-pcard .m4-card-act{flex-direction:column;align-items:stretch;gap:6px}
+.m4-prods .m4-pcard .m4-qty{align-self:center}
+.m4-prods .m4-pcard .m4-add{width:100%;min-height:38px;font-size:12.5px}
