@@ -69,7 +69,7 @@
   function render() {
     var grid = $('marketGrid'), title = $('m4Title'), back = $('m4Back');
     back.style.display = (view === 'cats') ? 'none' : 'inline-flex';
-    grid.className = (view === 'cats') ? 'm4-cats' : 'm4-prods';
+    grid.className = (view === 'cats') ? 'm4-cats' : 'cards-grid m4-prods';
     if (view === 'cats') {
       title.textContent = 'Choose a category';
       var map = {};
@@ -93,11 +93,22 @@
 
   function card(i) {
     var out = !i.inStock, inCart = cart[i.id] || 0, max = Math.min(i.stock, 100);
-    return '<div class="m4-card"><div class="m4-card-head"><div class="m4-card-title">' + E(i.title) + '</div><div class="m4-card-price">' + money(i.price) + '</div></div>' +
-      '<div class="m4-card-desc">' + E(i.description || 'Instant delivery after purchase.') + '</div>' +
-      '<div class="m4-card-stock" style="color:' + (out ? '#e74c3c' : '#2ecc71') + '">' + (out ? 'Sold out' : i.stock + ' available') + '</div>' +
-      (out ? '' : '<div class="m4-card-act"><div class="m4-qty"><button type="button" data-step="-1" data-id="' + i.id + '" aria-label="Less">−</button><input type="number" inputmode="numeric" min="1" max="' + max + '" value="' + (inCart || 1) + '" id="q' + i.id + '"/><button type="button" data-step="1" data-id="' + i.id + '" aria-label="More">+</button></div>' +
-        '<button type="button" class="m4-add' + (inCart ? ' in' : '') + '" data-add="' + i.id + '">' + (inCart ? 'Update cart' : 'Add to cart') + '</button></div>') + '</div>';
+    var ph = '<div class="prod-img-ph"><svg class="icon i-package" aria-hidden="true"><use href="#i-package"/></svg></div>';
+    var img = i.picture
+      ? '<div class="prod-img"><img src="' + E(i.picture) + '" alt="' + E(i.title) + '" loading="lazy" onerror="this.parentElement.outerHTML=this.parentElement.getAttribute(\'data-ph\')"/></div>'
+      : ph;
+    if (i.picture) img = img.replace('<div class="prod-img">', '<div class="prod-img" data-ph="' + E(ph) + '">');
+    return '<div class="prod-card-wrap"><div class="prod-card m4-pcard">' +
+      '<div class="prod-badge">' + E(groupOf(i)) + '</div>' + img +
+      '<div class="prod-body">' +
+        '<div class="prod-title">' + E(i.title) + '</div>' +
+        '<div class="prod-desc">' + E(i.description || 'Instant delivery after purchase.') + '</div>' +
+        '<div class="prod-footer"><div class="prod-price">' + (out ? '<span style="color:var(--red)">Sold Out</span>' : money(i.price)) + '</div>' +
+          '<div class="prod-meta"><div class="prod-qty" style="color:' + (out ? '#e74c3c' : '#2ecc71') + '">' + (out ? 'Sold Out' : i.stock + ' available') + '</div></div></div>' +
+        (out ? '<button type="button" class="prod-select-btn" disabled style="opacity:.5;cursor:not-allowed">Sold Out</button>' :
+          '<div class="m4-card-act"><div class="m4-qty"><button type="button" data-step="-1" data-id="' + i.id + '" aria-label="Less">−</button><input type="number" inputmode="numeric" id="q' + i.id + '" min="1" max="' + max + '" value="' + (inCart || 1) + '"/><button type="button" data-step="1" data-id="' + i.id + '" aria-label="More">+</button></div>' +
+          '<button type="button" class="m4-add' + (inCart ? ' in' : '') + '" data-add="' + i.id + '">' + (inCart ? 'Update cart' : 'Add to cart') + '</button></div>') +
+      '</div></div></div>';
   }
   function step(b) {
     var id = +b.getAttribute('data-id'), it = byId(id), inp = $('q' + id); if (!it || !inp) return;

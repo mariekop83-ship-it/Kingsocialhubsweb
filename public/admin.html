@@ -775,6 +775,20 @@ tr:hover td{background:rgba(255,255,255,.035)}
   </div>
 </div>
 
+<div id="tab-numnotice" class="tab-panel">
+      <div class="sec">
+        <div class="sec-title"><svg class="icon i-pin" aria-hidden="true"><use href="#i-pin"/></svg> Buy Number notice (WhatsApp login help)</div>
+        <div class="info-box">This message pops up when a customer opens any Buy Number page. They must tap the button to continue. Use it to tell them how to log in to WhatsApp (VPN, reinstall, time settings). Edits apply within seconds and show again to customers who already dismissed the old one.</div>
+        <div class="form-row"><div class="fg"><label>Notice status</label>
+          <button class="btn-gold" type="button" id="nnToggle" onclick="nnFlip()" style="width:100%">…</button></div></div>
+        <div class="form-row"><div class="fg" style="flex:2"><label>Title</label><input type="text" id="nnTitle" maxlength="120"/></div></div>
+        <div class="form-row"><div class="fg" style="flex:2"><label>Message (line breaks are kept)</label><textarea id="nnMsg" rows="10" maxlength="2500"></textarea></div></div>
+        <div class="form-row"><div class="fg"><label>Button text</label><input type="text" id="nnBtn" maxlength="60"/></div></div>
+        <div class="form-row"><button class="btn-gold" type="button" onclick="nnSave()">Save notice</button></div>
+        <div id="nnMeta" style="font-size:12px;opacity:.7;margin-top:8px"></div>
+      </div>
+    </div>
+
 <div id="tab-welcomepopup" class="tab-panel">
       <div class="sec">
         <div class="sec-title"><svg class="icon i-zap" aria-hidden="true"><use href="#i-zap"/></svg> Welcome Popup Settings</div>
@@ -1045,6 +1059,19 @@ tr:hover td{background:rgba(255,255,255,.035)}
             <button class="btn-secondary" onclick="saveGatewayMessage('paystack')">Save Message</button>
             <div id="gwFeedbackPaystack" class="form-feedback"></div>
             <p style="font-size:.74rem;color:var(--t2);margin:6px 0 0">Webhook URL (paste in Paystack dashboard → Settings → API Keys &amp; Webhooks): <code id="gwHookPaystack"></code></p>
+          </div>
+          <div class="pm-row" style="margin-top:10px">
+            <div class="pm-row-head">
+              <span class="pm-row-title">Korapay <small id="gwStatusKorapay" style="font-weight:500;color:var(--t2)"></small></span>
+              <label class="pm-switch">
+                <input type="checkbox" id="gwToggleKorapay" onchange="toggleGateway('korapay', this.checked)"/>
+                <span class="pm-slider"></span>
+              </label>
+            </div>
+            <div class="fg"><label>Message shown to users when off</label><input type="text" id="gwMsgKorapay" placeholder="e.g. Korapay is under maintenance — please use another option."/></div>
+            <button class="btn-secondary" onclick="saveGatewayMessage('korapay')">Save Message</button>
+            <div id="gwFeedbackKorapay" class="form-feedback"></div>
+            <p style="font-size:.74rem;color:var(--t2);margin:6px 0 0">Needs <code>KORAPAY_SECRET_KEY</code> in Render. Webhook URL (paste in Korapay dashboard &rarr; Settings &rarr; API Configuration): <code id="gwHookKorapay"></code></p>
           </div>
         </div>
         <div class="pm-row" id="pmRowPaymentlink">
@@ -2619,6 +2646,7 @@ const ADMIN_NAV = [
   ]},
   { group:'Buy numbers', owner:true, items:[
     { tab:'numbers',  icon:'i-smartphone', label:'Server 1 (pricing & stock)', owner:true },
+    { tab:'numnotice', icon:'i-pin', label:'Number notice (WhatsApp help)', owner:true, keywords:'buy number notice banner whatsapp login help message vpn' },
   ]},
   { group:'Growth & marketing', owner:true, items:[
     { tab:'emaildelivery', icon:'i-mail',      label:'Email delivery', owner:true },
@@ -2730,6 +2758,7 @@ function switchTab(name,el) {
   if(name==='priceadj'&&window.kshPaLoad) kshPaLoad();
   if(name==='kinglogos')    { kLogosLoad(); }
   if(name==='welcomepopup') { wpLoad(); }
+  if(name==='numnotice')    { nnLoad(); }
   if(name==='users')        { loadUsers(); loadActiveUsersAdmin(); }
   if(name==='credit')       { loadAllUsersFor('qcBody'); refreshCreditUsers(); }
   if(name==='transactions') loadTxns();
@@ -4505,7 +4534,7 @@ async function loadPaymentMethodsAdmin() {
 async function loadGatewaysAdmin() {
   try {
     const g = await aFetch('/api/admin/payment-gateways');
-    [['flutterwave','Flutterwave'],['paystack','Paystack']].forEach(([key, name]) => {
+    [['flutterwave','Flutterwave'],['paystack','Paystack'],['korapay','Korapay']].forEach(([key, name]) => {
       const st = g[key] || {};
       const toggle = document.getElementById('gwToggle' + name);
       const msg = document.getElementById('gwMsg' + name);
@@ -4519,7 +4548,7 @@ async function loadGatewaysAdmin() {
   } catch (e) { console.error('Failed to load payment gateways', e); }
 }
 async function toggleGateway(gateway, enabled) {
-  const name = gateway === 'paystack' ? 'Paystack' : 'Flutterwave';
+  const name = gateway === 'paystack' ? 'Paystack' : (gateway === 'korapay' ? 'Korapay' : 'Flutterwave');
   const fb = document.getElementById('gwFeedback' + name);
   setFb(fb, 'Saving...', '');
   try {
@@ -4533,7 +4562,7 @@ async function toggleGateway(gateway, enabled) {
   }
 }
 async function saveGatewayMessage(gateway) {
-  const name = gateway === 'paystack' ? 'Paystack' : 'Flutterwave';
+  const name = gateway === 'paystack' ? 'Paystack' : (gateway === 'korapay' ? 'Korapay' : 'Flutterwave');
   const fb = document.getElementById('gwFeedback' + name);
   setFb(fb, 'Saving...', '');
   try {
@@ -7163,6 +7192,23 @@ function wpPreview(){
 async function wpReset(){
   if(!confirm('Reset the welcome popup to its default text and settings? This clears the saved WhatsApp link too. Nothing else on the site is affected.')) return;
   try { const d=await aFetch('/api/admin/welcome-popup/reset','POST',{}); wpFill(d.settings); wpMeta(d); alert('Reset to defaults.'); } catch(e){ alert(e.message); }
+}
+
+/* ── Buy Number notice ── */
+var nnOn=true;
+function nnRender(){ var b=document.getElementById('nnToggle'); if(b){ b.textContent=nnOn?'Notice is ON (tap to turn off)':'Notice is OFF (tap to turn on)'; } }
+function nnFlip(){ nnOn=!nnOn; nnRender(); }
+async function nnLoad(){
+  try { const d=await aFetch('/api/admin/number-notice'); const s=d.settings;
+    nnOn=!!s.enabled; nnRender();
+    document.getElementById('nnTitle').value=s.title||''; document.getElementById('nnMsg').value=s.message||''; document.getElementById('nnBtn').value=s.buttonText||'';
+    document.getElementById('nnMeta').textContent=d.updatedAt?'Last saved '+new Date(d.updatedAt).toLocaleString():'Using the default message (nothing saved yet).';
+  } catch(e){ document.getElementById('nnMeta').textContent='Could not load: '+e.message; }
+}
+async function nnSave(){
+  try { const d=await aFetch('/api/admin/number-notice','PUT',{enabled:nnOn,title:document.getElementById('nnTitle').value,message:document.getElementById('nnMsg').value,buttonText:document.getElementById('nnBtn').value});
+    document.getElementById('nnMeta').textContent='Last saved '+new Date(d.updatedAt).toLocaleString(); alert('Notice saved.');
+  } catch(e){ alert('Not saved: '+e.message); }
 }
 function wpClearMemory(){ if(window.KSHWelcomePopup){ window.KSHWelcomePopup.clearBrowserMemory(); alert('Done. The popup can show again in this browser (if it is enabled and the frequency allows).'); } }
 
