@@ -3,7 +3,7 @@
   'use strict';
   if (window.__klsDevCredit) return;
   window.__klsDevCredit = true;
-  var OWNER_WHATSAPP = '#';
+  var OWNER_TELEGRAM = '@kingsocialhub';
   function mount() {
     if (document.querySelector('.kls-devbar')) return;
     var bar = document.createElement('div');
@@ -15,7 +15,7 @@
           '<span class="kls-devbar-txt">Designed and engineered by developer <strong>Marvel</strong></span>' +
         '</div>' +
         '<div class="kls-devbar-buy">' +
-          'Want to buy this website? <a href="' + OWNER_WHATSAPP + '" target="_blank" rel="noopener noreferrer" class="kls-devbar-cta">Contact the admin / owner on WhatsApp: +234 812 835 8120</a>' +
+          'Want to buy this website? Contact the admin / owner on <span class=\"kls-devbar-tg\" style=\"font-weight:700;text-decoration:none;cursor:default;color:inherit\">Telegram: ' + OWNER_TELEGRAM + '</span>' +
         '</div>' +
       '</div>';
     document.body.appendChild(bar);
