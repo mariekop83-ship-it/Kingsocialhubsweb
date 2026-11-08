@@ -776,7 +776,8 @@
     ['/tutorials','svc-orange','<span style="font-size:24px">&#128218;</span>','Tutorials',''],
     ['/purchases','svc-teal','<svg><use href="#i-clipboard"/></svg>','My Orders',''],
     ['/transactions','svc-sky','<svg><use href="#i-history"/></svg>','Transactions',''],
-    ['/referrals','svc-orange','<svg><use href="#i-gift"/></svg>','Referrals','']
+    ['/referrals','svc-orange','<svg><use href="#i-gift"/></svg>','Referrals',''],
+    ['#website','svc-indigo','<span style="font-size:24px">&#127760;</span>','Website','SOON']
   ];
   var a=document.querySelector('.dsh-svc-item');
   if(a&&a.parentElement){
@@ -784,6 +785,29 @@
       return '<a class="dsh-svc-item" href="'+f[0]+'"><div class="dsh-svc-icon '+f[1]+'">'+f[2]+'</div><span class="dsh-svc-label">'+f[3]+'</span>'+(f[4]?'<span class="dsh-svc-badge">'+f[4]+'</span>':'')+'</a>';
     }).join('');
   }
+
+  // Website: coming-soon popup
+  function openWebsiteModal(){
+    if(document.getElementById('kshWebModal'))return;
+    var m=document.createElement('div');
+    m.id='kshWebModal';
+    m.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px';
+    m.innerHTML='<div role="dialog" aria-modal="true" style="background:var(--white,#fff);color:var(--text,#15151f);border-radius:18px;max-width:340px;width:100%;padding:24px 20px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)">'+
+      '<div style="font-size:42px;line-height:1">&#127760;</div>'+
+      '<div style="font-size:19px;font-weight:800;margin:10px 0 6px">Website &mdash; Coming Soon</div>'+
+      '<p style="font-size:13.5px;line-height:1.6;color:var(--text2,#55556e);margin:0 0 12px">Our website service is not ready yet, but it is coming soon. Need a website right now? We build any type of website: business, store, portfolio, social media panel and more.</p>'+
+      '<p style="font-size:14px;font-weight:700;margin:0 0 16px">DM us on Telegram: @kingsocialhub</p>'+
+      '<button type="button" id="kshWebClose" style="width:100%;padding:12px;border:0;border-radius:12px;background:#4f46e5;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Got it</button>'+
+      '</div>';
+    document.body.appendChild(m);
+    function close(){m.remove();}
+    m.addEventListener('click',function(e){if(e.target===m)close();});
+    m.querySelector('#kshWebClose').addEventListener('click',close);
+  }
+  document.addEventListener('click',function(ev){
+    var a=ev.target.closest&&ev.target.closest('a[href="#website"]');
+    if(a){ev.preventDefault();ev.stopImmediatePropagation();openWebsiteModal();}
+  },true);
 
   // Floating support button goes straight to the support page
   document.addEventListener('click',function(ev){
