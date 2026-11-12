@@ -1633,6 +1633,10 @@ require('./lib/tutorials').register(app, { mongoose, anyAdminAuth, uploadMw: dep
 require('./lib/live-purchases').register(app, { User, Transaction, auth });
 // Websites for sale (admin adds price + customer/admin panel demo links) - see lib/websites.js
 require('./lib/websites').register(app, { mongoose, anyAdminAuth });
+// Telegram Tick (Telegram verification orders paid from the wallet) - see lib/telegram-tick.js
+try {
+  require('./lib/telegram-tick').register(app, { mongoose, User, Transaction, auth, anyAdminAuth, sendAdminEmail });
+} catch (ttErr) { console.error('[telegram-tick] failed to load:', ttErr.message); }
 
 // Owner-only integration diagnostics. This reports readiness without ever
 // returning provider credentials, so the admin can distinguish a disabled
@@ -2570,13 +2574,14 @@ app.get('/api/user/notifications', auth, async (req, res) => {
  seenAt = new Date();
  await User.findByIdAndUpdate(req.user._id, { notificationsSeenAt: seenAt });
  }
- const [receipts, tickets, transactions, supportReplies, announcements, announcementStates] = await Promise.all([
+ const [receipts, tickets, transactions, supportReplies, announcements, announcementStates, tickOrders] = await Promise.all([
  Receipt.find({ userId: req.user._id, status: { $ne: 'pending' }, seenByUser: false }).sort({ createdAt: -1 }).limit(30),
  Support.find({ userId: req.user._id, status: 'resolved', seenByUser: false }).sort({ createdAt: -1 }).limit(30),
  Transaction.find({ userId: req.user._id, status: 'success', type: { $in: ['deposit', 'purchase', 'admin_credit'] } }).sort({ createdAt: -1 }).limit(30),
  SupportMessage.find({ userId: req.user._id, sender: 'admin', readByUser: false }).sort({ createdAt: -1 }).limit(30),
  Announcement.find(liveAnnouncementFilter()).sort({ pinned: -1, createdAt: -1 }).limit(50).lean(),
- AnnouncementState.find({ userId: req.user._id }).lean()
+ AnnouncementState.find({ userId: req.user._id }).lean(),
+ mongoose.models.TelegramTickOrder ? mongoose.models.TelegramTickOrder.find({ userId: req.user._id, status: { $in: ['completed', 'cancelled'] } }).sort({ updatedAt: -1 }).limit(15).lean() : []
  ]);
  const announcementRead = new Map(announcementStates.map(s => [String(s.announcementId), !!s.readAt]));
  const items = [
@@ -2604,6 +2609,14 @@ app.get('/api/user/notifications', auth, async (req, res) => {
    link: a.link || '/notifications', image: a.image || '', level: a.level || 'info',
    unread: !announcementRead.get(String(a._id)), createdAt: a.createdAt
   })),
+ ...tickOrders.map(o => ({
+   id: o._id, type: 'telegram-tick', link: '/telegram-tick',
+   title: o.status === 'completed' ? ' Telegram verified' : ' Telegram Tick cancelled',
+   message: o.status === 'completed'
+     ? `Your Telegram @${o.username} has been verified (${o.months} month${o.months === 1 ? '' : 's'}) — ₦${Number(o.price).toLocaleString('en-NG')} paid.`
+     : `Your Telegram Tick order for @${o.username} was cancelled and ₦${Number(o.price).toLocaleString('en-NG')} was refunded.`,
+   createdAt: o.completedAt || o.updatedAt || o.createdAt
+ })),
  ...transactions.map(tx => ({
  id: tx._id,
  type: tx.type,
@@ -9245,6 +9258,7 @@ app.all('/api/*', (req, res) => {
   res.status(404).json({ error: `Unknown API endpoint: ${req.method} ${req.path}` });
 });
 // KSH-UPDATE-4
+app.get('/telegram-tick', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'telegram-tick.html'))));
 app.get('/websites', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'websites.html'))));
 app.get(['/tutorials', '/help', '/about'],(req, res) => res.sendFile(path.join(__dirname, 'public', req.path.replace(/^\//, '') + '.html')));
 app.get('*', (req, res) => {
