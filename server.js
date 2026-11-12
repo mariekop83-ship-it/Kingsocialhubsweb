@@ -1629,6 +1629,10 @@ require('./lib/market3').register(app, { mongoose, User, Transaction, auth, anyA
 require('./lib/otp-suite')(app, { mongoose, User, Transaction, auth, anyAdminAuth });
 // Tutorial library (admin adds videos/pictures/descriptions, customers watch free) - see lib/tutorials.js
 require('./lib/tutorials').register(app, { mongoose, anyAdminAuth, uploadMw: depositTutorialUpload, fileUrl });
+// Live purchases feed on the dashboard (masked buyer names) - see lib/live-purchases.js
+require('./lib/live-purchases').register(app, { User, Transaction, auth });
+// Websites for sale (admin adds price + customer/admin panel demo links) - see lib/websites.js
+require('./lib/websites').register(app, { mongoose, anyAdminAuth });
 
 // Owner-only integration diagnostics. This reports readiness without ever
 // returning provider credentials, so the admin can distinguish a disabled
@@ -9241,7 +9245,8 @@ app.all('/api/*', (req, res) => {
   res.status(404).json({ error: `Unknown API endpoint: ${req.method} ${req.path}` });
 });
 // KSH-UPDATE-4
-app.get(['/tutorials', '/help', '/about'], (req, res) => res.sendFile(path.join(__dirname, 'public', req.path.replace(/^\//, '') + '.html')));
+app.get('/websites', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'websites.html'))));
+app.get(['/tutorials', '/help', '/about'],(req, res) => res.sendFile(path.join(__dirname, 'public', req.path.replace(/^\//, '') + '.html')));
 app.get('*', (req, res) => {
   // Always hand back the freshly built HTML — no stale home page from a cache.
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
