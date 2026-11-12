@@ -1317,6 +1317,92 @@ tr:hover td{background:rgba(255,255,255,.035)}
   };
 })();
 </script>
+<div id="tab-websitesadm" class="tab-panel">
+  <div class="sec">
+    <div class="sec-title">&#127760; Websites for sale</div>
+    <div class="info-box">Websites added here appear on the customer <b>Website</b> page (dashboard). Customers can open the <b>customer panel link</b> to see how the site looks. The <b>admin panel link</b> is optional &mdash; if you add it, customers also get a "View admin panel" button.</div>
+    <input type="hidden" id="wsEditId"/>
+    <div class="fg"><label>Website name</label><input type="text" id="wsTitle" placeholder="e.g. SMM Panel Website"/></div>
+    <div class="fg"><label>Price (&#8358;)</label><input type="number" id="wsPrice" min="0" step="any" placeholder="e.g. 50000"/></div>
+    <div class="fg"><label>Customer panel link (required)</label><input type="text" id="wsCustomer" placeholder="https://demo-site.com"/></div>
+    <div class="fg"><label>Admin panel link (optional)</label><input type="text" id="wsAdminUrl" placeholder="https://demo-site.com/admin"/></div>
+    <div class="fg"><label>Demo login details (optional, shown to customers)</label><textarea id="wsNote" rows="2" placeholder="e.g. Username: demo / Password: demo123"></textarea></div>
+    <div class="fg"><label>Description (optional)</label><textarea id="wsDesc" rows="3" placeholder="What the website does, features, what the buyer gets&hellip;"></textarea></div>
+    <div class="fg"><label>Picture link (optional, a screenshot URL)</label><input type="text" id="wsImage" placeholder="https://..."/></div>
+    <div class="fg"><label>Order (small number shows first, optional)</label><input type="number" id="wsOrder" placeholder="0"/></div>
+    <div class="fg"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="wsPublished" checked/> Visible to customers</label></div>
+    <div class="fg"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="wsSold"/> Mark as sold</label></div>
+    <button class="btn-primary" type="button" id="wsSaveBtn" onclick="wsSave()">Save website</button>
+    <button class="btn-secondary" type="button" id="wsCancelBtn" onclick="wsReset()" style="margin-left:8px;display:none">Cancel edit</button>
+    <div id="wsFeedback" class="form-feedback"></div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">Your websites</div>
+    <div id="wsList">Loading...</div>
+  </div>
+</div>
+<script>
+(function(){
+  var items=[];
+  function E(id){return document.getElementById(id);}
+  function h(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function fb(msg,ok){var f=E('wsFeedback');f.textContent=msg||'';f.style.color=ok?'#16a34a':'#ef4444';}
+  window.wsReset=function(){
+    ['wsEditId','wsTitle','wsPrice','wsCustomer','wsAdminUrl','wsNote','wsDesc','wsImage','wsOrder'].forEach(function(i){E(i).value='';});
+    E('wsPublished').checked=true;E('wsSold').checked=false;
+    E('wsSaveBtn').textContent='Save website';E('wsCancelBtn').style.display='none';
+  };
+  window.wsLoad=async function(){
+    var box=E('wsList');
+    try{
+      items=await aFetch('/api/admin/websites');
+      if(!items.length){box.innerHTML='<p style="color:var(--t2);font-size:13px">No websites yet. Add your first one above.</p>';return;}
+      box.innerHTML=items.map(function(w){
+        return '<div style="border:1px solid var(--border,#2a2a3a);border-radius:10px;padding:10px 12px;margin-bottom:8px">'+
+          '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>'+h(w.title)+'</b><span>&#8358;'+Number(w.price).toLocaleString('en-NG')+'</span></div>'+
+          '<div style="font-size:12px;color:var(--t2);margin:4px 0;word-break:break-all">Customer: '+h(w.customerPanelUrl)+(w.adminPanelUrl?'<br>Admin: '+h(w.adminPanelUrl):'')+'</div>'+
+          '<div style="font-size:12px;margin-bottom:6px">'+(w.published?'Visible':'<b>Hidden</b>')+(w.sold?' &middot; <b>Sold</b>':'')+'</div>'+
+          '<button class="btn-secondary" type="button" onclick="wsEdit(\''+w.id+'\')">Edit</button> '+
+          '<button class="btn-secondary" type="button" onclick="wsToggle(\''+w.id+'\',\'published\')">'+(w.published?'Hide':'Show')+'</button> '+
+          '<button class="btn-secondary" type="button" onclick="wsToggle(\''+w.id+'\',\'sold\')">'+(w.sold?'Mark available':'Mark sold')+'</button> '+
+          '<button class="btn-secondary" type="button" onclick="wsDelete(\''+w.id+'\')">Delete</button></div>';
+      }).join('');
+    }catch(e){box.innerHTML='<p style="color:#ef4444;font-size:13px">Could not load: '+h(e.message)+'</p>';}
+  };
+  window.wsEdit=function(id){
+    var w=items.filter(function(x){return x.id===id;})[0];if(!w)return;
+    E('wsEditId').value=w.id;E('wsTitle').value=w.title;E('wsPrice').value=w.price;
+    E('wsCustomer').value=w.customerPanelUrl;E('wsAdminUrl').value=w.adminPanelUrl||'';
+    E('wsNote').value=w.demoNote||'';E('wsDesc').value=w.description||'';E('wsImage').value=w.imageUrl||'';
+    E('wsOrder').value=w.sortOrder||'';E('wsPublished').checked=!!w.published;E('wsSold').checked=!!w.sold;
+    E('wsSaveBtn').textContent='Update website';E('wsCancelBtn').style.display='inline-block';
+    fb('');try{E('tab-websitesadm').scrollIntoView({behavior:'smooth'});}catch(e){}
+  };
+  window.wsToggle=async function(id,field){
+    var w=items.filter(function(x){return x.id===id;})[0];if(!w)return;
+    var body={};body[field]=!w[field];
+    try{await aFetch('/api/admin/websites/'+id,'PUT',body);wsLoad();}catch(e){alert('Error: '+e.message);}
+  };
+  window.wsDelete=async function(id){
+    if(!confirm('Delete this website? Customers will no longer see it.'))return;
+    try{await aFetch('/api/admin/websites/'+id,'DELETE');if(E('wsEditId').value===id)wsReset();wsLoad();}catch(e){alert('Error: '+e.message);}
+  };
+  window.wsSave=async function(){
+    var editId=E('wsEditId').value;
+    var body={
+      title:E('wsTitle').value,price:E('wsPrice').value,customerPanelUrl:E('wsCustomer').value,
+      adminPanelUrl:E('wsAdminUrl').value,demoNote:E('wsNote').value,description:E('wsDesc').value,
+      imageUrl:E('wsImage').value,sortOrder:E('wsOrder').value,
+      published:E('wsPublished').checked,sold:E('wsSold').checked
+    };
+    fb('Saving...',true);
+    try{
+      await aFetch(editId?'/api/admin/websites/'+editId:'/api/admin/websites',editId?'PUT':'POST',body);
+      fb(editId?'Website updated.':'Website added.',true);wsReset();wsLoad();
+    }catch(e){fb(e.message,false);}
+  };
+})();
+</script>
 <div id="tab-tutorialsadm" class="tab-panel">
   <div class="sec-title">Tutorials</div>
   <p style="opacity:.8;font-size:14px;line-height:1.5">Product tutorials (images, video or link) are added inside each product. Open Logs, edit a product and use its Tutorial section. Deposit tutorials have their own page.</p>
@@ -2623,6 +2709,7 @@ const ADMIN_NAV = [
     { tab:'otp2', icon:'i-smartphone', label:'Buy Number 2 (OTP Suite)', owner:true, keywords:'otp suite buy number 2 markup orders balance' },
     { tab:'boost2adm', icon:'i-rocket', label:'Boost 2 services', owner:true, keywords:'boost 2 nova services sync' },
     { tab:'tutlib', icon:'i-video', label:'Tutorial library', owner:true, keywords:'tutorial tutorials video images login how to facebook tiktok customers watch' },
+    { tab:'websitesadm', icon:'i-zap', label:'Websites for sale', owner:true, keywords:'website websites sell sale demo customer panel admin panel link price' },
     { tab:'tutorialsadm', icon:'i-video', label:'Tutorials', owner:true, keywords:'tutorial tutorials video images login how to' },
   ]},
   { group:'Boost', items:[
@@ -2750,7 +2837,7 @@ function switchTab(name,el) {
   if(name==='campaigns')    cmpLoad();
   if(name==='logs')         { loadLogs(); loadCategories(); loadCategoriesIntoSelects(); loadRestockDemand(); }
   if(name==='tools')        loadTools();
-  if(name==='otp2'&&window.kshOtpLoad)kshOtpLoad(); if(name==='boost2adm'&&window.kshB2Load)kshB2Load(); if(name==='tutorialsadm'&&window.kshTutLoad)kshTutLoad(); if(name==='tutlib'&&window.tlLoad)tlLoad();
+  if(name==='otp2'&&window.kshOtpLoad)kshOtpLoad(); if(name==='boost2adm'&&window.kshB2Load)kshB2Load(); if(name==='tutorialsadm'&&window.kshTutLoad)kshTutLoad(); if(name==='tutlib'&&window.tlLoad)tlLoad(); if(name==='websitesadm'&&window.wsLoad)wsLoad();
   if(name==='logs2') { m2LoadConfig(); m2LoadProducts(false); m2LoadBalance(); m2LoadOrders(); }
   if(name==='logs3')        { m3LoadConfig(); m3LoadProducts(false); m3LoadBalance(); m3LoadOrders(); }
   if(name==='logs4')        { m4LoadConfig(); m4LoadProducts(false); m4LoadBalance(); m4LoadOrders(); }
