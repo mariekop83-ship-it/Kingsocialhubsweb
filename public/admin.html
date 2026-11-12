@@ -1403,6 +1403,115 @@ tr:hover td{background:rgba(255,255,255,.035)}
   };
 })();
 </script>
+<div id="tab-ticksadm" class="tab-panel">
+  <div class="sec">
+    <div class="sec-title">&#9989; Telegram Tick &mdash; settings</div>
+    <div class="info-box">Customers open <b>Telegram Tick</b> from the dashboard, type their Telegram username, pick a package and place the order. The amount is taken from their wallet (they cannot order without enough balance). You get a WhatsApp/email alert, do the verification, then set the order to <b>Completed</b> below. The customer is notified automatically.</div>
+    <div class="fg"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="tkEnabled" checked/> Telegram Tick is ON (customers can order)</label></div>
+    <div class="fg"><label>Notice shown on the customer page (optional)</label><textarea id="tkNotice" rows="2" placeholder="e.g. Orders are completed within 24 hours."></textarea></div>
+    <button class="btn-primary" type="button" onclick="tkSaveSettings()">Save settings</button>
+    <div id="tkSetFb" class="form-feedback"></div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">Packages</div>
+    <input type="hidden" id="tkPkgId"/>
+    <div class="fg"><label>Number of months</label><input type="number" id="tkMonths" min="1" step="1" placeholder="e.g. 3"/></div>
+    <div class="fg"><label>Amount (&#8358;)</label><input type="number" id="tkPrice" min="1" step="any" placeholder="e.g. 15000"/></div>
+    <div class="fg"><label>Small tag (optional)</label><input type="text" id="tkLabel" placeholder="e.g. Best value"/></div>
+    <div class="fg"><label>Order (small number shows first, optional)</label><input type="number" id="tkSort" placeholder="0"/></div>
+    <div class="fg"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="tkActive" checked/> Visible to customers</label></div>
+    <button class="btn-primary" type="button" id="tkPkgBtn" onclick="tkSavePkg()">Add package</button>
+    <button class="btn-secondary" type="button" id="tkPkgCancel" onclick="tkPkgReset()" style="margin-left:8px;display:none">Cancel edit</button>
+    <div id="tkPkgFb" class="form-feedback"></div>
+    <div id="tkPkgList" style="margin-top:12px">Loading...</div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">Orders</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <button class="btn-secondary" type="button" onclick="tkFilter('processing')">Processing</button>
+      <button class="btn-secondary" type="button" onclick="tkFilter('completed')">Completed</button>
+      <button class="btn-secondary" type="button" onclick="tkFilter('cancelled')">Cancelled</button>
+      <button class="btn-secondary" type="button" onclick="tkFilter('')">All</button>
+      <button class="btn-secondary" type="button" onclick="tkLoadOrders()">Refresh</button>
+    </div>
+    <div id="tkOrders">Loading...</div>
+  </div>
+</div>
+<script>
+(function(){
+  var pk=[],filter='processing';
+  function E(i){return document.getElementById(i);}
+  function h(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function fb(id,m,ok){var f=E(id);f.textContent=m||'';f.style.color=ok?'#16a34a':'#ef4444';}
+  function naira(n){return '\u20A6'+Number(n||0).toLocaleString('en-NG');}
+  function when(d){try{return new Date(d).toLocaleString('en-NG');}catch(e){return '';}}
+  window.tkPkgReset=function(){['tkPkgId','tkMonths','tkPrice','tkLabel','tkSort'].forEach(function(i){E(i).value='';});E('tkActive').checked=true;E('tkPkgBtn').textContent='Add package';E('tkPkgCancel').style.display='none';};
+  window.tkLoad=async function(){
+    try{var s=await aFetch('/api/admin/telegram-tick/settings');E('tkEnabled').checked=!!s.enabled;E('tkNotice').value=s.notice||'';}catch(e){fb('tkSetFb',e.message,false);}
+    tkLoadPkgs();tkLoadOrders();
+  };
+  window.tkSaveSettings=async function(){
+    fb('tkSetFb','Saving...',true);
+    try{await aFetch('/api/admin/telegram-tick/settings','PUT',{enabled:E('tkEnabled').checked,notice:E('tkNotice').value});fb('tkSetFb','Saved.',true);}catch(e){fb('tkSetFb',e.message,false);}
+  };
+  window.tkLoadPkgs=async function(){
+    var box=E('tkPkgList');
+    try{
+      pk=await aFetch('/api/admin/telegram-tick/packages');
+      if(!pk.length){box.innerHTML='<p style="color:var(--t2);font-size:13px">No packages yet. Add your first one above.</p>';return;}
+      box.innerHTML=pk.map(function(p){
+        return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--border,#252535)">'+
+          '<div style="flex:1;min-width:140px"><b>'+p.months+' month'+(p.months===1?'':'s')+'</b> &middot; '+naira(p.price)+(p.label?' &middot; '+h(p.label):'')+(p.active?'':' <span style="color:#ef4444">(hidden)</span>')+'</div>'+
+          '<button class="btn-secondary" type="button" onclick="tkEditPkg(\''+p.id+'\')">Edit</button>'+
+          '<button class="btn-secondary" type="button" onclick="tkDelPkg(\''+p.id+'\')">Delete</button></div>';
+      }).join('');
+    }catch(e){box.textContent='Error: '+e.message;}
+  };
+  window.tkEditPkg=function(id){
+    var p=pk.find(function(x){return x.id===id;});if(!p)return;
+    E('tkPkgId').value=p.id;E('tkMonths').value=p.months;E('tkPrice').value=p.price;E('tkLabel').value=p.label||'';E('tkSort').value=p.sortOrder||'';E('tkActive').checked=!!p.active;
+    E('tkPkgBtn').textContent='Save changes';E('tkPkgCancel').style.display='';
+    try{E('tkMonths').scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
+  };
+  window.tkDelPkg=async function(id){
+    if(!confirm('Delete this package? Past orders are not affected.'))return;
+    try{await aFetch('/api/admin/telegram-tick/packages/'+id,'DELETE');if(E('tkPkgId').value===id)tkPkgReset();tkLoadPkgs();}catch(e){alert('Error: '+e.message);}
+  };
+  window.tkSavePkg=async function(){
+    var id=E('tkPkgId').value;
+    var body={months:E('tkMonths').value,price:E('tkPrice').value,label:E('tkLabel').value,sortOrder:E('tkSort').value,active:E('tkActive').checked};
+    fb('tkPkgFb','Saving...',true);
+    try{await aFetch(id?'/api/admin/telegram-tick/packages/'+id:'/api/admin/telegram-tick/packages',id?'PUT':'POST',body);fb('tkPkgFb',id?'Package updated.':'Package added.',true);tkPkgReset();tkLoadPkgs();}
+    catch(e){fb('tkPkgFb',e.message,false);}
+  };
+  window.tkFilter=function(f){filter=f;tkLoadOrders();};
+  window.tkLoadOrders=async function(){
+    var box=E('tkOrders');
+    try{
+      var list=await aFetch('/api/admin/telegram-tick/orders'+(filter?'?status='+filter:''));
+      if(!list.length){box.innerHTML='<p style="color:var(--t2);font-size:13px">No '+(filter||'')+' orders.</p>';return;}
+      box.innerHTML=list.map(function(o){
+        var col=o.status==='completed'?'#16a34a':o.status==='cancelled'?'#ef4444':'#f59e0b';
+        var x='<div style="padding:12px 0;border-top:1px solid var(--border,#252535)">'+
+          '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="word-break:break-all">@'+h(o.username)+'</b><span style="font-size:11px;font-weight:800;color:'+col+'">'+h(o.status.toUpperCase())+'</span></div>'+
+          '<div style="font-size:12.5px;opacity:.85;line-height:1.6;margin-top:4px">'+o.months+' month'+(o.months===1?'':'s')+' &middot; '+naira(o.price)+' &middot; '+h(o.ref)+'<br>'+h(o.userName)+' ('+h(o.userEmail)+')<br>'+when(o.createdAt)+(o.adminNote?'<br>Note: '+h(o.adminNote):'')+'</div>';
+        if(o.status==='processing'){
+          x+='<input type="text" id="tkNote_'+o.id+'" placeholder="Note to customer (optional)" style="width:100%;margin-top:8px"/>'+
+             '<div style="display:flex;gap:8px;margin-top:8px"><button class="btn-primary" type="button" onclick="tkSetStatus(\''+o.id+'\',\'completed\')">Mark completed</button>'+
+             '<button class="btn-secondary" type="button" onclick="tkSetStatus(\''+o.id+'\',\'cancelled\')">Cancel &amp; refund</button></div>';
+        }
+        return x+'</div>';
+      }).join('');
+    }catch(e){box.textContent='Error: '+e.message;}
+  };
+  window.tkSetStatus=async function(id,status){
+    var msg=status==='completed'?'Mark this order as completed? The customer will be notified that their Telegram is verified.':'Cancel this order and refund the customer?';
+    if(!confirm(msg))return;
+    var n=E('tkNote_'+id);
+    try{await aFetch('/api/admin/telegram-tick/orders/'+id,'PUT',{status:status,note:n?n.value:''});tkLoadOrders();}catch(e){alert('Error: '+e.message);tkLoadOrders();}
+  };
+})();
+</script>
 <div id="tab-tutorialsadm" class="tab-panel">
   <div class="sec-title">Tutorials</div>
   <p style="opacity:.8;font-size:14px;line-height:1.5">Product tutorials (images, video or link) are added inside each product. Open Logs, edit a product and use its Tutorial section. Deposit tutorials have their own page.</p>
@@ -2710,6 +2819,7 @@ const ADMIN_NAV = [
     { tab:'boost2adm', icon:'i-rocket', label:'Boost 2 services', owner:true, keywords:'boost 2 nova services sync' },
     { tab:'tutlib', icon:'i-video', label:'Tutorial library', owner:true, keywords:'tutorial tutorials video images login how to facebook tiktok customers watch' },
     { tab:'websitesadm', icon:'i-zap', label:'Websites for sale', owner:true, keywords:'website websites sell sale demo customer panel admin panel link price' },
+    { tab:'ticksadm', icon:'i-zap', label:'Telegram Tick', owner:true, keywords:'telegram tick verification verify blue orders packages months username' },
     { tab:'tutorialsadm', icon:'i-video', label:'Tutorials', owner:true, keywords:'tutorial tutorials video images login how to' },
   ]},
   { group:'Boost', items:[
@@ -2837,7 +2947,7 @@ function switchTab(name,el) {
   if(name==='campaigns')    cmpLoad();
   if(name==='logs')         { loadLogs(); loadCategories(); loadCategoriesIntoSelects(); loadRestockDemand(); }
   if(name==='tools')        loadTools();
-  if(name==='otp2'&&window.kshOtpLoad)kshOtpLoad(); if(name==='boost2adm'&&window.kshB2Load)kshB2Load(); if(name==='tutorialsadm'&&window.kshTutLoad)kshTutLoad(); if(name==='tutlib'&&window.tlLoad)tlLoad(); if(name==='websitesadm'&&window.wsLoad)wsLoad();
+  if(name==='otp2'&&window.kshOtpLoad)kshOtpLoad(); if(name==='boost2adm'&&window.kshB2Load)kshB2Load(); if(name==='tutorialsadm'&&window.kshTutLoad)kshTutLoad(); if(name==='tutlib'&&window.tlLoad)tlLoad(); if(name==='websitesadm'&&window.wsLoad)wsLoad(); if(name==='ticksadm'&&window.tkLoad)tkLoad();
   if(name==='logs2') { m2LoadConfig(); m2LoadProducts(false); m2LoadBalance(); m2LoadOrders(); }
   if(name==='logs3')        { m3LoadConfig(); m3LoadProducts(false); m3LoadBalance(); m3LoadOrders(); }
   if(name==='logs4')        { m4LoadConfig(); m4LoadProducts(false); m4LoadBalance(); m4LoadOrders(); }
