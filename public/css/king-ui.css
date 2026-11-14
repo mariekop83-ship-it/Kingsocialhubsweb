@@ -17,3 +17,12 @@
 .kui-spin{width:54px;height:54px;border-radius:50%;border:5px solid #374151;border-top-color:#22c55e;animation:kuispin .8s linear infinite}
 @keyframes kuispin{to{transform:rotate(360deg)}}
 .kui-logo{width:36px;height:36px;border-radius:10px;object-fit:contain;background:#fff;padding:3px;flex:0 0 36px}
+
+/* Pages with a global button{...!important} rule (Temp Email, Rentals, Buy Number 2/3) were stretching the
+   close button across the banner and squeezing the message into a thin vertical column. Lock these down. */
+.kui-banner .kui-x{flex:0 0 28px!important;width:28px!important;min-width:0!important;height:28px!important;margin:0!important;padding:0!important;background:none!important;box-shadow:none!important;border:0!important;border-radius:8px!important;color:#9ca3af!important;font-size:20px!important;line-height:1!important}
+.kui-banner .kui-txt{flex:1 1 0!important;min-width:0!important;overflow-wrap:anywhere;word-break:normal!important;text-align:left}
+.kui-banner .kui-ico{flex:0 0 24px!important;width:24px!important}
+.kui-confirm .kui-btn{width:auto!important;box-shadow:none!important;padding:12px!important;border-radius:11px!important}
+.kui-confirm .kui-no{background:#1f2937!important;color:#e5e7eb!important;border:1px solid #374151!important}
+.kui-confirm .kui-yes{background:#16a34a!important;color:#fff!important}

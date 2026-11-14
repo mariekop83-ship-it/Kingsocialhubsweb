@@ -1,0 +1,34 @@
+/* King Social Hub — designed hamburger button + menu card (green / black brand look).
+   Uses !important because several pages carry a page-wide button{...} style that used to break the Back bar and the menu. */
+
+/* ---- Back bar: slim, tidy, with room on the right for the menu button ---- */
+html body #kslBackBar{display:flex!important;align-items:center!important;min-height:56px!important;box-sizing:border-box!important;padding:8px 12px!important;background:linear-gradient(180deg,#0d1510,#080c09)!important;border-bottom:1px solid rgba(74,222,128,.22)!important;box-shadow:0 8px 24px rgba(0,0,0,.45)!important}
+html body #kslBackBar button{width:auto!important;min-width:0!important;height:38px!important;display:inline-flex!important;align-items:center!important;gap:6px!important;padding:0 16px!important;margin:0!important;border:1px solid rgba(74,222,128,.45)!important;border-radius:999px!important;background:rgba(34,197,94,.10)!important;color:#4ade80!important;font-weight:800!important;font-size:13.5px!important;box-shadow:none!important}
+
+/* ---- Hamburger button (pages without a top navbar: it sits in the Back bar, top right) ---- */
+html body > #kshMenuTrigger{position:fixed!important;top:9px!important;right:12px!important;left:auto!important;z-index:9995!important;margin:0!important}
+html body #kshMenuTrigger,.ksh-menu-trigger{display:inline-flex!important;box-sizing:border-box!important;min-height:0!important;max-height:38px!important;align-items:center!important;justify-content:center!important;gap:9px!important;width:auto!important;min-width:0!important;height:38px!important;padding:0 14px!important;border:1px solid rgba(74,222,128,.5)!important;border-radius:999px!important;background:linear-gradient(135deg,#14301f,#0a1510)!important;color:#d9f7e4!important;font:800 13px/1 inherit!important;letter-spacing:.02em;box-shadow:0 6px 18px rgba(0,0,0,.45),inset 0 1px rgba(255,255,255,.06)!important}
+#kshMenuTrigger .ksh-menu-word{display:inline!important;color:#d9f7e4}
+#kshMenuTrigger .ksh-burger{display:flex!important;flex-direction:column!important;justify-content:center!important;gap:4px!important;width:18px!important;height:auto!important}
+#kshMenuTrigger .ksh-burger i{display:block!important;height:2.5px!important;width:18px!important;border-radius:3px!important;background:#4ade80!important}
+#kshMenuTrigger .ksh-burger i:nth-child(2){width:12px!important}
+#kshMenuTrigger[aria-expanded="true"] .ksh-burger i:nth-child(2){width:18px!important}
+
+/* ---- Menu card ---- */
+html body .ksh-menu-backdrop{background:radial-gradient(120% 90% at 0% 0%,rgba(34,197,94,.16),rgba(0,0,0,.78))!important;backdrop-filter:blur(6px)!important}
+html body .ksh-drawer{width:min(330px,86vw)!important;padding:0 14px calc(24px + env(safe-area-inset-bottom,0px))!important;background:linear-gradient(180deg,#0f1a13 0%,#09100b 40%,#060a07 100%)!important;border-right:1px solid rgba(74,222,128,.3)!important;border-radius:0 28px 28px 0!important;box-shadow:18px 0 60px rgba(0,0,0,.7),0 0 50px rgba(34,197,94,.10)!important;color:#eafff1!important}
+html body .ksh-drawer::before{content:"";position:sticky;top:0;display:block;height:3px;margin:0 -14px;background:linear-gradient(90deg,#22c55e,#86efac,#22c55e);z-index:2}
+html body .ksh-drawer-head{padding:18px 4px 16px!important;margin-bottom:10px!important;border-bottom:1px solid rgba(74,222,128,.16)!important}
+html body .ksh-drawer-brand{font-size:19px!important;font-weight:900!important;background:linear-gradient(90deg,#fff,#86efac);-webkit-background-clip:text;background-clip:text;color:transparent!important}
+html body .ksh-drawer button.ksh-drawer-close{width:38px!important;height:38px!important;min-width:0!important;padding:0!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.16)!important;background:rgba(255,255,255,.06)!important;color:#d9f7e4!important;font-size:22px!important;line-height:1!important;box-shadow:none!important;display:grid!important;place-items:center!important}
+html body .ksh-drawer .ksh-drawer-link,html body .ksh-drawer .ksh-menu-toggle{width:100%!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;gap:12px!important;margin:6px 0!important;padding:13px 14px!important;border:1px solid rgba(255,255,255,.08)!important;border-radius:16px!important;background:linear-gradient(135deg,rgba(255,255,255,.05),rgba(255,255,255,.015))!important;color:#eafff1!important;font:700 14.5px/1.2 inherit!important;text-align:left!important;box-shadow:none!important;text-decoration:none!important}
+html body .ksh-drawer .ksh-drawer-link:hover,html body .ksh-drawer .ksh-menu-toggle:hover,html body .ksh-drawer .ksh-menu-toggle[aria-expanded="true"]{background:linear-gradient(135deg,rgba(34,197,94,.20),rgba(34,197,94,.06))!important;border-color:rgba(74,222,128,.5)!important}
+html body .ksh-drawer .ksh-chevron{margin-left:auto!important;color:#4ade80!important;font-size:18px!important}
+html body .ksh-drawer .ksh-submenu{padding:4px 0 8px 14px!important;margin-left:18px!important;border-left:2px solid rgba(74,222,128,.3)!important}
+html body .ksh-drawer .ksh-sub-link{display:block!important;margin:5px 0!important;padding:11px 14px!important;border:1px solid rgba(255,255,255,.07)!important;border-left:1px solid rgba(255,255,255,.07)!important;border-radius:12px!important;background:rgba(255,255,255,.03)!important;color:#bfe9cc!important;font-size:13.5px!important;font-weight:700!important}
+html body .ksh-drawer .ksh-sub-link:hover{background:rgba(34,197,94,.14)!important;border-color:rgba(74,222,128,.45)!important;color:#fff!important}
+html body .ksh-drawer .ksh-drawer-label{padding:18px 6px 4px!important;color:#4ade80!important;font-size:10.5px!important;font-weight:900!important;letter-spacing:.14em!important}
+html body .ksh-drawer #kshLogout{margin-top:14px!important;background:linear-gradient(135deg,rgba(220,38,38,.22),rgba(220,38,38,.07))!important;border-color:rgba(248,113,113,.4)!important;color:#fecaca!important}
+
+/* when the menu button lives inside the Back bar it sits on the right, vertically centred */
+html body #kslBackBar > #kshMenuTrigger{position:static!important;margin:0 0 0 auto!important;top:auto!important;right:auto!important}
