@@ -92,10 +92,6 @@
     balance = Number(wallet.balance != null ? wallet.balance : (wallet.wallet || 0));
     showBalance();
   });
-  get('/api/referrals/summary').then(function (summary) {
-    var element = document.getElementById('dshRef');
-    if (element && summary) element.textContent = money(summary.totalEarned || summary.earnings || 0);
-  });
   get('/api/user/profile').then(function (profile) {
     var source = profile && (profile.profilePicture || profile.avatar);
     var avatar = document.getElementById('dshAvatar');

@@ -93,7 +93,7 @@
       '<div class="ksh-submenu" id="kshBoostSub"><a class="ksh-sub-link" href="/boost1">Boost 1</a><a class="ksh-sub-link" href="/boost2">Boost 2</a></div>' +
       '<div class="ksh-drawer-label">Learn</div><a class="ksh-drawer-link" href="/tutorials">📚 <span>Tutorials</span></a>' +
       '<div class="ksh-drawer-label">Account</div><a class="ksh-drawer-link" href="/purchases">📦 <span>My Orders</span></a><a class="ksh-drawer-link" href="/deposit">💰 <span>Wallet / Add Money</span></a>' +
-      '<a class="ksh-drawer-link" href="/transactions">📊 <span>Transactions</span></a><a class="ksh-drawer-link" href="/referrals">🎁 <span>Referrals & Cashback</span></a>' +
+      '<a class="ksh-drawer-link" href="/transactions">📊 <span>Transactions</span></a><a class="ksh-drawer-link" href="/vtu">📱 <span>Airtime & Data</span></a>' +
       '<a class="ksh-drawer-link" href="/settings">👤 <span>My Profile & Settings</span></a><div class="ksh-drawer-label">Support</div>' +
       '<a class="ksh-drawer-link" href="/support">💬 <span>Contact Support</span></a><a class="ksh-drawer-link" href="/help">❓ <span>Help Center</span></a><a class="ksh-drawer-link" href="/about">ℹ️ <span>About</span></a>' +
       '<button class="ksh-drawer-link" id="kshLogout" type="button">🚪 <span>Log Out</span></button>';
@@ -114,7 +114,7 @@
     { href: '/marketplace', label: 'Logs', icon: 'i-grid', match: ['/marketplace', '/purchases'] },
     { href: '/boost', label: 'Boost', icon: 'i-zap', match: ['/boost', '/boost-services', '/boost-history'] },
     { href: '/buy-number', label: 'Numbers', icon: 'i-smartphone', match: ['/buy-number', '/temp-email', '/rental', '/number-history', '/order-status'] },
-    { href: '/settings', label: 'Me', icon: 'i-user', match: ['/settings', '/transactions', '/wallet', '/referrals', '/notifications'] }
+    { href: '/settings', label: 'Me', icon: 'i-user', match: ['/settings', '/transactions', '/wallet', '/vtu', '/notifications'] }
   ];
   function currentPath() {
     var p = location.pathname.replace(/\.html$/, '');
@@ -247,8 +247,8 @@
             '<a class="hm-add" href="/deposit">+ Add Money</a>' +
           '</div>' +
         '</div>' +
-        '<a class="hm-sub" href="/referrals">' + ico('i-link') +
-          '<span>Referral earnings — <b id="hmRef">₦0.00</b></span>' +
+        '<a class="hm-sub" href="/vtu">' + ico('i-link') +
+          '<span>Buy Airtime, Data &amp; Cable TV</span>' +
           '<span class="hm-sub-go">' + ico('i-arrow-right') + '</span></a>' +
       '</div>' +
       '<div class="hm-card" id="hmRecentCard">' +
@@ -268,7 +268,7 @@
           '<a href="/tools"><span class="hm-g-ico">' + ico('i-wrench') + '</span>Tools &amp; FMT</a>' +
           '<a href="/games"><span class="hm-g-ico">' + ico('i-gamepad') + '</span>Games</a>' +
           '<a href="/giveaways"><span class="hm-g-ico">' + ico('i-gift') + '</span>Giveaways</a>' +
-          '<a href="/referrals"><span class="hm-g-ico">' + ico('i-link') + '</span>Referrals</a>' +
+          '<a href="/vtu"><span class="hm-g-ico">' + ico('i-link') + '</span>Airtime &amp; Data</a>' +
           '<a href="/settings"><span class="hm-g-ico">' + ico('i-settings') + '</span>Settings</a>' +
         '</div>' +
       '</div>' +
@@ -300,11 +300,6 @@
       if (!w) return;
       window.__kslBalance = Number(w.balance != null ? w.balance : (w.wallet || 0));
       applyBalanceUi();
-    });
-    get('/api/referrals/summary').then(function (s) {
-      if (!s) return;
-      var el = document.getElementById('hmRef');
-      if (el) el.textContent = money(s.totalEarned || s.earnings || 0);
     });
     get('/api/user/notifications').then(function (n) {
       var items = Array.isArray(n) ? n : (n && n.items) || [];
