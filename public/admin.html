@@ -419,8 +419,8 @@ tr:hover td{background:rgba(255,255,255,.035)}
           <button type="button" class="btn-primary" onclick="switchTab('logs3')">Marketplace 3 (Sujan Department) — switch &amp; prices</button>
           <button type="button" class="btn-primary" onclick="switchTab('numbers2')">Server 2 — low SMS rate pools</button>
           <button type="button" class="btn-primary" onclick="showProviderReadiness()">Provider connections health</button>
-          <button type="button" class="btn-primary" onclick="checkOtpSuiteBalance()">Buy Number 2 — OTP Suite balance</button>
-          <button type="button" class="btn-primary" onclick="configureOtpSuite()">Buy Number 2 — OTP Suite pricing</button>
+          <button type="button" class="btn-primary" onclick="checkOtpSuiteBalance()">Buy Number 2 — SMS-COOL balance</button>
+          <button type="button" class="btn-primary" onclick="configureOtpSuite()">Buy Number 2 — SMS-COOL pricing</button>
           <button type="button" class="btn-primary" onclick="viewOtpSuiteOrders()">Buy Number 2 — recent orders</button>
           <button type="button" class="btn-primary" onclick="refundOtpSuiteOrder()">Buy Number 2 — manual refund</button>
         </div>
@@ -1193,18 +1193,120 @@ tr:hover td{background:rgba(255,255,255,.035)}
 })();
 </script>
 <div id="tab-otp2" class="tab-panel">
-  <div class="sec-title">Buy Number 2 (OTP Suite)</div>
-  <div id="kshOtpStatus" style="margin:8px 0">Loading...</div>
+  <div class="sec-title">SMS-COOL — Buy Number 2, Temp Email &amp; Rentals</div>
+  <div id="scStatus" style="margin:8px 0">Loading...</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">
-    <button class="btn-primary" type="button" id="kshOtpToggle">...</button>
-    <input id="kshOtpMarkup" type="number" min="0" placeholder="Markup (NGN)" style="padding:8px;border-radius:8px;max-width:160px">
-    <button class="btn-primary" type="button" onclick="kshOtpSaveMarkup()">Save markup</button>
-    <button class="btn-primary" type="button" onclick="kshOtpBalance()">Check provider balance</button>
+    <input id="scKey" type="password" placeholder="Paste SMS-COOL API key" autocomplete="off" style="padding:8px;border-radius:8px;min-width:220px;flex:1">
+    <button class="btn-primary" type="button" onclick="scSaveKey()">Save API key</button>
+    <button class="btn-primary" type="button" onclick="scBalance()">Check SMS-COOL balance</button>
   </div>
-  <div id="kshOtpBal" style="margin:6px 0"></div>
-  <div class="sec-title" style="margin-top:14px">Recent orders</div>
-  <div id="kshOtpOrders" style="overflow:auto">Loading...</div>
+  <div id="scBal" style="margin:6px 0"></div>
+  <div class="sec-title" style="margin-top:14px">Turn products on / off</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
+    <button class="btn-primary" type="button" id="scTogNum" onclick="scToggle('enabled')">...</button>
+    <button class="btn-primary" type="button" id="scTogEmail" onclick="scToggle('emailEnabled')">...</button>
+    <button class="btn-primary" type="button" id="scTogRental" onclick="scToggle('rentalEnabled')">...</button>
+  </div>
+  <div class="sec-title" style="margin-top:14px">Markup (applies to every price of that product)</div>
+  <p style="opacity:.8;margin:6px 0 10px">Selling price = provider cost in NGN + percentage + fixed amount. Use either one or both (for example 20% and 500 NGN).</p>
+  <div style="overflow:auto"><table style="width:100%;font-size:13px;border-collapse:collapse">
+    <tr><th align="left">Product</th><th align="left">Percentage (%)</th><th align="left">Fixed amount (NGN)</th></tr>
+    <tr style="border-top:1px solid #252535"><td>Buy Number 2 (all numbers)</td><td><input id="scNumPct" type="number" min="0" step="0.01" style="padding:7px;border-radius:8px;width:110px"></td><td><input id="scNumFlat" type="number" min="0" style="padding:7px;border-radius:8px;width:110px"></td></tr>
+    <tr style="border-top:1px solid #252535"><td>Temp Email</td><td><input id="scEmPct" type="number" min="0" step="0.01" style="padding:7px;border-radius:8px;width:110px"></td><td><input id="scEmFlat" type="number" min="0" style="padding:7px;border-radius:8px;width:110px"></td></tr>
+    <tr style="border-top:1px solid #252535"><td>Rentals</td><td><input id="scRnPct" type="number" min="0" step="0.01" style="padding:7px;border-radius:8px;width:110px"></td><td><input id="scRnFlat" type="number" min="0" style="padding:7px;border-radius:8px;width:110px"></td></tr>
+  </table></div>
+  <button class="btn-primary" type="button" style="margin-top:10px" onclick="scSaveMarkup()">Save markup</button>
+  <div class="sec-title" style="margin-top:20px">Fixed prices (exact selling price, overrides the markup)</div>
+  <p style="opacity:.8;margin:6px 0 10px">Number: service name (e.g. WhatsApp). Email: Server 1 service name or Server 2 domain (e.g. outlook.com). Rental: hours (e.g. 720) or dedicated "service|period" (e.g. whatsapp|oneMonth). Country is optional (number: country ID, rental: country code like ca). Leave it empty for all countries.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
+    <select id="scOvKind" style="padding:8px;border-radius:8px"><option value="num">Number</option><option value="email">Email</option><option value="rental">Rental</option></select>
+    <input id="scOvName" placeholder="Name" style="padding:8px;border-radius:8px;width:150px">
+    <input id="scOvCountry" placeholder="Country (optional)" style="padding:8px;border-radius:8px;width:150px">
+    <input id="scOvPrice" type="number" min="1" placeholder="Price (NGN)" style="padding:8px;border-radius:8px;width:130px">
+    <button class="btn-primary" type="button" onclick="scAddOv()">Add fixed price</button>
+  </div>
+  <div id="scOvList" style="overflow:auto">Loading...</div>
+  <div class="sec-title" style="margin-top:20px">Price browser (numbers)</div>
+  <p style="opacity:.8;margin:6px 0 10px">Pick a server and country to see your cost and selling price for every service, and set an exact price right there.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
+    <select id="scBrSrv" onchange="scBrServer()" style="padding:8px;border-radius:8px;min-width:140px"><option value="">Server…</option></select>
+    <select id="scBrCty" onchange="scBrCountry()" style="padding:8px;border-radius:8px;min-width:170px"><option value="">Country…</option></select>
+  </div>
+  <div id="scBrList" style="overflow:auto"></div>
+  <div class="sec-title" style="margin-top:20px">Recent orders (numbers, emails, rentals)</div>
+  <div id="scOrders" style="overflow:auto">Loading...</div>
 </div>
+<script>
+(function(){
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function $(i){return document.getElementById(i);}
+  var cfg=null, KIND={num:'Number',email:'Email',rental:'Rental'};
+  function ngn(n){return '\u20a6'+Number(n||0).toLocaleString('en-NG');}
+  function tog(id,label,on){var b=$(id);if(b)b.textContent=label+' is '+(on?'ON (tap to turn off)':'OFF (tap to turn on)');}
+  function put(body,msg){return aFetch('/api/admin/otp-suite/config','PUT',body).then(function(r){if(msg)alert(msg);return scLoad();}).catch(function(e){alert(e.message);});}
+  function fill(){
+    $('scStatus').innerHTML='API key: <b>'+(cfg.configured?'configured':'NOT set')+'</b> &middot; '+esc(cfg.baseUrl);
+    tog('scTogNum','Buy Number 2',cfg.enabled);tog('scTogEmail','Temp Email',cfg.emailEnabled);tog('scTogRental','Rentals',cfg.rentalEnabled);
+    $('scNumPct').value=cfg.markupPercent||0;$('scNumFlat').value=cfg.markupNgn||0;$('scEmPct').value=cfg.emailMarkupPercent||0;$('scEmFlat').value=cfg.emailMarkupNgn||0;$('scRnPct').value=cfg.rentalMarkupPercent||0;$('scRnFlat').value=cfg.rentalMarkupNgn||0;
+    var o=cfg.overrides||[];
+    $('scOvList').innerHTML=o.length?'<table style="width:100%;font-size:13px;border-collapse:collapse"><tr><th align=left>Type</th><th align=left>Name</th><th align=left>Country</th><th align=left>Price</th><th></th></tr>'+o.map(function(x,i){return '<tr style="border-top:1px solid #252535"><td>'+KIND[x.kind]+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.country||'All')+'</td><td>'+ngn(x.price)+'</td><td><button class="btn-primary" type="button" onclick="scDelOv('+i+')">Remove</button></td></tr>';}).join('')+'</table>':'No fixed prices yet.';
+  }
+  window.scLoad=async function(){
+    try{cfg=await aFetch('/api/admin/otp-suite/status');fill();}catch(e){$('scStatus').textContent='Error: '+e.message;}
+    scOrders();scBrInit();
+  };
+  window.scToggle=function(f){if(!cfg)return;var b={};b[f]=!cfg[f];put(b);};
+  window.scSaveKey=function(){var k=$('scKey').value.trim();if(!k){alert('Paste the API key first.');return;}put({apiKey:k},'API key saved.').then(function(){$('scKey').value='';});};
+  window.scBalance=async function(){var el=$('scBal');try{var b=await aFetch('/api/admin/otp-suite/balance');el.textContent='SMS-COOL balance: '+ngn(b.balance)+' (about $'+Number(b.balanceUsd||0).toFixed(2)+')';}catch(e){el.textContent='Error: '+e.message;}};
+  window.scSaveMarkup=function(){
+    put({markupPercent:$('scNumPct').value||0,markupNgn:$('scNumFlat').value||0,emailMarkupPercent:$('scEmPct').value||0,emailMarkupNgn:$('scEmFlat').value||0,rentalMarkupPercent:$('scRnPct').value||0,rentalMarkupNgn:$('scRnFlat').value||0},'Markup saved. New prices apply immediately.');
+  };
+  function saveOv(list,msg){return put({overrides:list},msg);}
+  window.scAddOv=function(){
+    var name=$('scOvName').value.trim(),price=Number($('scOvPrice').value);
+    if(!name||!(price>0)){alert('Enter a name and a price above 0.');return;}
+    var list=(cfg.overrides||[]).filter(function(x){return !(x.kind===$('scOvKind').value&&x.name.toLowerCase()===name.toLowerCase()&&String(x.country||'').toLowerCase()===$('scOvCountry').value.trim().toLowerCase());});
+    list.push({kind:$('scOvKind').value,name:name,country:$('scOvCountry').value.trim(),price:price});
+    saveOv(list,'Fixed price saved.').then(function(){$('scOvName').value='';$('scOvPrice').value='';});
+  };
+  window.scDelOv=function(i){var list=(cfg.overrides||[]).slice();list.splice(i,1);saveOv(list,'Fixed price removed.');};
+  // price browser
+  var brSrv='',brCty='';
+  async function scBrInit(){
+    var s=$('scBrSrv');if(s.options.length>1)return;
+    try{var d=await aFetch('/api/admin/otp-suite/browse');s.innerHTML='<option value="">Server…</option>'+(d.servers||[]).map(function(x){return '<option value="'+esc(x.server_number)+'">'+esc(x.name)+'</option>';}).join('');}catch(e){}
+  }
+  window.scBrServer=async function(){
+    brSrv=$('scBrSrv').value;$('scBrList').innerHTML='';$('scBrCty').innerHTML='<option value="">Country…</option>';if(!brSrv)return;
+    try{var d=await aFetch('/api/admin/otp-suite/browse?server='+encodeURIComponent(brSrv));$('scBrCty').innerHTML='<option value="">Country…</option>'+(d.countries||[]).map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>';}).join('');}catch(e){alert(e.message);}
+  };
+  window.scBrCountry=async function(){
+    brCty=$('scBrCty').value;var el=$('scBrList');if(!brCty){el.innerHTML='';return;}el.textContent='Loading...';
+    try{var d=await aFetch('/api/admin/otp-suite/browse?server='+encodeURIComponent(brSrv)+'&country='+encodeURIComponent(brCty));var r=d.services||[];
+      el.innerHTML=r.length?'<table style="width:100%;font-size:13px;border-collapse:collapse"><tr><th align=left>Service</th><th align=left>Your cost</th><th align=left>Selling price</th><th align=left>Set exact price</th></tr>'+r.map(function(x,i){return '<tr style="border-top:1px solid #252535"><td>'+esc(x.name)+'</td><td>'+ngn(x.costNgn)+'</td><td>'+ngn(x.sellPrice)+(x.override?' <b>(fixed)</b>':'')+'</td><td><input id="scBrP'+i+'" type="number" min="1" style="padding:6px;border-radius:8px;width:90px"> <button class="btn-primary" type="button" onclick="scBrSet('+i+')">Set</button></td></tr>';}).join('')+'</table>':'No services for this country.';
+      window._scBr=r;
+    }catch(e){el.textContent='Error: '+e.message;}
+  };
+  window.scBrSet=function(i){
+    var x=(window._scBr||[])[i],price=Number($('scBrP'+i).value);if(!x||!(price>0)){alert('Enter a price above 0.');return;}
+    var list=(cfg.overrides||[]).filter(function(o){return !(o.kind==='num'&&o.name.toLowerCase()===x.name.toLowerCase()&&String(o.country||'')===brCty);});
+    list.push({kind:'num',name:x.name,country:brCty,price:price});
+    saveOv(list,'Price set for '+x.name+' in this country.').then(function(){scBrCountry();});
+  };
+  async function scOrders(){
+    var el=$('scOrders');
+    try{var rows=await aFetch('/api/admin/otp-suite/orders');
+      if(!Array.isArray(rows)||!rows.length){el.textContent='No orders yet.';return;}
+      el.innerHTML='<table style="width:100%;font-size:13px;border-collapse:collapse"><tr><th align=left>Type</th><th align=left>ID</th><th align=left>Item</th><th align=left>Price</th><th align=left>Status</th><th></th></tr>'+rows.map(function(o){
+        return '<tr style="border-top:1px solid #252535"><td>'+esc(o.type)+'</td><td>'+esc(String(o.id).slice(-6))+'</td><td>'+esc((o.service||'')+' '+(o.number||''))+'</td><td>'+ngn(o.price)+'</td><td>'+esc(o.status)+(o.lastError?' <span style="opacity:.7">('+esc(o.lastError).slice(0,60)+')</span>':'')+'</td><td>'+((o.refunded||o.status==='received'||o.status==='failed'||o.status==='cancelled')?'':'<button class="btn-primary" type="button" onclick="scRefund(\''+esc(o.id)+'\')">Refund</button>')+'</td></tr>';}).join('')+'</table>';
+    }catch(e){el.textContent='Error: '+e.message;}
+  }
+  window.scRefund=async function(id){
+    if(!confirm('Refund this order to the customer wallet? Only do this if no code/message was delivered.'))return;
+    try{await aFetch('/api/admin/otp-suite/orders/'+encodeURIComponent(id)+'/refund','POST',{});alert('Refunded');scOrders();}catch(e){alert(e.message);}
+  };
+})();
+</script>
 <div id="tab-boost2adm" class="tab-panel">
   <div class="sec-title">Boost 2 services</div>
   <div style="margin:10px 0"><button class="btn-primary" type="button" onclick="kshB2Sync()">Sync from provider</button> <button class="btn-primary" type="button" onclick="kshB2Load()">Refresh list</button></div>
@@ -1790,7 +1892,7 @@ tr:hover td{background:rgba(255,255,255,.035)}
       <div class="sec">
         <div class="sec-title"><svg class="icon i-plug" aria-hidden="true"><use href="#i-plug"/></svg> Number Servers &amp; Profit Settings</div>
         <div class="info-box"><svg class="icon i-pin" aria-hidden="true"><use href="#i-pin"/></svg>
-          Buy Number 3 uses NovaSolution; Buy Number 1 uses GrizzlySMS and Buy Number 2 uses OTP Suite, configured separately below. NovaSolution prices use the service override when set, otherwise the NGN profit ladder.
+          Buy Number 3 uses NovaSolution; Buy Number 1 uses GrizzlySMS and Buy Number 2 uses SMS-COOL, configured separately below. NovaSolution prices use the service override when set, otherwise the NGN profit ladder.
           priced automatically: cost in $ is converted to ₦ at your rate, then your profit ladder is added on top.
         </div>
         <div class="form-row">
@@ -2815,7 +2917,7 @@ const ADMIN_NAV = [
     { tab:'n3adm', icon:'i-plug', label:'Buy Number 3', owner:true, keywords:'buy number 3 numbers sync services prices hide on off' },
     { tab:'kinglogos', icon:'i-zap', label:'Product logos', owner:true, keywords:'logo logos picture image facebook icon brand' },
     { tab:'numbers2', icon:'i-smartphone', label:'Server 2 — low SMS rate pools', owner:true },
-    { tab:'otp2', icon:'i-smartphone', label:'Buy Number 2 (OTP Suite)', owner:true, keywords:'otp suite buy number 2 markup orders balance' },
+    { tab:'otp2', icon:'i-smartphone', label:'Buy Number 2, Temp Email & Rentals (SMS-COOL)', owner:true, keywords:'sms cool smscool buy number 2 temp email rental rent markup fixed price percentage orders balance' },
     { tab:'boost2adm', icon:'i-rocket', label:'Boost 2 services', owner:true, keywords:'boost 2 nova services sync' },
     { tab:'tutlib', icon:'i-video', label:'Tutorial library', owner:true, keywords:'tutorial tutorials video images login how to facebook tiktok customers watch' },
     { tab:'websitesadm', icon:'i-zap', label:'Websites for sale', owner:true, keywords:'website websites sell sale demo customer panel admin panel link price' },
@@ -2947,7 +3049,7 @@ function switchTab(name,el) {
   if(name==='campaigns')    cmpLoad();
   if(name==='logs')         { loadLogs(); loadCategories(); loadCategoriesIntoSelects(); loadRestockDemand(); }
   if(name==='tools')        loadTools();
-  if(name==='otp2'&&window.kshOtpLoad)kshOtpLoad(); if(name==='boost2adm'&&window.kshB2Load)kshB2Load(); if(name==='tutorialsadm'&&window.kshTutLoad)kshTutLoad(); if(name==='tutlib'&&window.tlLoad)tlLoad(); if(name==='websitesadm'&&window.wsLoad)wsLoad(); if(name==='ticksadm'&&window.tkLoad)tkLoad();
+  if(name==='otp2'&&window.scLoad)scLoad(); if(name==='boost2adm'&&window.kshB2Load)kshB2Load(); if(name==='tutorialsadm'&&window.kshTutLoad)kshTutLoad(); if(name==='tutlib'&&window.tlLoad)tlLoad(); if(name==='websitesadm'&&window.wsLoad)wsLoad(); if(name==='ticksadm'&&window.tkLoad)tkLoad();
   if(name==='logs2') { m2LoadConfig(); m2LoadProducts(false); m2LoadBalance(); m2LoadOrders(); }
   if(name==='logs3')        { m3LoadConfig(); m3LoadProducts(false); m3LoadBalance(); m3LoadOrders(); }
   if(name==='logs4')        { m4LoadConfig(); m4LoadProducts(false); m4LoadBalance(); m4LoadOrders(); }
@@ -7452,13 +7554,13 @@ async function showProviderReadiness(){
   }catch(e){alert('Provider health check failed: '+e.message)}
 }
 
-async function checkOtpSuiteBalance(){try{const d=await aFetch('/api/admin/otp-suite/balance');alert('OTP Suite balance: ₦'+Number(d.balance||0).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2}));}catch(e){alert('OTP Suite: '+e.message)}}
+async function checkOtpSuiteBalance(){try{const d=await aFetch('/api/admin/otp-suite/balance');alert('SMS-COOL balance: ₦'+Number(d.balance||0).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2}));}catch(e){alert('SMS-COOL: '+e.message)}}
 
-async function configureOtpSuite(){try{const c=await aFetch('/api/admin/otp-suite/status');const url=prompt('OTP Suite API base URL:',c.baseUrl||'https://otpsuite.com/api/v1');if(url===null)return;const key=prompt('Paste a new OTP Suite API key, or leave blank to keep the current key:','');if(key===null)return;const value=prompt('Markup in NGN added to provider cost:',String(c.markupNgn??300));if(value===null)return;const n=Number(value);if(!Number.isFinite(n)||n<0){alert('Enter a valid non-negative markup.');return;}const body={baseUrl:url,markupNgn:n};if(key.trim())body.apiKey=key.trim();const r=await aFetch('/api/admin/otp-suite/config','PUT',body);alert('Buy Number 2 settings saved. API key '+(r.configured?'configured':'not configured')+'. Markup: ₦'+n.toLocaleString('en-NG'));}catch(e){alert('Buy Number 2: '+e.message)}}
+async function configureOtpSuite(){try{const c=await aFetch('/api/admin/otp-suite/status');const url=prompt('SMS-COOL API base URL:',c.baseUrl||'https://sms-cool.com/api/v1');if(url===null)return;const key=prompt('Paste a new SMS-COOL API key, or leave blank to keep the current key:','');if(key===null)return;const value=prompt('Markup in NGN added to provider cost:',String(c.markupNgn??300));if(value===null)return;const n=Number(value);if(!Number.isFinite(n)||n<0){alert('Enter a valid non-negative markup.');return;}const body={baseUrl:url,markupNgn:n};if(key.trim())body.apiKey=key.trim();const r=await aFetch('/api/admin/otp-suite/config','PUT',body);alert('Buy Number 2 settings saved. API key '+(r.configured?'configured':'not configured')+'. Markup: ₦'+n.toLocaleString('en-NG'));}catch(e){alert('Buy Number 2: '+e.message)}}
 
-async function viewOtpSuiteOrders(){try{const rows=await aFetch('/api/admin/otp-suite/orders');alert(rows.slice(0,12).map(o=>`ID ${o.id} | ${o.service||'Number'} | ${o.number||'No number yet'} | ₦${Number(o.price||0).toLocaleString('en-NG')} | ${o.status}${o.lastError?' | '+o.lastError:''}`).join('\n')||'No OTP Suite orders yet.');}catch(e){alert('OTP Suite orders: '+e.message)}}
+async function viewOtpSuiteOrders(){try{const rows=await aFetch('/api/admin/otp-suite/orders');alert(rows.slice(0,12).map(o=>`ID ${o.id} | ${o.service||'Number'} | ${o.number||'No number yet'} | ₦${Number(o.price||0).toLocaleString('en-NG')} | ${o.status}${o.lastError?' | '+o.lastError:''}`).join('\n')||'No SMS-COOL orders yet.');}catch(e){alert('SMS-COOL orders: '+e.message)}}
 
-async function refundOtpSuiteOrder(){const id=prompt('Paste the OTP Suite order ID from the recent orders list. Only refund after checking the provider outcome:','');if(!id)return;if(!confirm('Refund this order from the customer wallet? Do this only if the provider did not deliver a number/SMS.'))return;try{const r=await aFetch('/api/admin/otp-suite/orders/'+encodeURIComponent(id)+'/refund','POST',{});alert('Refunded ₦'+Number(r.refunded||0).toLocaleString('en-NG'));}catch(e){alert('Refund failed: '+e.message)}}
+async function refundOtpSuiteOrder(){const id=prompt('Paste the SMS-COOL order ID from the recent orders list. Only refund after checking the provider outcome:','');if(!id)return;if(!confirm('Refund this order from the customer wallet? Do this only if the provider did not deliver a number/SMS.'))return;try{const r=await aFetch('/api/admin/otp-suite/orders/'+encodeURIComponent(id)+'/refund','POST',{});alert('Refunded ₦'+Number(r.refunded||0).toLocaleString('en-NG'));}catch(e){alert('Refund failed: '+e.message)}}
 </script>
   <script src="/js/page-transitions.js?v=1" defer></script>
 <script src="/js/loader-failsafe.js?v=1" defer></script>
