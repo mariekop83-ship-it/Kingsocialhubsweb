@@ -1627,6 +1627,8 @@ require('./lib/market2').register(app, { mongoose, User, Transaction, auth, anyA
 // Marketplace 3 (Sujan Department reseller API) - see lib/market3.js
 require('./lib/market3').register(app, { mongoose, User, Transaction, auth, anyAdminAuth, sendAdminEmail, brandLogoFor });
 require('./lib/otp-suite')(app, { mongoose, User, Transaction, auth, anyAdminAuth });
+// Airtime / Data / Cable TV via VTUGATE - see lib/vtu.js
+require('./lib/vtu')({ app, mongoose, User, Transaction, auth, anyAdminAuth });
 // Tutorial library (admin adds videos/pictures/descriptions, customers watch free) - see lib/tutorials.js
 require('./lib/tutorials').register(app, { mongoose, anyAdminAuth, uploadMw: depositTutorialUpload, fileUrl });
 // Live purchases feed on the dashboard (masked buyer names) - see lib/live-purchases.js
@@ -8724,7 +8726,8 @@ app.get('/logs', (req, res) => (res.set('Cache-Control', 'no-store, must-revalid
 app.get('/logs/:category', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'marketplace.html'))));
 app.get('/marketplace/:category', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'marketplace.html'))));
 app.get('/tools/:category', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'tools.html'))));
-app.get('/referrals', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'referrals.html'))));
+app.get('/vtu', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'vtu.html'))));
+app.get('/referrals', (req, res) => res.redirect(301, '/vtu')); // Referrals removed from the site
 app.get('/purchases', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'purchases.html'))));
 app.get('/boost', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'boost.html'))));
 app.get('/boost1', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'boost1.html'))));
@@ -8736,7 +8739,8 @@ app.get('/transactions', (req, res) => (res.set('Cache-Control', 'no-store, must
 app.get('/support', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'support.html'))));
 // Legacy bill/VTU paths (airtime, data, cable TV, electricity, betting) were removed.
 // Kept as permanent redirects so old links and bookmarks land on the homepage.
-app.get(['/services', '/airtime', '/data', '/cable', '/electricity', '/betting', '/data-bill'], (req, res) => res.redirect(301, '/'));
+app.get(['/airtime', '/data', '/cable'], (req, res) => res.redirect(301, '/vtu'));
+app.get(['/services', '/electricity', '/betting', '/data-bill'], (req, res) => res.redirect(301, '/'));
 app.get('/settings', (req, res) => (res.set('Cache-Control', 'no-store, must-revalidate'), res.sendFile(path.join(__dirname, 'public', 'settings.html'))));
 app.get('/api-docs', (req, res) => res.redirect(302, '/dashboard'));
 app.get('/apidocs', (req, res) => res.redirect(302, '/dashboard'));
