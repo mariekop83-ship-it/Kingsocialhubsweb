@@ -86,7 +86,7 @@
       '<button class="ksh-menu-toggle" type="button" aria-expanded="false" aria-controls="kshMarketplaceSub">🛍️ <span>Marketplace</span><span class="ksh-chevron">⌄</span></button>' +
       '<div class="ksh-submenu" id="kshMarketplaceSub"><a class="ksh-sub-link" href="/marketplace">Marketplace 1</a><a class="ksh-sub-link" href="/marketplace2">Marketplace 2</a><a class="ksh-sub-link" href="/marketplace3">Marketplace 3</a><a class="ksh-sub-link" href="/marketplace4">Marketplace 4</a></div>' +
       '<button class="ksh-menu-toggle" type="button" aria-expanded="false" aria-controls="kshNumbersSub">📱 <span>Buy Number</span><span class="ksh-chevron">⌄</span></button>' +
-      '<div class="ksh-submenu" id="kshNumbersSub"><a class="ksh-sub-link" href="/buy-number-1">Buy Number 1</a><a class="ksh-sub-link" href="/buy-number-2">Buy Number 2</a><a class="ksh-sub-link" href="/buy-number-3">Buy Number 3</a></div>' +
+      '<div class="ksh-submenu" id="kshNumbersSub"><a class="ksh-sub-link" href="/buy-number-1">Buy Number 1</a><a class="ksh-sub-link" href="/buy-number-2">Buy Number 2</a><a class="ksh-sub-link" href="/buy-number-3">Buy Number 3</a><a class="ksh-sub-link" href="/temp-email">Temp Email</a><a class="ksh-sub-link" href="/rental">Rental</a></div>' +
       '<button class="ksh-menu-toggle" type="button" aria-expanded="false" aria-controls="kshBoostSub">🚀 <span>Boost</span><span class="ksh-chevron">⌄</span></button>' +
       '<div class="ksh-submenu" id="kshBoostSub"><a class="ksh-sub-link" href="/boost1">Boost 1</a><a class="ksh-sub-link" href="/boost2">Boost 2</a></div>' +
       '<div class="ksh-drawer-label">Learn</div><a class="ksh-drawer-link" href="/tutorials">📚 <span>Tutorials</span></a>' +
@@ -111,7 +111,7 @@
     { href: '/dashboard', label: 'Home', icon: 'i-home', match: ['/', '/index.html', '/dashboard'] },
     { href: '/marketplace', label: 'Logs', icon: 'i-grid', match: ['/marketplace', '/purchases'] },
     { href: '/boost', label: 'Boost', icon: 'i-zap', match: ['/boost', '/boost-services', '/boost-history'] },
-    { href: '/buy-number', label: 'Numbers', icon: 'i-smartphone', match: ['/buy-number', '/number-history', '/order-status'] },
+    { href: '/buy-number', label: 'Numbers', icon: 'i-smartphone', match: ['/buy-number', '/temp-email', '/rental', '/number-history', '/order-status'] },
     { href: '/settings', label: 'Me', icon: 'i-user', match: ['/settings', '/transactions', '/wallet', '/referrals', '/notifications'] }
   ];
   function currentPath() {
