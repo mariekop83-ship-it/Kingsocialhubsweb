@@ -71,14 +71,16 @@
   /* Expandable customer hamburger menu: service groups keep each provider flow separate. */
   function buildHamburgerMenu() {
     if (document.getElementById('kshDrawer')) return;
+    if (!document.getElementById('kshMenuCardCss')) { var mc = document.createElement('link'); mc.id = 'kshMenuCardCss'; mc.rel = 'stylesheet'; mc.href = '/css/ksh-menu-card.css?v=1'; document.head.appendChild(mc); }
     var navInner = document.querySelector('.nav-inner');
     var trigger = document.createElement('button');
     trigger.type = 'button'; trigger.id = 'kshMenuTrigger'; trigger.className = 'ksh-menu-trigger';
     trigger.setAttribute('aria-label', 'Open navigation menu'); trigger.setAttribute('aria-controls', 'kshDrawer'); trigger.setAttribute('aria-expanded', 'false');
     trigger.innerHTML = '<span class="ksh-burger" aria-hidden="true"><i></i><i></i><i></i></span><span class="ksh-menu-word">Menu</span>';
     if (navInner) navInner.insertBefore(trigger, navInner.firstChild);
-    else { trigger.style.cssText = 'position:fixed;top:12px;left:12px;z-index:500'; document.body.appendChild(trigger); }
+    else { trigger.style.cssText = 'position:fixed;top:9px;right:12px;z-index:9995'; document.body.appendChild(trigger); }
 
+    if (!navInner) { var tries = 0, mv = setInterval(function () { var bar = document.getElementById('kslBackBar'); if (bar && trigger.parentNode !== bar) { bar.appendChild(trigger); clearInterval(mv); } else if (++tries > 40) clearInterval(mv); }, 100); }
     var backdrop = document.createElement('div'); backdrop.className = 'ksh-menu-backdrop'; backdrop.id = 'kshMenuBackdrop';
     var drawer = document.createElement('aside'); drawer.className = 'ksh-drawer'; drawer.id = 'kshDrawer'; drawer.setAttribute('aria-label','King Social Hub navigation');
     drawer.innerHTML = '<div class="ksh-drawer-head"><div class="ksh-drawer-brand">King Social Hub</div><button class="ksh-drawer-close" type="button" aria-label="Close menu">×</button></div>' +
