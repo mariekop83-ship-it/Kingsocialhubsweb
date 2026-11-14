@@ -12,6 +12,19 @@ input,select{width:100%;padding:13px;border-radius:10px;background:#101319;color
 .msg{margin-top:12px;padding:10px 12px;border-radius:10px;font-size:14px;display:none}.msg.ok{display:block;background:#12301f;color:#7be0a4}.msg.err{display:block;background:#33171a;color:#ff9ea6}
 .price{color:#7db8e0;font-weight:800}.ord{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #282e38;font-size:14px}.ord:first-child{border-top:0}
 .chips{display:flex;gap:8px;flex-wrap:wrap}.chip{padding:8px 14px;border-radius:999px;background:#101319;border:1px solid #343c49;cursor:pointer;font-weight:700;font-size:14px}
+.ov{position:fixed;inset:0;background:rgba(3,6,10,.72);backdrop-filter:blur(4px);display:none;align-items:flex-end;justify-content:center;z-index:9999;padding:0}
+.ov.show{display:flex}
+.sheet{width:100%;max-width:520px;background:#171a20;border:1px solid #282e38;border-radius:22px 22px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom,0px));box-shadow:0 -12px 40px rgba(0,0,0,.5);animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@media(min-width:600px){.ov{align-items:center}.sheet{border-radius:22px}}
+.sheet .grab{width:42px;height:4px;border-radius:4px;background:#343c49;margin:-8px auto 14px}
+.sheet h3{margin:0 0 4px;font-size:20px}.sheet .sub{color:#a2aab6;font-size:14px;margin-bottom:14px}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-top:1px solid #282e38;font-size:15px}
+.kv span:first-child{color:#a2aab6}.kv span:last-child{font-weight:700;text-align:right;word-break:break-word}
+.tot{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding:14px;border-radius:14px;background:#101319;border:1px solid #343c49}
+.tot span:first-child{color:#b7c0cd;font-weight:700}.tot b{color:#7db8e0;font-size:22px}
+.sbtns{display:flex;gap:10px;margin-top:16px}.sbtns button{flex:1;border-radius:12px;padding:14px;font-size:16px;font-weight:800;cursor:pointer;border:1px solid #343c49}
+.sbtns .no{background:#101319;color:#cfd6e0}.sbtns .yes{background:#68a9d5;color:#07121c;border-color:#68a9d5}.sbtns button:disabled{opacity:.6}
 </style></head><body>
 <main class="wrap"><a class="back" href="/dashboard">← Back</a>
 <h1>Airtime &amp; Data</h1><p class="muted">Airtime, data bundles and cable TV — delivered instantly from your wallet.</p>
@@ -30,13 +43,29 @@ input,select{width:100%;padding:13px;border-radius:10px;background:#101319;color
 </div>
 <div class="panel"><h3 style="margin:0 0 6px">Recent orders</h3><div id="orders" class="muted">Loading…</div></div>
 </main>
+<div class="ov" id="ov"><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>
+ <h3 id="shT">Confirm purchase</h3><div class="sub">Please check the details before you pay.</div>
+ <div id="shRows"></div>
+ <div class="tot"><span>You pay</span><b id="shTot"></b></div>
+ <div class="sbtns"><button class="no" id="shNo">Cancel</button><button class="yes" id="shYes">Confirm &amp; pay</button></div>
+</div></div>
 <script>
 const $=id=>document.getElementById(id);const money=n=>'₦'+Number(n||0).toLocaleString('en-NG');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(url,body){const t=localStorage.getItem('ksl_token')||localStorage.getItem('token')||'';
  const r=await fetch(url,{method:body?'POST':'GET',headers:{'Content-Type':'application/json',Authorization:'Bearer '+t},body:body?JSON.stringify(body):undefined});
  const j=await r.json().catch(()=>({}));if(r.status===401){location.replace('/login');}return{ok:r.ok,status:r.status,j};}
-let tab='airtime',plans=[];
+let tab='airtime',plans=[],airPct=0;
+api('/api/vtu/status').then(r=>{if(r.ok&&r.j.airtimePct)airPct=Number(r.j.airtimePct)||0;upd();});
+const airPrice=a=>Math.ceil(Math.round(a*(100+airPct))/100);
+function askConfirm(title,rows,total){return new Promise(res=>{
+ $('shT').textContent=title;$('shTot').textContent=money(total);
+ $('shRows').innerHTML=rows.map(r=>`<div class="kv"><span>${esc(r[0])}</span><span>${esc(r[1])}</span></div>`).join('');
+ const ov=$('ov');ov.classList.add('show');
+ const done=v=>{ov.classList.remove('show');$('shYes').onclick=$('shNo').onclick=ov.onclick=null;document.removeEventListener('keydown',key);res(v);};
+ const key=e=>{if(e.key==='Escape')done(false);};document.addEventListener('keydown',key);
+ $('shYes').onclick=()=>done(true);$('shNo').onclick=()=>done(false);ov.onclick=e=>{if(e.target===ov)done(false);};});}
+const svcName=()=>{const o=$('svc').selectedOptions[0];return o?o.text:'';};
 function show(kind,text){const m=$('msg');m.className='msg '+kind;m.textContent=text;}
 async function loadServices(){
  $('svc').innerHTML='<option>Loading…</option>';
@@ -56,7 +85,7 @@ async function loadPlans(){
  upd();
 }
 function upd(){
- if(tab==='airtime'){const a=Number($('aAmt').value);$('total').textContent=a?'You pay: '+money(a):'';return;}
+ if(tab==='airtime'){const a=Number($('aAmt').value);$('total').textContent=a?'You pay: '+money(airPrice(a)):'';return;}
  const p=plans[Number((tab==='data'?$('dPlan'):$('cPlan')).value)];$('total').textContent=p?'You pay: '+money(p.price):'';
 }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
@@ -70,11 +99,19 @@ let vt;$('cCard').oninput=()=>{clearTimeout(vt);$('cName').textContent='';const 
  if(v.length<6)return;vt=setTimeout(async()=>{const r=await api('/api/vtu/verify-cable',{service_id:$('svc').value,smartcard_number:v});
   $('cName').textContent=r.ok&&r.j.name?'✔ '+r.j.name:(r.ok?'':(r.j.error||''));},600);};
 $('go').onclick=async()=>{
- const b=$('go');let url,body,summary;
- if(tab==='airtime'){url='/api/vtu/airtime';body={service_id:$('svc').value,phone:$('aPhone').value.trim(),amount:Number($('aAmt').value)};summary=`Buy ${money(body.amount)} airtime for ${body.phone}?`;}
- else if(tab==='data'){const p=plans[Number($('dPlan').value)];if(!p)return show('err','Choose a plan');url='/api/vtu/data';body={service_id:p.service_id||$('svc').value,network_service_id:$('svc').value,phone:$('dPhone').value.trim(),plan_code:p.code};summary=`Buy ${p.name} for ${body.phone} at ${money(p.price)}?`;}
- else{const p=plans[Number($('cPlan').value)];if(!p)return show('err','Choose a package');url='/api/vtu/cable';body={service_id:$('svc').value,smartcard_number:$('cCard').value.trim(),plan_code:p.code};summary=`Subscribe ${p.name} on ${body.smartcard_number} at ${money(p.price)}?`;}
- if(!confirm(summary))return;
+ const b=$('go');let url,body,title,rows,total;
+ if(tab==='airtime'){url='/api/vtu/airtime';body={service_id:$('svc').value,phone:$('aPhone').value.trim(),amount:Number($('aAmt').value)};
+  if(!/^0\d{10}$/.test(body.phone))return show('err','Enter a valid 11-digit phone number.');
+  if(!(body.amount>=50))return show('err','Enter an amount of at least ₦50.');
+  title='Confirm airtime';total=airPrice(body.amount);rows=[['Service','Airtime'],['Network',svcName()],['Phone number',body.phone],['Amount',money(body.amount)]];}
+ else if(tab==='data'){const p=plans[Number($('dPlan').value)];if(!p)return show('err','Choose a plan');url='/api/vtu/data';body={service_id:p.service_id||$('svc').value,network_service_id:$('svc').value,phone:$('dPhone').value.trim(),plan_code:p.code};
+  if(!/^0\d{10}$/.test(body.phone))return show('err','Enter a valid 11-digit phone number.');
+  title='Confirm data bundle';total=p.price;rows=[['Service','Data'],['Network',svcName()],['Plan',p.name],['Phone number',body.phone]];}
+ else{const p=plans[Number($('cPlan').value)];if(!p)return show('err','Choose a package');url='/api/vtu/cable';body={service_id:$('svc').value,smartcard_number:$('cCard').value.trim(),plan_code:p.code};
+  if(!/^\d{6,20}$/.test(body.smartcard_number))return show('err','Enter a valid smartcard number.');
+  title='Confirm cable TV';total=p.price;rows=[['Service','Cable TV'],['Provider',svcName()],['Package',p.name],['Smartcard',body.smartcard_number]];
+  if($('cName').textContent.indexOf('✔')===0)rows.push(['Name',$('cName').textContent.replace('✔','').trim()]);}
+ if(!(await askConfirm(title,rows,total)))return;
  b.disabled=true;show('','');$('msg').className='msg';
  const r=await api(url,body);b.disabled=false;
  if(r.ok)show('ok',r.j.message||'Successful');else show('err',r.j.error||'Failed');
