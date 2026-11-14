@@ -1,0 +1,86 @@
+<!doctype html><html lang="en"><head>
+<link rel="icon" type="image/png" href="/favicon.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Airtime &amp; Data | King Social Hub</title>
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/theme.css">
+<script>(function(){try{if(!localStorage.getItem('ksl_token')&&!localStorage.getItem('token'))location.replace('/login')}catch(e){}})();</script>
+<style>
+body{background:#0b0d11;color:#f3f5f8;padding:18px}.wrap{max-width:640px;margin:20px auto}.muted{color:#a2aab6}.back{color:#9fb4c8;text-decoration:none;font-weight:700}
+.panel{background:#171a20;border:1px solid #282e38;border-radius:16px;padding:16px;margin:14px 0}
+.tabs{display:flex;gap:8px}.tab{flex:1;text-align:center;padding:12px 6px;border-radius:12px;background:#171a20;border:1px solid #282e38;color:#cfd6e0;font-weight:800;cursor:pointer}.tab.on{border-color:#68a9d5;color:#7db8e0}
+label{display:block;margin-top:12px;color:#b7c0cd;font-size:14px}
+input,select{width:100%;padding:13px;border-radius:10px;background:#101319;color:#fff;border:1px solid #343c49;margin:6px 0;box-sizing:border-box;font-size:16px}
+.btn{border:0;border-radius:10px;background:#68a9d5;color:#07121c;font-weight:800;padding:13px 16px;cursor:pointer;width:100%;font-size:16px;margin-top:14px}.btn:disabled{opacity:.5}
+.msg{margin-top:12px;padding:10px 12px;border-radius:10px;font-size:14px;display:none}.msg.ok{display:block;background:#12301f;color:#7be0a4}.msg.err{display:block;background:#33171a;color:#ff9ea6}
+.price{color:#7db8e0;font-weight:800}.ord{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #282e38;font-size:14px}.ord:first-child{border-top:0}
+.chips{display:flex;gap:8px;flex-wrap:wrap}.chip{padding:8px 14px;border-radius:999px;background:#101319;border:1px solid #343c49;cursor:pointer;font-weight:700;font-size:14px}
+</style></head><body>
+<main class="wrap"><a class="back" href="/dashboard">← Back</a>
+<h1>Airtime &amp; Data</h1><p class="muted">Airtime, data bundles and cable TV — delivered instantly from your wallet.</p>
+<div class="tabs"><div class="tab on" data-t="airtime">Airtime</div><div class="tab" data-t="data">Data</div><div class="tab" data-t="tv">Cable TV</div></div>
+<div class="panel">
+ <label>Network / Provider</label><select id="svc"><option>Loading…</option></select>
+ <div id="fAirtime"><label>Phone number</label><input id="aPhone" inputmode="numeric" maxlength="11" placeholder="08012345678">
+  <label>Amount (₦50 – ₦5,000)</label><input id="aAmt" inputmode="numeric" placeholder="500"><div class="chips" id="quick"></div></div>
+ <div id="fData" style="display:none"><label>Phone number</label><input id="dPhone" inputmode="numeric" maxlength="11" placeholder="08012345678">
+  <label>Data plan</label><select id="dPlan"></select></div>
+ <div id="fTv" style="display:none"><label>Smartcard / IUC number</label><input id="cCard" inputmode="numeric" placeholder="1234567890">
+  <div id="cName" class="muted" style="font-size:14px;margin-top:4px"></div>
+  <label>Package</label><select id="cPlan"></select></div>
+ <div class="price" id="total" style="margin-top:12px"></div>
+ <button class="btn" id="go">Buy now</button><div class="msg" id="msg"></div>
+</div>
+<div class="panel"><h3 style="margin:0 0 6px">Recent orders</h3><div id="orders" class="muted">Loading…</div></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);const money=n=>'₦'+Number(n||0).toLocaleString('en-NG');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(url,body){const t=localStorage.getItem('ksl_token')||localStorage.getItem('token')||'';
+ const r=await fetch(url,{method:body?'POST':'GET',headers:{'Content-Type':'application/json',Authorization:'Bearer '+t},body:body?JSON.stringify(body):undefined});
+ const j=await r.json().catch(()=>({}));if(r.status===401){location.replace('/login');}return{ok:r.ok,status:r.status,j};}
+let tab='airtime',plans=[];
+function show(kind,text){const m=$('msg');m.className='msg '+kind;m.textContent=text;}
+async function loadServices(){
+ $('svc').innerHTML='<option>Loading…</option>';
+ const r=await api('/api/vtu/services?type='+tab);
+ if(!r.ok){$('svc').innerHTML='<option value="">Unavailable</option>';show('err',r.j.error||'Unavailable');return;}
+ $('msg').className='msg';
+ $('svc').innerHTML=(r.j.services||[]).map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+ loadPlans();
+}
+async function loadPlans(){
+ if(tab==='airtime'){$('total').textContent='';return;}
+ const sel=tab==='data'?$('dPlan'):$('cPlan');sel.innerHTML='<option>Loading…</option>';
+ const r=await api('/api/vtu/'+(tab==='data'?'data-plans':'cable-plans')+'?service_id='+encodeURIComponent($('svc').value));
+ if(!r.ok){sel.innerHTML='';show('err',r.j.error||'Could not load plans');return;}
+ plans=r.j.plans||[];
+ sel.innerHTML=plans.map((p,i)=>`<option value="${i}">${esc(p.name)} — ${money(p.price)}</option>`).join('');
+ upd();
+}
+function upd(){
+ if(tab==='airtime'){const a=Number($('aAmt').value);$('total').textContent=a?'You pay: '+money(a):'';return;}
+ const p=plans[Number((tab==='data'?$('dPlan'):$('cPlan')).value)];$('total').textContent=p?'You pay: '+money(p.price):'';
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');tab=t.dataset.t;
+ $('fAirtime').style.display=tab==='airtime'?'':'none';$('fData').style.display=tab==='data'?'':'none';$('fTv').style.display=tab==='tv'?'':'none';
+ $('msg').className='msg';loadServices();});
+$('svc').onchange=loadPlans;$('dPlan').onchange=upd;$('cPlan').onchange=upd;$('aAmt').oninput=upd;
+$('quick').innerHTML=[100,200,500,1000,2000].map(n=>`<span class="chip" data-n="${n}">${money(n)}</span>`).join('');
+$('quick').onclick=e=>{const n=e.target.dataset.n;if(n){$('aAmt').value=n;upd();}};
+let vt;$('cCard').oninput=()=>{clearTimeout(vt);$('cName').textContent='';const v=$('cCard').value.trim();
+ if(v.length<6)return;vt=setTimeout(async()=>{const r=await api('/api/vtu/verify-cable',{service_id:$('svc').value,smartcard_number:v});
+  $('cName').textContent=r.ok&&r.j.name?'✔ '+r.j.name:(r.ok?'':(r.j.error||''));},600);};
+$('go').onclick=async()=>{
+ const b=$('go');let url,body,summary;
+ if(tab==='airtime'){url='/api/vtu/airtime';body={service_id:$('svc').value,phone:$('aPhone').value.trim(),amount:Number($('aAmt').value)};summary=`Buy ${money(body.amount)} airtime for ${body.phone}?`;}
+ else if(tab==='data'){const p=plans[Number($('dPlan').value)];if(!p)return show('err','Choose a plan');url='/api/vtu/data';body={service_id:p.service_id||$('svc').value,network_service_id:$('svc').value,phone:$('dPhone').value.trim(),plan_code:p.code};summary=`Buy ${p.name} for ${body.phone} at ${money(p.price)}?`;}
+ else{const p=plans[Number($('cPlan').value)];if(!p)return show('err','Choose a package');url='/api/vtu/cable';body={service_id:$('svc').value,smartcard_number:$('cCard').value.trim(),plan_code:p.code};summary=`Subscribe ${p.name} on ${body.smartcard_number} at ${money(p.price)}?`;}
+ if(!confirm(summary))return;
+ b.disabled=true;show('','');$('msg').className='msg';
+ const r=await api(url,body);b.disabled=false;
+ if(r.ok)show('ok',r.j.message||'Successful');else show('err',r.j.error||'Failed');
+ loadOrders();
+};
+async function loadOrders(){const r=await api('/api/vtu/orders');const rows=r.ok?r.j:[];
+ $('orders').innerHTML=rows.length?rows.map(o=>`<div class="ord"><span>${esc(o.label)}<br><small class="muted">${new Date(o.createdAt).toLocaleString()}</small></span><span style="text-align:right">${money(o.amount)}<br><small class="muted">${esc(o.status)}</small></span></div>`).join(''):'No orders yet.';}
+loadServices();loadOrders();
+</script></body></html>

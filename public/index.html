@@ -262,7 +262,7 @@
           <div class="dropdown-divider"></div>
  <a class="dd-item" href="#" onclick="showPage('wallet')"><span><svg class="icon i-credit-card" aria-hidden="true"><use href="#i-credit-card"/></svg></span> Wallet</a>
  <a class="dd-item" href="#" onclick="showPage('deposit')"><span><svg class="icon i-credit-card" aria-hidden="true"><use href="#i-credit-card"/></svg></span> Deposit Funds</a>
- <a class="dd-item" href="/referrals"><span><svg class="icon i-link" aria-hidden="true"><use href="#i-link"/></svg></span> Referrals</a>
+ <a class="dd-item" href="/vtu"><span><svg class="icon i-link" aria-hidden="true"><use href="#i-link"/></svg></span> Airtime &amp; Data</a>
  <a class="dd-item" href="/purchases"><span><svg class="icon i-package" aria-hidden="true"><use href="#i-package"/></svg></span> My Purchases</a>
  <a class="dd-item" href="/transactions"><span><svg class="icon i-clipboard" aria-hidden="true"><use href="#i-clipboard"/></svg></span> Transactions</a>
  <a class="dd-item" href="/settings"><span><svg class="icon i-settings" aria-hidden="true"><use href="#i-settings"/></svg></span> Settings</a>
@@ -452,11 +452,11 @@
           <p>Followers, likes, views and subscribers across every major platform, ordered in a few taps.</p>
           <span class="kls-go">Start a boost →</span>
         </a>
-        <a class="kls-what-card" href="/referrals">
-          <span class="kls-what-ico"><svg class="icon i-link" aria-hidden="true"><use href="#i-link"/></svg></span>
-          <h3>Earn While You Shop</h3>
-          <p>Refer friends and earn commission when they fund their wallet or make eligible purchases.</p>
-          <span class="kls-go">Get your link →</span>
+        <a class="kls-what-card" href="/vtu">
+          <span class="kls-what-ico"><svg class="icon i-zap" aria-hidden="true"><use href="#i-zap"/></svg></span>
+          <h3>Airtime, Data &amp; Cable TV</h3>
+          <p>Top up airtime, buy data bundles and renew DStv, GOtv and Startimes instantly from your wallet.</p>
+          <span class="kls-go">Buy now →</span>
         </a>
       </div>
     </div>
@@ -788,7 +788,7 @@ function filterToolsGrid(){
     <div class="support-left">
       <div class="supp-card">
  <h3><svg class="icon i-bot" aria-hidden="true"><use href="#i-bot"/></svg> Ask King Social Hub Assistant</h3>
-        <p style="color:var(--t2);font-size:14px;margin-bottom:12px">Instant answers to basic questions — deposits, purchases, refunds, referrals, the API, and more.</p>
+        <p style="color:var(--t2);font-size:14px;margin-bottom:12px">Instant answers to basic questions — deposits, purchases, refunds, the API, and more.</p>
  <button class="btn-primary" onclick="toggleAiChatFab()"><svg class="icon i-message-circle" aria-hidden="true"><use href="#i-message-circle"/></svg> Open Chat</button>
       </div>
       <div class="supp-card">
@@ -833,7 +833,7 @@ function filterToolsGrid(){
         <div class="wh-num">1</div>
         <div class="wh-body">
           <div class="wh-title">Create your account</div>
-          <div class="wh-sub">Register with email or Google in seconds — no verification hoops. Got a referral link from a friend? It's applied automatically.</div>
+          <div class="wh-sub">Register with email or Google in seconds — no verification hoops. </div>
         </div>
       </div>
       <div class="wh-step">
@@ -860,8 +860,8 @@ function filterToolsGrid(){
       <div class="wh-step">
         <div class="wh-num">5</div>
         <div class="wh-body">
-          <div class="wh-title">Share &amp; earn (optional)</div>
-          <div class="wh-sub">Grab your referral link from the Referrals page and earn 4% on whatever your invites spend — no extra steps needed.</div>
+          <div class="wh-title">Buy airtime &amp; data</div>
+          <div class="wh-sub">Top up airtime, data bundles and cable TV from your wallet in seconds.</div>
         </div>
       </div>
     </div>
@@ -1019,7 +1019,7 @@ function filterToolsGrid(){
       <div class="fg"><label>Confirm Password</label><input type="password" id="regConfirm" placeholder="Repeat your password"/></div>
       <div class="fg"><label data-i18n="Country">Country</label><div data-country-select id="regCountry"></div></div>
       <div class="fg"><label data-i18n="Phone Number">Phone Number <span style="color:var(--t3);font-weight:400">(optional)</span></label><div data-country-phone id="regPhoneWrap"></div></div>
-      <div class="fg"><label>Referral Code <span style="color:var(--t3);font-weight:400">(optional)</span></label><input type="text" id="regRefCode" placeholder="Enter a friend's referral code"/></div>
+      
       <label class="terms-check"><input type="checkbox" id="regTerms"/><span>I agree to the <a href="#" onclick="event.preventDefault();showPage('terms')">Terms &amp; Conditions</a></span></label>
       <button class="btn-primary btn-full" id="regBtn" onclick="register()">Create My Account</button>
       <div id="regFeedback" class="form-feedback"></div>

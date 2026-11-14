@@ -672,6 +672,10 @@ tr:hover td{background:rgba(255,255,255,.035)}
       </div>
     </div>
     <!-- KING-UPGRADE panels -->
+<div id="tab-vtuadm" class="tab-panel">
+  <div class="sec-title">Airtime &amp; Data (VTU) — prices, markup &amp; orders</div>
+  <div id="vtuAdmRoot">Loading…</div>
+</div>
 <div id="tab-logs4" class="tab-panel">
       <div class="sec">
         <div class="sec-title"><svg class="icon i-settings" aria-hidden="true"><use href="#i-settings"/></svg> Marketplace 4 switch</div>
@@ -2911,6 +2915,7 @@ const ADMIN_NAV = [
   ]},
   { group:'Marketplace settings', owner:true, items:[
     { tab:'priceadj', icon:'i-banknote', label:'Markup / Price adjustment', owner:true, keywords:'markup price adjust add subtract restore default buy number boost marketplace increase decrease' },
+    { tab:'vtuadm', icon:'i-smartphone', label:'Airtime & Data (VTU)', owner:true, keywords:'vtu airtime data cable tv dstv gotv startimes markup price percentage vtugate profit' },
     { tab:'logs2', icon:'i-plug', label:'Logs 2 (Marketplace 2)', owner:true, keywords:'nova novasolution marketplace manual switch prices stock' },
     { tab:'logs3', icon:'i-plug', label:'Logs 3 (Marketplace 3)', owner:true, keywords:'rakib rakibsocials marketplace three switch prices stock orders' },
     { tab:'logs4', icon:'i-plug', label:'Logs 4 (Marketplace 4)', owner:true, keywords:'marketplace four 4 sync switch prices stock orders' },
@@ -3055,6 +3060,7 @@ function switchTab(name,el) {
   if(name==='logs4')        { m4LoadConfig(); m4LoadProducts(false); m4LoadBalance(); m4LoadOrders(); }
   if(name==='n3adm')        { n3Load(); }
   if(name==='priceadj'&&window.kshPaLoad) kshPaLoad();
+  if(name==='vtuadm'&&window.vtuAdmLoad) vtuAdmLoad();
   if(name==='kinglogos')    { kLogosLoad(); }
   if(name==='welcomepopup') { wpLoad(); }
   if(name==='numnotice')    { nnLoad(); }
@@ -7576,5 +7582,6 @@ async function refundOtpSuiteOrder(){const id=prompt('Paste the SMS-COOL order I
 })();
 </script>
 <script src="/js/admin-king.js?v=2"></script>
+<script src="/js/admin-vtu.js?v=1"></script>
 </body>
 </html>
