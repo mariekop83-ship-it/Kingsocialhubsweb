@@ -386,6 +386,8 @@ tr:hover td{background:rgba(255,255,255,.035)}
     <div id="admSidebarNav"></div>
   </nav>
   <div class="main">
+    <div id="tab-custusers" class="tab-panel"><iframe class="adm-embed" data-src="/admin-users.html?v=2" title="Users"></iframe></div>
+    <div id="tab-custhistory" class="tab-panel"><iframe class="adm-embed" data-src="/admin-history.html?v=2" title="Order history"></iframe></div>
     <div id="tab-selfcheck" class="tab-panel">
       <div class="sec">
         <div class="sec-title"><svg class="icon i-check-circle" aria-hidden="true"><use href="#i-check-circle"/></svg> Boost deployment self-check</div>
@@ -2663,8 +2665,6 @@ tr:hover td{background:rgba(255,255,255,.035)}
         </div>
       </div>
     </div>
-    <div id="tab-custusers" class="tab-panel"><iframe class="adm-embed" src="/admin-users.html?v=1" title="Users"></iframe></div>
-    <div id="tab-custhistory" class="tab-panel"><iframe class="adm-embed" src="/admin-history.html?v=1" title="Order history"></iframe></div>
     <div id="tab-weeklyreward" class="tab-panel">
       <div class="sec">
  <div class="sec-title"><svg class="icon i-trophy" aria-hidden="true"><use href="#i-trophy"/></svg> Weekly Top Buyer Reward</div>
@@ -3047,6 +3047,7 @@ renderAdminNav();
 
 // ── TABS ────────────────────────────────────────────────────────
 function switchTab(name,el) {
+  { const fr=document.querySelector('#tab-'+name+' iframe[data-src]'); if (fr && !fr.getAttribute('src')) fr.setAttribute('src', fr.getAttribute('data-src')); }
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
   const panel = document.getElementById('tab-'+name);
