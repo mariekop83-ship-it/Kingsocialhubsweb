@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Users · Admin</title>
+<style>
+:root{--bg:#0b1020;--card:#121a2e;--line:#22304a;--txt:#e6ecf7;--mut:#8b9ab5;--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--amber:#f59e0b}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#f4f6fb;--card:#fff;--line:#dfe5f0;--txt:#0f172a;--mut:#64748b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.top{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.top b{font-size:17px}
+.wrap{max-width:820px;margin:0 auto;padding:14px 16px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+h2{font-size:15px;margin:0 0 10px}
+.search{display:flex;gap:8px}
+input,select,textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--txt);font:inherit}
+button{padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--txt);font:inherit;font-weight:700;cursor:pointer;white-space:nowrap}
+button.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+button.good{border-color:var(--green);color:var(--green)}
+button.bad{border-color:var(--red);color:var(--red)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.list{display:grid;gap:8px}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:11px 12px;border:1px solid var(--line);border-radius:12px;cursor:pointer;background:transparent;width:100%;text-align:left;color:var(--txt);font:inherit}
+.row:hover{border-color:var(--blue)}
+.mut{color:var(--mut);font-size:13px}
+.tag{display:inline-block;font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px;border:1px solid currentColor;margin-left:6px}
+.tag.red{color:var(--red)}.tag.green{color:var(--green)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+@media (max-width:560px){.grid{grid-template-columns:1fr}}
+.kv small{display:block;color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.kv span{word-break:break-all}
+.bal{font-size:26px;font-weight:800}
+.neg{color:var(--red)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:560px){.actions{grid-template-columns:1fr}}
+.actions .box{display:grid;gap:8px}
+.pager{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--mut);font-weight:700}
+.msg{font-size:13px;min-height:18px;margin-top:6px}
+.msg.err{color:var(--red)}.msg.ok{color:var(--green)}
+.gate{max-width:360px;margin:12vh auto;padding:0 16px}
+.hidden{display:none!important}
+.scroll{max-height:260px;overflow:auto}
+.back{margin-bottom:12px}
+html.embed .top { display: none; }
+</style>
+<link rel="stylesheet" href="/admin-embed.css?v=1"/>
+<script src="/admin-embed.js?v=2"></script>
+</head>
+<body>
+<div class="top">
+  <b>Users</b>
+  <button type="button" id="lockBtn">Lock</button>
+</div>
+
+<!-- Passcode gate -->
+<div id="gate" class="gate hidden">
+  <div class="card">
+    <h2>Admin passcode</h2>
+    <form id="gateForm" autocomplete="off">
+      <input id="passIn" type="password" placeholder="Passcode" required/>
+      <div style="height:10px"></div>
+      <button class="primary" type="submit" style="width:100%">Open</button>
+      <div class="msg err" id="gateMsg"></div>
+    </form>
+  </div>
+</div>
+
+<div id="app" class="wrap hidden">
+  <!-- List view -->
+  <div id="listView">
+    <div class="card">
+      <form class="search" id="searchForm">
+        <input id="q" placeholder="Search name, email, phone, Game ID or account number" autocomplete="off"/>
+        <button class="primary" type="submit">Search</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2 id="listTitle">All users</h2>
+      <div class="list" id="userList"><p class="mut">Loading…</p></div>
+      <div class="pager">
+        <button type="button" id="prevBtn">← Previous</button>
+        <span class="mut" id="pageInfo"></span>
+        <button type="button" id="nextBtn">Next →</button>
+      </div>
+      <div class="msg" id="listMsg"></div>
+    </div>
+  </div>
+
+  <!-- Detail view -->
+  <div id="detailView" class="hidden">
+    <button type="button" class="back" id="backBtn">← Back to list</button>
+    <div id="detail"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  if (window.top !== window.self) document.documentElement.classList.add('embed');
+  var KEY = 'ksl_admin_pass';
+  var PAGE_SIZE = 30;
+  var pass = '';
+  try { pass = sessionStorage.getItem(KEY) || ''; } catch (e) {}
+  var page = 1, pages = 1, total = 0, term = '';
+  var current = null;
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function naira(n) {
+    var v = Number(n) || 0;
+    return (v < 0 ? '-' : '') + '₦' + Math.abs(v).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function when(d) { return d ? new Date(d).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : '—'; }
+  function msg(id, text, ok) { var el = $(id); el.textContent = text || ''; el.className = 'msg ' + (ok ? 'ok' : 'err'); }
+
+  async function api(path, opts) {
+    opts = opts || {};
+    var headers = { 'x-admin-passcode': pass };
+    if (opts.body) headers['Content-Type'] = 'application/json';
+    var r = await fetch(path, { method: opts.method || 'GET', headers: headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+    var d = {};
+    try { d = await r.json(); } catch (e) {}
+    if (!r.ok) throw new Error(d.error || ('Request failed (' + r.status + ')'));
+    return d;
+  }
+
+  // ---------- passcode gate ----------
+  function showGate(err){ if(window.__admExpired) window.__admExpired(err); } function __unusedGate(err) {
+    $('app').classList.add('hidden');
+    $('gate').classList.remove('hidden');
+    $('gateMsg').textContent = err || '';
+    $('passIn').focus();
+  }
+  function showApp() {
+    $('gate').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    loadPage(1);
+  }
+  $('gateForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    pass = $('passIn').value.trim();
+    try {
+      await api('/api/admin/users/page?size=1');
+      try { sessionStorage.setItem(KEY, pass); } catch (x) {}
+      showApp();
+    } catch (err) { pass = ''; showGate('Wrong passcode.'); }
+  });
+  $('lockBtn').addEventListener('click', function () {
+    pass = ''; try { sessionStorage.removeItem(KEY); } catch (e) {}
+    showListView();
+    showGate('');
+  });
+
+  // ---------- list (paged, 30 at a time) ----------
+  function showListView() {
+    $('detailView').classList.add('hidden');
+    $('listView').classList.remove('hidden');
+  }
+  $('searchForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    term = $('q').value.trim();
+    loadPage(1);
+  });
+  $('prevBtn').addEventListener('click', function () { if (page > 1) loadPage(page - 1); });
+  $('nextBtn').addEventListener('click', function () { if (page < pages) loadPage(page + 1); });
+  $('backBtn').addEventListener('click', function () { showListView(); loadPage(page); });
+
+  async function loadPage(n) {
+    showListView();
+    msg('listMsg', '');
+    $('userList').innerHTML = '<p class="mut">Loading…</p>';
+    $('prevBtn').disabled = true; $('nextBtn').disabled = true;
+    try {
+      var d = await api('/api/admin/users/page?page=' + n + '&size=' + PAGE_SIZE + '&search=' + encodeURIComponent(term));
+      page = d.page; pages = d.pages; total = d.total;
+      $('listTitle').textContent = term ? 'Results for "' + term + '"' : 'All users';
+      $('userList').innerHTML = d.users.length ? d.users.map(function (u, i) {
+        return '<button type="button" class="row" data-i="' + i + '"><span><b>' + esc(u.name) + '</b>' +
+          (u.restricted ? '<span class="tag red">Restricted</span>' : '') +
+          '<br><span class="mut">' + esc(u.email) + (u.contactPhone ? ' · ' + esc(u.contactPhone) : '') + ' · joined ' + esc(when(u.createdAt)) + '</span></span>' +
+          '<b class="' + (u.balance < 0 ? 'neg' : '') + '">' + naira(u.balance) + '</b></button>';
+      }).join('') : '<p class="mut">No users match.</p>';
+      Array.prototype.forEach.call($('userList').querySelectorAll('button.row'), function (b) {
+        b.addEventListener('click', function () { openUser(d.users[Number(b.dataset.i)]._id); });
+      });
+      $('pageInfo').textContent = 'Page ' + page + ' of ' + pages + ' · ' + total + ' user' + (total === 1 ? '' : 's');
+      $('prevBtn').disabled = page <= 1;
+      $('nextBtn').disabled = page >= pages;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      $('userList').innerHTML = '';
+      msg('listMsg', err.message);
+      $('prevBtn').disabled = page <= 1;
+      $('nextBtn').disabled = page >= pages;
+    }
+  }
+
+  // ---------- one user ----------
+  async function openUser(id) {
+    showDetailLoading();
+    try {
+      current = await api('/api/admin/users/' + id + '/full');
+      await renderDetail();
+    } catch (err) {
+      $('detail').innerHTML = '<div class="card msg err">' + esc(err.message) + '</div>';
+    }
+  }
+  function showDetailLoading() {
+    $('listView').classList.add('hidden');
+    $('detailView').classList.remove('hidden');
+    $('detail').innerHTML = '<div class="card mut">Loading user…</div>';
+    window.scrollTo({ top: 0 });
+  }
+
+  async function renderDetail() {
+    var u = current;
+    var linked = [];
+    var hist = [];
+    try { linked = await api('/api/admin/users/' + u._id + '/linked'); } catch (e) {}
+    try { hist = (await api('/api/admin/users/' + u._id + '/history')).rows || []; } catch (e) {}
+
+    var tempActive = !!(u.tempPassword && u.tempPassword.hash && u.tempPassword.expiresAt && new Date(u.tempPassword.expiresAt) > new Date());
+    var va = u.virtualAccount && u.virtualAccount.accountNumber
+      ? u.virtualAccount.accountNumber + ' (' + (u.virtualAccount.bankName || '') + ')' : '';
+    var logins = (u.loginHistory || []).slice(-10).reverse();
+    var purchases = (u.purchaseDetails || []).slice().reverse().slice(0, 25);
+
+    $('detail').innerHTML =
+      '<div class="card">' +
+        '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start">' +
+          '<div><h2 style="font-size:19px;margin:0">' + esc(u.name) + '</h2>' +
+          '<div class="mut">' + esc(u.email) + '</div></div>' +
+          (u.restricted ? '<span class="tag red">Restricted</span>' : '<span class="tag green">Active</span>') +
+        '</div>' +
+        '<div style="height:12px"></div>' +
+        '<div class="bal ' + (u.balance < 0 ? 'neg' : '') + '">' + naira(u.balance) + '</div>' +
+        '<div class="mut">Wallet balance</div>' +
+      '</div>' +
+
+      '<div class="card"><h2>Details</h2><div class="grid">' +
+        kv('Phone (contact)', u.contactPhone) +
+        kv('Game ID', u.gameId) +
+        kv('Country', u.country) +
+        kv('Joined', when(u.createdAt)) +
+        kv('Sign-up IP', u.signupIp) +
+        kv('Last active', when(u.lastActiveAt)) +
+        kv('Last login', when(u.lastLoginAt)) +
+        kv('Last login IP', u.lastLoginIp) +
+        kv('Virtual account', va) +
+        kv('Login method', u.authProvider) +
+        kv('Restriction reason', u.restricted ? (u.restrictedReason || '—') : 'None') +
+      '</div></div>' +
+
+      '<div class="card"><h2>Account actions</h2><div class="actions">' +
+        '<div class="box">' +
+          '<input id="amt" type="number" min="1" step="any" placeholder="Amount (₦)"/>' +
+          '<input id="amtReason" placeholder="Reason (shown in history)"/>' +
+          '<div style="display:flex;gap:8px"><button class="good" id="btnCredit" style="flex:1">Credit</button>' +
+          '<button class="bad" id="btnDebit" style="flex:1">Debit</button></div>' +
+          '<div class="msg" id="moneyMsg"></div>' +
+        '</div>' +
+        '<div class="box">' +
+          (u.restricted
+            ? '<button class="good" id="btnUnban">Unban (unrestrict)</button>'
+            : '<input id="banReason" placeholder="Reason for ban"/><button class="bad" id="btnBan">Ban from site</button>') +
+          '<div class="msg" id="banMsg"></div>' +
+        '</div>' +
+        '<div class="box" style="grid-column:1/-1">' +
+          '<h2 style="margin:6px 0 0">Temporary password</h2>' +
+          '<p class="mut" style="margin:0">Works alongside the customer\'s own password, then stops working when it expires. The customer\'s own password is not changed.</p>' +
+          (tempActive ? '<p class="mut" style="margin:0">Active now, until ' + esc(when(u.tempPassword.expiresAt)) + '.</p>' : '') +
+          '<input id="newPw" type="text" autocomplete="off" placeholder="Temporary password (at least 6 characters)"/>' +
+          '<select id="pwHours"><option value="24">Lasts 24 hours</option><option value="168">Lasts 7 days</option></select>' +
+          '<button class="primary" id="btnPw">Set temporary password</button>' +
+          (tempActive ? '<button class="bad" id="btnPwClear">Remove temporary password</button>' : '') +
+          '<div class="msg" id="pwMsg"></div>' +
+        '</div>' +
+      '</div></div>' +
+
+      '<div class="card"><h2>Possible linked accounts (fraud check)</h2>' +
+        (linked.length
+          ? '<div class="list">' + linked.map(function (o) {
+              return '<div class="row" style="cursor:default"><span><b>' + esc(o.name) + '</b> <span class="mut">' + esc(o.email) + '</span>' +
+                (o.restricted ? ' <span class="tag red">Restricted</span>' : '') +
+                '<br><span class="mut">Same sign-up IP or device as this user</span></span></div>';
+            }).join('') + '</div>'
+          : '<p class="mut" style="margin:0">No other account shares this user\'s sign-up IP or device.</p>') +
+      '</div>' +
+
+      '<div class="card"><h2>Login history (latest 10)</h2>' +
+        (logins.length
+          ? '<div class="scroll"><table><tr><th>When</th><th>IP</th><th>Device</th></tr>' +
+            logins.map(function (l) {
+              return '<tr><td>' + esc(when(l.at)) + '</td><td>' + esc(l.ip) + '</td><td class="mut">' + esc((l.userAgent || '').slice(0, 80)) + '</td></tr>';
+            }).join('') + '</table></div>'
+          : '<p class="mut" style="margin:0">No logins recorded.</p>') +
+      '</div>' +
+
+      '<div class="card"><h2>Purchases (latest 25)</h2>' +
+        (purchases.length
+          ? '<div class="scroll"><table><tr><th>Item</th><th>Type</th><th>Date</th></tr>' +
+            purchases.map(function (p) {
+              return '<tr><td>' + esc(p.logTitle || '—') + '</td><td class="mut">' + esc(p.logType || '') + '</td><td>' + esc(when(p.purchasedAt || p.createdAt)) + '</td></tr>';
+            }).join('') + '</table></div>'
+          : '<p class="mut" style="margin:0">No purchases yet.</p>') +
+      '</div>' +
+
+      '<div class="card"><h2>Everything this customer has done (latest 300)</h2>' +
+        (hist.length
+          ? '<div class="scroll"><table><tr><th>When</th><th>What</th><th>Item</th><th>Details</th><th>Amount</th><th>Status</th></tr>' +
+            hist.map(function (h) {
+              return '<tr><td>' + esc(when(h.when)) + '</td><td>' + esc(h.kind) + '</td><td>' + esc(h.item) + '</td>' +
+                '<td class="mut">' + esc(h.detail) + '</td><td class="' + (h.amount < 0 ? 'neg' : '') + '">' + naira(h.amount) + '</td>' +
+                '<td>' + esc(h.status) + '</td></tr>';
+            }).join('') + '</table></div>'
+          : '<p class="mut" style="margin:0">No activity yet.</p>') +
+        '<p class="mut" style="font-size:12px;margin:8px 0 0">Boosting, Boosting 2, numbers, temp email, rentals, airtime and wallet, newest first.</p>' +
+      '</div>';
+
+    wire(u);
+  }
+
+  function kv(label, value) {
+    return '<div class="kv"><small>' + esc(label) + '</small><span>' + (value == null || value === '' ? '—' : esc(value)) + '</span></div>';
+  }
+
+  function wire(u) {
+    function move(kind) {
+      var amount = Number($('amt').value);
+      var reason = $('amtReason').value.trim();
+      if (!(amount > 0)) return msg('moneyMsg', 'Enter an amount above 0.');
+      var verb = kind === 'credit' ? 'Credit' : 'Debit';
+      if (!confirm(verb + ' ' + naira(amount) + ' ' + (kind === 'credit' ? 'to' : 'from') + ' ' + u.name + '?')) return;
+      run('btnCredit', 'btnDebit', async function () {
+        var path = kind === 'credit' ? '/api/admin/credit' : '/api/admin/deduct';
+        var d = await api(path, { method: 'POST', body: { userId: u._id, amount: amount, reason: reason } });
+        return d.message || (verb + ' done.');
+      }, 'moneyMsg');
+    }
+    $('btnCredit').addEventListener('click', function () { move('credit'); });
+    $('btnDebit').addEventListener('click', function () { move('debit'); });
+
+    $('btnPw').addEventListener('click', function () {
+      var pw = $('newPw').value;
+      var hours = Number($('pwHours').value);
+      if (pw.length < 6) return msg('pwMsg', 'Use at least 6 characters.');
+      if (!confirm('Set a temporary password for ' + u.name + ' that lasts ' + (hours === 24 ? '24 hours' : '7 days') + '? Their own password still works too.')) return;
+      run('btnPw', null, async function () {
+        var d = await api('/api/admin/users/' + u._id + '/temp-password', { method: 'PUT', body: { password: pw, hours: hours } });
+        return d.message || 'Temporary password set.';
+      }, 'pwMsg');
+    });
+    if ($('btnPwClear')) $('btnPwClear').addEventListener('click', function () {
+      if (!confirm('Remove the temporary password for ' + u.name + '?')) return;
+      run('btnPwClear', null, async function () {
+        var d = await api('/api/admin/users/' + u._id + '/temp-password/clear', { method: 'PUT' });
+        return d.message || 'Removed.';
+      }, 'pwMsg');
+    });
+    if ($('btnBan')) $('btnBan').addEventListener('click', function () {
+      var reason = $('banReason').value.trim();
+      if (!reason) return msg('banMsg', 'Write a reason for the ban.');
+      if (!confirm('Ban ' + u.name + ' from the site? They will not be able to use it until unbanned.')) return;
+      run('btnBan', null, async function () {
+        var d = await api('/api/admin/users/' + u._id + '/restrict', { method: 'PUT', body: { restricted: true, reason: reason } });
+        return d.message || 'Banned.';
+      }, 'banMsg');
+    });
+    if ($('btnUnban')) $('btnUnban').addEventListener('click', function () {
+      if (!confirm('Unban ' + u.name + '?')) return;
+      run('btnUnban', null, async function () {
+        var d = await api('/api/admin/users/' + u._id + '/restrict', { method: 'PUT', body: { restricted: false } });
+        return d.message || 'Unbanned.';
+      }, 'banMsg');
+    });
+  }
+
+  // Runs an action, shows the result, then reloads this user.
+  async function run(btnA, btnB, fn, msgId) {
+    var a = $(btnA), b = btnB ? $(btnB) : null;
+    [a, b].forEach(function (x) { if (x) x.disabled = true; });
+    try {
+      var text = await fn();
+      current = await api('/api/admin/users/' + current._id + '/full');
+      await renderDetail();
+      msg(msgId, text, true);
+    } catch (err) {
+      msg(msgId, err.message);
+      [a, b].forEach(function (x) { if (x) x.disabled = false; });
+    }
+  }
+
+  // ---------- start ----------
+  if (pass) {
+    api('/api/admin/users/page?size=1').then(showApp).catch(function () { showGate(''); });
+  } else {
+    showGate('');
+  }
+})();
+</script>
+</body>
+</html>

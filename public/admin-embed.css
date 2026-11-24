@@ -1,0 +1,31 @@
+/* Shared look for admin sections that open inside the admin panel (no passcode screens, no Lock). */
+#gate,#gateForm,#lockBtn{display:none!important}
+html,body{background:var(--bg)!important;color:var(--txt)}
+body{font-size:14px;line-height:1.5;-webkit-text-size-adjust:100%}
+.top{position:static!important;border:1px solid var(--line)!important;border-radius:12px;margin:16px 16px 0;padding:14px 18px!important}
+.top h1,.top b{font-size:18px!important;font-weight:700;letter-spacing:.1px}
+.wrap{max-width:1100px!important;width:100%;margin:0 auto!important;padding:16px 16px 48px!important}
+.card{border-radius:14px!important;padding:18px 20px!important;margin-bottom:16px!important}
+.card h2{font-size:15px!important;font-weight:700;margin:0 0 6px!important;padding-bottom:10px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hint{color:var(--mut);font-size:12.5px;line-height:1.5;margin:0 0 12px!important}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0!important}
+input,select,textarea{min-height:38px;border-radius:9px!important}
+button{min-height:38px;border-radius:9px!important}
+button.small{min-height:30px}
+.scroll,.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%}
+th{background:rgba(127,140,170,.08);font-size:11.5px!important;text-transform:uppercase;letter-spacing:.4px;padding:10px 10px!important;white-space:nowrap}
+td{padding:10px!important}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.stat{border-radius:10px;padding:12px 14px!important}
+#admExpired{margin:18px 16px;padding:16px 18px;border:1px solid var(--amber,#f59e0b);background:rgba(245,158,11,.1);border-radius:12px;display:none}
+#admExpired b{display:block;margin-bottom:4px}
+#admExpired button{margin-top:10px}
+@media(max-width:640px){
+  .top{margin:10px 10px 0}
+  .wrap{padding:12px 10px 40px!important}
+  .card{padding:14px!important}
+  .row>input,.row>select{flex:1 1 100%;min-width:0!important;width:100%}
+  .row>button{flex:1 1 auto}
+  input[type=number]{width:100%!important}
+}

@@ -122,6 +122,7 @@ label{display:block;margin-bottom:5px;font-size:12px;color:var(--t2);font-weight
 .sec-title{font-size:14px;font-weight:700;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--border)}
 /* TAB PANELS */
 .tab-panel{display:none}
+.adm-embed{display:block;width:100%;height:calc(100vh - 150px);min-height:560px;border:0;border-radius:14px;background:transparent}
 .tab-panel.active{display:block}
 /* TABLE */
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--r12);border:1px solid var(--border)}
@@ -2662,6 +2663,8 @@ tr:hover td{background:rgba(255,255,255,.035)}
         </div>
       </div>
     </div>
+    <div id="tab-custusers" class="tab-panel"><iframe class="adm-embed" src="/admin-users.html?v=1" title="Users"></iframe></div>
+    <div id="tab-custhistory" class="tab-panel"><iframe class="adm-embed" src="/admin-history.html?v=1" title="Order history"></iframe></div>
     <div id="tab-weeklyreward" class="tab-panel">
       <div class="sec">
  <div class="sec-title"><svg class="icon i-trophy" aria-hidden="true"><use href="#i-trophy"/></svg> Weekly Top Buyer Reward</div>
@@ -2906,6 +2909,10 @@ function doLogout(){ sessionStorage.removeItem(SK); sessionStorage.removeItem(SK
 // Both the desktop sidebar and the mobile slide-in drawer are rendered from this
 // array, so a section can never exist in one menu and be missing from the other.
 const ADMIN_NAV = [
+  { group:'Customers', owner:true, items:[
+    { tab:'custusers', icon:'i-users', label:'Users: search, ban, credit, password', owner:true, accent:'accent', keywords:'users customer search find email ban unban credit debit password temporary history linked accounts' },
+    { tab:'custhistory', icon:'i-receipt', label:'Order history: boost, numbers, email, rentals', owner:true, keywords:'orders history boost numbers temp email rental boosting airtime' },
+  ]},
   { group:'Overview', items:[
     { tab:'dashboard', icon:'i-bar-chart',    label:'Dashboard' },
     { tab:'ops',       icon:'i-activity',     label:'Operations (numbers, boost, chat)',

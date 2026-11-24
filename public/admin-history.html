@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Order history · Admin</title>
+<style>
+:root{--bg:#0b1020;--card:#121a2e;--line:#22304a;--txt:#e6ecf7;--mut:#8b9ab5;--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--amber:#f59e0b}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#f4f6fb;--card:#fff;--line:#dfe5f0;--txt:#0f172a;--mut:#64748b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.top{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.top b{font-size:17px}
+.wrap{max-width:980px;margin:0 auto;padding:14px 16px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+input{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--txt);font:inherit}
+button{padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--txt);font:inherit;font-weight:700;cursor:pointer;white-space:nowrap}
+button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+@media (max-width:560px){.stats{grid-template-columns:1fr 1fr}}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat small{display:block;color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.stat b{font-size:18px}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--mut);font-weight:700;white-space:nowrap}
+.mut{color:var(--mut);font-size:12px}
+.tag{display:inline-block;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.ok{color:var(--green)}.bad{color:var(--red)}.wait{color:var(--amber)}.off{color:var(--mut)}
+.hidden{display:none!important}
+.gate{max-width:360px;margin:12vh auto;padding:0 16px}
+.msg{font-size:13px;color:var(--red);min-height:18px;margin-top:6px}
+.note{font-size:12px;color:var(--mut);margin:10px 0 0}
+html.embed .top { display: none; }
+</style>
+<link rel="stylesheet" href="/admin-embed.css?v=1"/>
+<script src="/admin-embed.js?v=2"></script>
+</head>
+<body>
+<div class="top"><b>Order history</b><button type="button" id="lockBtn">Lock</button></div>
+
+<div id="gate" class="gate hidden">
+  <div class="card">
+    <form id="gateForm" autocomplete="off">
+      <input id="passIn" type="password" placeholder="Admin passcode" required/>
+      <div style="height:10px"></div>
+      <button class="on" type="submit" style="width:100%">Open</button>
+      <div class="msg" id="gateMsg"></div>
+    </form>
+  </div>
+</div>
+
+<div id="app" class="wrap hidden">
+  <div class="tabs" id="tabs">
+    <button type="button" data-tab="numbers" class="on">Buy numbers</button>
+    <button type="button" data-tab="email">Temp email</button>
+    <button type="button" data-tab="rental">Rentals</button>
+    <button type="button" data-tab="boost">Boosting</button>
+    <button type="button" data-tab="boost2">Boosting 2 (review)</button>
+  </div>
+  <div class="card"><input id="q" placeholder="Filter by customer, email, service, number…" autocomplete="off"/></div>
+  <div class="stats" id="stats"></div>
+  <div class="card tbl"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table><div class="msg" id="msg"></div><p class="note" id="note"></p></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  if (window.top !== window.self) document.documentElement.classList.add('embed');
+  var KEY = 'ksl_admin_pass';
+  var pass = '';
+  try { pass = sessionStorage.getItem(KEY) || ''; } catch (e) {}
+  var tab = 'numbers';
+  var cache = {};           // tab -> rows (normalised)
+  var usersById = null;     // id -> user, for mapping otp-suite userIds to names
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function naira(n) { var v = Number(n) || 0; return '₦' + v.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+  function when(d) { return d ? new Date(d).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : '—'; }
+
+  async function api(path) {
+    var r = await fetch(path, { headers: { 'x-admin-passcode': pass } });
+    var d = {};
+    try { d = await r.json(); } catch (e) {}
+    if (!r.ok) throw new Error(d.error || ('Request failed (' + r.status + ')'));
+    return d;
+  }
+
+  function showGate(err){ if(window.__admExpired) window.__admExpired(err); } function __unusedGate(err) { $('app').classList.add('hidden'); $('gate').classList.remove('hidden'); $('gateMsg').textContent = err || ''; $('passIn').focus(); }
+  function showApp() { $('gate').classList.add('hidden'); $('app').classList.remove('hidden'); load(tab); }
+
+  $('gateForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    pass = $('passIn').value.trim();
+    try { await api('/api/admin/users?limit=1'); try { sessionStorage.setItem(KEY, pass); } catch (x) {} showApp(); }
+    catch (err) { pass = ''; showGate('Wrong passcode.'); }
+  });
+  $('lockBtn').addEventListener('click', function () { pass = ''; try { sessionStorage.removeItem(KEY); } catch (e) {} cache = {}; showGate(''); });
+
+  $('tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-tab]');
+    if (!b) return;
+    tab = b.dataset.tab;
+    Array.prototype.forEach.call($('tabs').querySelectorAll('button'), function (x) { x.classList.toggle('on', x === b); });
+    load(tab);
+  });
+  $('q').addEventListener('input', render);
+
+  async function getUsers() {
+    if (!usersById) {
+      var list = await api('/api/admin/users');
+      usersById = {};
+      list.forEach(function (u) { usersById[u._id] = u; });
+    }
+    return usersById;
+  }
+
+  // Each loader returns rows in one shape:
+  // { when, customer, email, item, detail, amount, status, statusClass }
+  var loaders = {
+    numbers: async function () {
+      var rows = await api('/api/admin/numbers/orders?limit=200');
+      return rows.map(function (r) {
+        var st = r.status === 'delivered' ? ['Delivered', 'ok'] : r.status === 'expired' ? ['Expired', 'off'] : r.status === 'cancelled' ? ['Cancelled', 'off'] : r.providerError ? ['Error', 'bad'] : ['Waiting', 'wait'];
+        return { when: r.createdAt, customer: r.user || '—', email: '', item: (r.server === 'server2' ? 'Buy Number 2' : 'Buy Number 1') + ' · ' + (r.provider || ''),
+          detail: (r.country || '') + ' · ' + (r.phoneNumber || '') + (r.code ? ' · code ' + r.code : ''), amount: r.sellPrice, status: st[0], statusClass: st[1] };
+      });
+    },
+    email: async function () {
+      return otpRows('email');
+    },
+    rental: async function () {
+      return otpRows('rental');
+    },
+    boost: async function () {
+      var d = await api('/api/admin/boost/orders');
+      var t = d.totals || {};
+      cache.boostTotals = t;
+      return (d.orders || []).map(function (o) {
+        var c = o.status === 'Completed' || o.bucket === 'delivered' ? ['Delivered', 'ok'] : o.refunded ? ['Refunded', 'off'] : o.bucket === 'failed' ? ['Failed', 'bad'] : ['In progress', 'wait'];
+        return { when: o.createdAt, customer: o.customer ? o.customer.name : '—', email: o.customer ? o.customer.email : '',
+          item: o.service || '', detail: (o.quantity ? o.quantity + ' units · ' : '') + (o.link || ''), amount: o.price, profit: o.profitNgn, status: c[0], statusClass: c[1] };
+      });
+    },
+    boost2: async function () {
+      var rows = await api('/api/admin/boost2/orders');
+      return rows.map(function (r) {
+        var map = {
+          completed: ['Delivered', 'ok'], delivered: ['Delivered', 'ok'],
+          pending: ['Pending', 'wait'], processing: ['Processing', 'wait'], review: ['Needs review', 'wait'], refunding: ['Refunding', 'wait'],
+          refunded: ['Refunded', 'off'], failed: ['Failed', 'bad'], cancelled: ['Cancelled', 'off']
+        };
+        var st = map[String(r.status || '').toLowerCase()] || [String(r.status || '\u2014'), 'off'];
+        return { when: r.createdAt, customer: r.userName || '\u2014', email: r.userEmail || '', item: r.itemName || '',
+          detail: (r.quantity ? r.quantity + ' units \u00B7 ' : '') + (r.link || ''), amount: r.amount, status: st[0], statusClass: st[1] };
+      });
+    }
+  };
+
+  async function otpRows(kind) {
+    var users = await getUsers();
+    var all = await api('/api/admin/otp-suite/orders');
+    return all.filter(function (r) { return r.type === kind; }).map(function (r) {
+      var u = users[r.userId];
+      var st = r.refunded ? ['Refunded', 'off'] : r.status === 'done' || r.status === 'delivered' || r.status === 'received' ? ['Delivered', 'ok'] : r.status === 'failed' || r.lastError ? ['Error', 'bad'] : ['Waiting', 'wait'];
+      return { when: r.createdAt, customer: u ? u.name : '—', email: u ? u.email : '', item: r.service || '', detail: r.number || '', amount: r.price, status: st[0], statusClass: st[1] };
+    });
+  }
+
+  async function load(name) {
+    $('msg').textContent = '';
+    $('tbody').innerHTML = '<tr><td class="mut">Loading…</td></tr>';
+    try {
+      if (!cache[name]) cache[name] = await loaders[name]();
+      render();
+    } catch (err) {
+      $('tbody').innerHTML = '';
+      $('msg').textContent = err.message;
+    }
+  }
+
+  var HEAD = {
+    numbers: ['When', 'Customer', 'Service', 'Number / code', 'Price', 'Status'],
+    email: ['When', 'Customer', 'Site', 'Temp email', 'Price', 'Status'],
+    rental: ['When', 'Customer', 'Service', 'Rented number', 'Price', 'Status'],
+    boost: ['When', 'Customer', 'Service', 'Details', 'Price', 'Profit', 'Status'],
+    boost2: ['When', 'Customer', 'Service', 'Details', 'Amount', 'Status']
+  };
+
+  function render() {
+    var rows = cache[tab] || [];
+    var q = $('q').value.trim().toLowerCase();
+    var shown = q ? rows.filter(function (r) {
+      return [r.customer, r.email, r.item, r.detail].join(' ').toLowerCase().indexOf(q) > -1;
+    }) : rows;
+
+    $('thead').innerHTML = '<tr>' + HEAD[tab].map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr>';
+    var cols = HEAD[tab].length;
+    $('tbody').innerHTML = shown.length ? shown.map(function (r) {
+      var cells = [
+        '<td>' + when(r.when) + '</td>',
+        '<td><b>' + esc(r.customer) + '</b>' + (r.email ? '<div class="mut">' + esc(r.email) + '</div>' : '') + '</td>',
+        '<td>' + esc(r.item) + '</td>',
+        '<td class="mut">' + esc(r.detail) + '</td>',
+        '<td>' + naira(r.amount) + '</td>'
+      ];
+      if (tab === 'boost') cells.push('<td>' + naira(r.profit) + '</td>');
+      cells.push('<td><span class="tag ' + r.statusClass + '">' + esc(r.status) + '</span></td>');
+      return '<tr>' + cells.join('') + '</tr>';
+    }).join('') : '<tr><td colspan="' + cols + '" class="mut">No orders to show.</td></tr>';
+
+    var stats = [];
+    stats.push(['Orders shown', shown.length]);
+    var total = shown.reduce(function (s, r) { return s + (Number(r.amount) || 0); }, 0);
+    stats.push(['Value shown', naira(total)]);
+    if (tab === 'boost' && cache.boostTotals) {
+      stats.push(['All-time profit', naira(cache.boostTotals.profit)]);
+    }
+    $('stats').innerHTML = stats.map(function (s) {
+      return '<div class="stat"><small>' + esc(s[0]) + '</small><b>' + esc(s[1]) + '</b></div>';
+    }).join('');
+
+    $('note').textContent = tab === 'boost2'
+      ? 'Shows Boosting 2 orders that are pending, need review or are being refunded.'
+      : (tab === 'numbers' ? 'Shows the 200 most recent number sales across both servers.'
+      : 'Shows the most recent records. Filter by customer name or email above.');
+  }
+
+  if (pass) {
+    api('/api/admin/users?limit=1').then(showApp).catch(function () { showGate(''); });
+  } else {
+    showGate('');
+  }
+})();
+</script>
+</body>
+</html>
