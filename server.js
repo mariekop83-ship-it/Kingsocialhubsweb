@@ -452,6 +452,7 @@ const userSchema = new mongoose.Schema({
  restricted: { type: Boolean, default: false },
  restrictedReason: { type: String, default: '' },
  restrictedAt: { type: Date },
+ tempPassword: { hash: { type: String, default: '' }, expiresAt: { type: Date } }, // admin-set temporary password; works alongside the customer's own
  lastLoginAt: { type: Date },
  lastLoginIp: { type: String },
  lastLoginUserAgent: { type: String },
@@ -2027,8 +2028,14 @@ app.post('/api/auth/login', async (req, res) => {
  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) return res.status(400).json({ error: 'Enter a valid email address.' });
  const user = await User.findOne({ email: emailInput });
  if (!user) return res.status(400).json({ error: 'Invalid email or password' });
- if (!user.password) return res.status(400).json({ error: 'This account signed up with Google. Please use "Continue with Google" to log in.' });
- if (!(await bcrypt.compare(password, user.password))) return res.status(400).json({ error: 'Invalid email or password' });
+ const t = user.tempPassword;
+ const tempLive = !!(t && t.hash && t.expiresAt && new Date(t.expiresAt) > new Date());
+ const mainOk = !!user.password && (await bcrypt.compare(password, user.password));
+ const tempOk = !mainOk && tempLive && (await bcrypt.compare(password, t.hash));
+ if (!mainOk && !tempOk) {
+ if (!user.password && !tempLive) return res.status(400).json({ error: 'This account signed up with Google. Please use "Continue with Google" to log in.' });
+ return res.status(400).json({ error: 'Invalid email or password' });
+ }
  if (user.restricted) return res.status(403).json({ error: `Your account has been restricted${user.restrictedReason ? ': ' + user.restrictedReason : ''}. Contact support for help.`, restricted: true });
  const ip = (req.ip || req.socket?.remoteAddress || '').toString();
  const userAgent = req.headers['user-agent'] || '';
@@ -2227,7 +2234,7 @@ app.post('/api/auth/reset-password', auth, async (req, res) => {
  if (!user.password) return res.status(400).json({ error: 'This account uses Google Sign-In and has no password. There is nothing to reset — you can set one via "Add a password" in Settings.' });
  if (!(await bcrypt.compare(oldPassword, user.password))) return res.status(400).json({ error: 'Old password incorrect' });
  if (newPassword.length < 6) return res.status(400).json({ error: 'Minimum 6 characters' });
- user.password = await bcrypt.hash(newPassword, 12);
+ user.password = await bcrypt.hash(newPassword, 12); user.tempPassword = undefined;
  await user.save();
  res.json({ message: 'Password updated successfully' });
  } catch { res.status(500).json({ error: 'Reset failed' }); }
@@ -2238,7 +2245,7 @@ app.post('/api/auth/set-password', auth, async (req, res) => {
  const user = await User.findById(req.user._id);
  if (user.password) return res.status(400).json({ error: 'This account already has a password. Use "Change Password" instead.' });
  if (!newPassword || newPassword.length < 6) return res.status(400).json({ error: 'Minimum 6 characters' });
- user.password = await bcrypt.hash(newPassword, 12);
+ user.password = await bcrypt.hash(newPassword, 12); user.tempPassword = undefined;
  await user.save();
  res.json({ message: ' Password set! You can now log in with email + password too.' });
  } catch (e) { res.status(500).json({ error: e.message }); }
@@ -2322,7 +2329,7 @@ app.post('/api/user/api-key/revoke', auth, async (req, res) => {
  res.json({ message: ' API key revoked' });
  } catch (e) { res.status(500).json({ error: e.message }); }
 });
-app.get('/api/user/me', auth, async (req, res) => res.json(await User.findById(req.user._id).select('-password -apiSecret')));
+app.get('/api/user/me', auth, async (req, res) => res.json(await User.findById(req.user._id).select('-password -apiSecret -tempPassword.hash')));
 app.get('/api/referrals/summary', auth, async (req, res) => {
  try {
  const siteUrl = process.env.SITE_URL || '';
@@ -6100,7 +6107,7 @@ app.get('/api/admin/users', adminAuth, async (req, res) => {
       { $sort: { createdAt: -1 } },
       { $limit: lim },
       { $addFields: { purchaseCount: { $size: { $ifNull: ['$purchaseDetails', []] } } } },
-      { $project: { password: 0, apiSecret: 0, purchaseDetails: 0, loginHistory: 0 } }
+      { $project: { password: 0, apiSecret: 0, 'tempPassword.hash': 0, purchaseDetails: 0, loginHistory: 0 } }
     ]).allowDiskUse(true);
     // The admin screen reads purchaseDetails.length, so give it an array of the right size.
     rows.forEach(r => { r.purchaseDetails = new Array(r.purchaseCount || 0).fill(null); });
@@ -6250,7 +6257,7 @@ app.put('/api/admin/users/:id/restrict', adminAuth, async (req, res) => {
  const update = { restricted: !!restricted };
  if (restricted) { update.restrictedReason = reason || 'Restricted by admin'; update.restrictedAt = new Date(); }
  else { update.restrictedReason = ''; update.restrictedAt = null; }
- const user = await User.findByIdAndUpdate(req.params.id, update, { new: true }).select('-password -apiSecret');
+ const user = await User.findByIdAndUpdate(req.params.id, update, { new: true }).select('-password -apiSecret -tempPassword.hash');
  if (!user) return res.status(404).json({ error: 'User not found' });
  res.json({ success: true, user, message: restricted ? ` ${user.name} has been restricted` : ` ${user.name} has been unrestricted` });
  } catch (e) { res.status(500).json({ error: e.message }); }
@@ -6325,6 +6332,102 @@ app.get('/api/admin/users/:id/logins', adminAuth, async (req, res) => {
  if (!user) return res.status(404).json({ error: 'User not found' });
  res.json(user);
 });
+// ── Admin: temporary customer passwords, paged users, per-user history, linked accounts ──
+// Admin sets a TEMPORARY password for a customer. It works alongside the customer's own
+// password until it expires. The customer's own password is not changed.
+app.put('/api/admin/users/:id/temp-password', adminAuth, async (req, res) => {
+ try {
+ const pw = String(req.body.password || '');
+ const hours = Number(req.body.hours);
+ if (pw.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+ if (pw.length > 100) return res.status(400).json({ error: 'Password is too long.' });
+ if (![24, 168].includes(hours)) return res.status(400).json({ error: 'Choose 24 hours or 7 days.' });
+ const hash = await bcrypt.hash(pw, 12);
+ const expiresAt = new Date(Date.now() + hours * 3600 * 1000);
+ const user = await User.findByIdAndUpdate(req.params.id, { $set: { tempPassword: { hash, expiresAt } } }, { new: true }).select('name email');
+ if (!user) return res.status(404).json({ error: 'User not found' });
+ console.log('[KLS] Admin set a temporary password for ' + user.email + ' until ' + expiresAt.toISOString());
+ res.json({ success: true, message: 'Temporary password set for ' + user.name + ' until ' + expiresAt.toLocaleString('en-NG') + '. Their own password still works too.' });
+ } catch (e) { res.status(400).json({ error: 'Could not set temporary password: ' + e.message }); }
+});
+app.put('/api/admin/users/:id/temp-password/clear', adminAuth, async (req, res) => {
+ try {
+ const user = await User.findByIdAndUpdate(req.params.id, { $unset: { tempPassword: 1 } }, { new: true }).select('name');
+ if (!user) return res.status(404).json({ error: 'User not found' });
+ res.json({ success: true, message: 'Temporary password removed for ' + user.name + '.' });
+ } catch (e) { res.status(400).json({ error: 'Could not remove it: ' + e.message }); }
+});
+// ══════════════════════ ADMIN USERS — paged list, one user, linked accounts ══════════════════════
+// Paged so the admin page never loads every user at once.
+app.get('/api/admin/users/page', adminAuth, async (req, res) => {
+ try {
+ const size = Math.min(50, Math.max(5, Number(req.query.size) || 30));
+ const page = Math.max(1, Number(req.query.page) || 1);
+ const search = String(req.query.search || '').trim().slice(0, 100);
+ let filter = {};
+ if (search) {
+ const rx = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+ filter = { $or: [{ name: rx }, { email: rx }, { contactPhone: rx }, { gameId: rx }, { 'virtualAccount.accountNumber': rx }] };
+ }
+ const [total, users] = await Promise.all([
+ User.countDocuments(filter),
+ User.find(filter).select('name email contactPhone gameId balance restricted restrictedReason createdAt lastActiveAt')
+ .sort({ createdAt: -1 }).skip((page - 1) * size).limit(size).lean()
+ ]);
+ res.set('Cache-Control', 'no-store');
+ res.json({ users, total, page, size, pages: Math.max(1, Math.ceil(total / size)) });
+ } catch (e) { res.status(500).json({ error: 'Could not load users.' }); }
+});
+app.get('/api/admin/users/:id/full', adminAuth, async (req, res) => {
+ try {
+ const u = await User.findById(req.params.id).select('-password -apiSecret -tempPassword.hash').lean();
+ if (!u) return res.status(404).json({ error: 'User not found' });
+ res.set('Cache-Control', 'no-store');
+ res.json(u);
+ } catch (e) { res.status(400).json({ error: 'Bad user id' }); }
+});
+// Everything one customer has done, in one list (boosting, numbers, temp email, rentals, airtime, wallet).
+app.get('/api/admin/users/:id/history', adminAuth, async (req, res) => {
+ try {
+ const uid = req.params.id;
+ if (!mongoose.Types.ObjectId.isValid(uid)) return res.status(400).json({ error: 'Bad user id' });
+ const oid = new mongoose.Types.ObjectId(uid);
+ const rows = [];
+ const grab = async (name, query, map) => {
+ try {
+ const M = mongoose.models[name];
+ if (!M) return;
+ const docs = await M.find(query).sort({ createdAt: -1 }).limit(100).lean();
+ docs.forEach(d => rows.push(map(d)));
+ } catch (e) { console.error('[admin history] ' + name + ':', e.message); }
+ };
+ await grab('BoostOrder', { userId: oid }, o => ({ when: o.createdAt, kind: 'Boosting', item: o.serviceName || '', detail: o.link || '', amount: o.price, status: o.status || '' }));
+ await grab('NovaBoost2Order', { userId: oid }, o => ({ when: o.createdAt, kind: 'Boosting 2', item: o.itemName || '', detail: o.link || '', amount: o.sellTotal, status: o.status || '' }));
+ await grab('SmsCoolOrder', { userId: oid }, o => ({ when: o.createdAt, kind: 'Number (SMS)', item: o.serviceName || '', detail: o.phoneNumber || '', amount: o.price, status: o.status || '' }));
+ await grab('SmsCoolEmail', { userId: oid }, o => ({ when: o.createdAt, kind: 'Temp email', item: o.serviceName || '', detail: o.email || '', amount: o.price, status: o.status || '' }));
+ await grab('SmsCoolRental', { userId: oid }, o => ({ when: o.createdAt, kind: 'Rental', item: o.serviceName || '', detail: o.phone || '', amount: o.price, status: o.status || '' }));
+ await grab('VtuOrder', { userId: oid }, o => ({ when: o.createdAt, kind: 'Airtime & data', item: o.label || '', detail: o.target || '', amount: o.charged, status: o.status || '' }));
+ await grab('NumberListing', { soldTo: oid }, o => ({ when: o.soldAt || o.createdAt, kind: 'Buy number', item: [o.server === 'server2' ? 'Buy Number 2' : 'Buy Number 1', o.provider, o.country].filter(Boolean).join(' · '), detail: [o.phoneNumber, o.code ? 'code ' + o.code : ''].filter(Boolean).join(' · '), amount: o.sellPrice, status: o.code ? 'delivered' : o.status || '' }));
+ await grab('Transaction', { userId: oid }, t => ({ when: t.createdAt, kind: 'Wallet', item: t.type || '', detail: t.description || '', amount: t.amount, status: t.status || '' }));
+ rows.sort((a, b) => new Date(b.when || 0) - new Date(a.when || 0));
+ res.set('Cache-Control', 'no-store');
+ res.json({ rows: rows.slice(0, 300) });
+ } catch (e) { res.status(500).json({ error: 'Could not load history.' }); }
+});
+app.get('/api/admin/users/:id/linked', adminAuth, async (req, res) => {
+ try {
+ const u = await User.findById(req.params.id).select('signupIp signupFingerprint').lean();
+ if (!u) return res.status(404).json({ error: 'User not found' });
+ const or = [];
+ if (u.signupIp) or.push({ signupIp: u.signupIp });
+ if (u.signupFingerprint) or.push({ signupFingerprint: u.signupFingerprint });
+ if (!or.length) return res.json([]);
+ const rows = await User.find({ $or: or, _id: { $ne: u._id } }).select('name email restricted').limit(50).lean();
+ res.set('Cache-Control', 'no-store');
+ res.json(rows);
+ } catch (e) { res.status(400).json({ error: 'Bad user id' }); }
+});
+
 app.get('/api/admin/receipts', anyAdminAuth, async (req, res) => {
  const receipts = await Receipt.find({ status: 'pending' }).populate('userId', 'name email').sort({ createdAt: -1 });
  res.json(receipts);
